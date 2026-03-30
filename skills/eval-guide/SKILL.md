@@ -121,7 +121,21 @@ Using the Agent Vision, produce a structured eval suite plan. This works whether
 
 ### What to do
 
-1. **Match to scenario types:**
+1. **Determine eval depth from agent architecture:**
+
+   Different agent architectures require different eval layers. Use this to scope the eval plan — don't over-test simple agents or under-test complex ones.
+
+   | Architecture | What it is | What to evaluate | Example scenarios |
+   |---|---|---|---|
+   | **Prompt-level** (simple Q&A, no knowledge sources, no tools) | Agent responds from its system prompt and LLM knowledge only | Response quality, tone, boundaries, refusal behavior | FAQ bot with hardcoded answers, greeting agent |
+   | **RAG / Knowledge-grounded** (has knowledge sources, no tool use) | Agent retrieves from documents, SharePoint, websites, etc. | Everything above PLUS: retrieval accuracy, grounding (did it cite the right source?), hallucination prevention, completeness | HR policy bot, IT knowledge base agent |
+   | **Agentic** (multi-step, tool use, orchestration) | Agent calls APIs, uses connectors, makes decisions, chains actions | Everything above PLUS: tool selection accuracy, action correctness, error recovery, multi-turn context retention, task completion rate | Expense submission agent, incident triage bot, booking agent |
+
+   **Tell the customer:** "Your agent is [architecture type], which means we need to test [these layers]. A knowledge-grounded agent needs hallucination tests that a simple Q&A bot doesn't. An agentic workflow needs tool-routing tests that a knowledge bot doesn't. This scopes your eval so you're testing what actually matters."
+
+   **Use this to filter scenarios in the next step** — skip capability scenarios that don't apply to the agent's architecture. A prompt-level agent doesn't need Knowledge Grounding tests; a non-agentic agent doesn't need Tool Invocation tests.
+
+2. **Match to scenario types:**
 
 | If the agent... | Business-problem scenarios | Capability scenarios |
 |---|---|---|
@@ -135,7 +149,7 @@ Using the Agent Vision, produce a structured eval suite plan. This works whether
 
 **Explain your picks:** "Based on your Agent Vision, I'm selecting Information Retrieval and Knowledge Grounding because your agent answers from policy documents. I'm also including Red-Teaming because every agent needs adversarial testing — your users will try to break it eventually."
 
-2. **Produce the eval plan:**
+3. **Produce the eval plan:**
 
 **Scenario plan table:**
 

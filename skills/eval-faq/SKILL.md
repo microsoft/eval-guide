@@ -255,6 +255,27 @@ Per MS Learn's evaluation frameworks (11 scenario validation themes):
 - Use simulated environments for eval. Never run evals against production systems.
 - Monitor intermediate outputs with validators at each pipeline step.
 
+### Simple Q&A vs. multi-step agent: what changes in eval
+
+The evaluation approach differs significantly based on agent complexity:
+
+| Dimension | Simple Q&A agent | Multi-step / agentic workflow |
+|---|---|---|
+| **Primary metric** | Response accuracy (Compare Meaning, General Quality) | Task completion — did the end-to-end job get done? |
+| **Grading unit** | Single turn: one input, one output | Conversation or trajectory: full sequence of steps |
+| **Key quality signals** | Source Attribution, Policy Accuracy | Action Enablement, Tool Invocations (Capability Use), plus all Q&A signals |
+| **Test method mix** | Heavy on Compare Meaning + General Quality | Add Capability Use for tool calls, Keyword Match for intermediate checkpoints |
+| **Failure modes to watch** | Wrong answer, hallucination, refusal | Compounding errors, wrong tool selection, unnecessary steps, partial completion |
+| **Edge cases** | Ambiguous queries, out-of-scope questions | Mid-workflow failures, tool timeouts, user corrections mid-conversation |
+| **Eval complexity** | Low — deterministic input/output pairs work well | High — must evaluate intermediate steps AND final outcome |
+
+**Practical guidance:**
+- **Start with Q&A-style eval even for agentic workflows.** Verify the agent produces correct final answers before evaluating the path it takes. A wrong answer via the right tools is still wrong.
+- **Add tool-call eval (Capability Use) only after response quality is stable.** Per the Scenario Library, tool invocation testing checks three things: right tool, right arguments, necessary invocation.
+- **Grade outcomes, not paths.** Two valid tool sequences can produce the same correct result. Per the Eval Scenario Library, do not grade tool-call sequences rigidly.
+- **Watch for the orchestration gap.** Per MS Learn's evaluation frameworks, components scoring 95% individually can fail 40-60% end-to-end. Always run conversation-level evaluation, not just turn-level.
+- **Budget more test cases.** A Q&A agent might need 20-30 cases for meaningful signal. A multi-step workflow with 3+ tools needs 50-100 to cover tool combinations and failure recovery paths.
+
 ### Swiss cheese model of eval coverage
 
 No single eval method catches every failure. Per the Eval Scenario Library's 4 evaluation methods and the Triage Playbook's multi-layer approach:
@@ -368,6 +389,7 @@ After answering the question, check whether the user would benefit from running 
 /eval-faq What eval platform or tool should I use?
 /eval-faq My agent passes evals but fails in production — why?
 /eval-faq How do I score intermediate steps in a multi-step agent?
+/eval-faq How is evaluating a multi-step workflow different from a simple Q&A agent?
 /eval-faq What does 0% pass@100 mean — is my agent broken?
 /eval-faq How do I avoid LLM judge bias in my grader?
 /eval-faq What are the 5 quality signals I should evaluate?

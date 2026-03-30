@@ -88,6 +88,24 @@ Copilot Studio offers **multiple ways** to create single-response test sets beyo
 
 Tell the customer: "CSV import gives you precision — every case tests a specific scenario you designed. Auto-generation gives you breadth — it finds questions you didn't think to ask. Use both."
 
+### Step 0d — Choose test data generation approach
+
+Per the MS Learn [Common evaluation approaches](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/architecture/common-evaluation-approaches), there are three strategies for generating request-response pairs. The choice affects multi-turn fidelity, cost, and what kinds of failures you can detect:
+
+| Approach | How it works | Strengths | Weaknesses | Best for |
+|---|---|---|---|---|
+| **Echo** | Replay a static list of prompts word-for-word | Low cost; fair A/B comparisons when changing one variable (model upgrade, single tool change) | Can’t adapt to different responses — later turns may not match conversation context | Single-turn scenarios, deterministic checks (citation display, tool trigger, simple Q&A) |
+| **Historical replay** | Replay each turn in context of prior prompts and responses | Detects where and how much each turn diverges from the ideal path | Still can’t handle truly dynamic conversations (learning, real-time web search) | Model change comparisons, understanding per-turn divergence from baseline behavior |
+| **Synthesized personas** | A human or agentic actor generates conversation in real time based on a scenario and persona | Dynamically assesses complex scenarios (tutoring, negotiation, multi-step troubleshooting) | Grading requires nuance; higher cost (LLM or human tester per conversation) | Multi-turn agents, complex workflows, persona-dependent behavior |
+
+**How to recommend:**
+- **Simple FAQ / knowledge agents** → Echo is sufficient. Most test cases are single-turn with deterministic expected answers.
+- **Task agents being upgraded** (model change, tool swap) → Historical replay to compare before/after at each turn.
+- **Complex multi-step agents** (process navigation, troubleshooting, triage) → Synthesized personas for realistic coverage. Echo won’t catch context-dependent failures.
+- **Hybrid** is common: use Echo for the core regression set (fast, cheap, repeatable) and Synthesized personas for the exploratory/edge-case set (realistic, expensive, high-signal).
+
+Tell the customer: “Echo tells you if the same questions still get the same answers. Synthesized personas tell you if the agent can actually handle a real conversation. You need both — Echo for speed, personas for truth.”
+
 ### Output structure
 
 **1. One-line summary**
