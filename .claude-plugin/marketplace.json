@@ -1,0 +1,17 @@
+{
+  "name": "eval-guide",
+  "owner": {
+    "name": "Serena Xie"
+  },
+  "metadata": {
+    "description": "AI agent evaluation toolkit for Copilot Studio — plan, generate, run, and interpret evals"
+  },
+  "plugins": [
+    {
+      "name": "eval-guide",
+      "description": "AI agent evaluation toolkit for Copilot Studio. Plan evals, generate test cases, interpret results, and triage failures.",
+      "version": "1.0.0",
+      "source": "./"
+    }
+  ]
+}
