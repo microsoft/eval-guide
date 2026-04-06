@@ -1,0 +1,118 @@
+# ============================================================
+# Sample Agent: Contoso Benefits Assistant
+# ============================================================
+# Use this file as input to /eval-guide or the eval-guide prompt.
+# It describes a realistic Copilot Studio agent with enough detail
+# to generate a full eval plan and test cases.
+#
+# Usage:
+#   Claude Code:    /eval-guide   then paste or reference this file
+#   GitHub Copilot: Attach eval-guide.prompt.md, then reference this file
+# ============================================================
+
+agent:
+  name: Contoso Benefits Assistant
+  description: >
+    A Copilot Studio agent that helps Contoso employees understand and
+    navigate their benefits, time off policies, and workplace resources.
+    Deployed in Microsoft Teams for all 5,000+ employees across
+    3 offices (Los Angeles, New York, Hong Kong).
+
+  architecture: rag  # knowledge-grounded, no tool/API use
+
+  model: GPT-4o
+
+  users:
+    - Internal employees (all levels: IC, manager, director+)
+    - Non-technical, asking questions in natural language via Teams
+    - Span 3 countries with different local policies
+
+  knowledge_sources:
+    - name: Time Off Policy
+      type: SharePoint document
+      covers: >
+        PTO allotments by office and level, sick leave, FMLA,
+        bereavement, parental leave, carryover limits, approval process
+      sample_facts:
+        - "LA individual contributors get 18 PTO days/year"
+        - "NYC carryover limit is 7 days"
+        - "Hong Kong employees get 7 paid sick days"
+        - "Parental leave: 14 weeks paid after 6 months tenure"
+        - "Bereavement: 5 days immediate family, 2 days extended"
+
+    - name: IT Security Guide
+      type: SharePoint document
+      covers: >
+        Device safety, malware prevention, VPN requirements,
+        remote work security, incident reporting
+      sample_facts:
+        - "Run malware scans weekly"
+        - "Cybersecurity Hotline: +1 (425) 555-9111 (24/7)"
+        - "Always use company VPN on public Wi-Fi"
+        - "Report lost devices to lostdevice@contoso-it.com"
+
+  capabilities:
+    - Policy lookup with source citation
+    - Time off guidance (PTO, leave types, carryover, approval)
+    - IT security guidance (device safety, VPN, incident reporting)
+    - Personalization by office location and employee level
+    - Emotional intelligence (empathetic responses to grief, burnout, stress)
+    - Clarification for ambiguous queries before answering
+    - Escalation to human HR for sensitive/legal matters
+
+  boundaries:
+    - No salary or compensation data
+    - No legal, medical, or financial advice
+    - No policy exceptions or gray-area interpretations
+    - No employee ranking or profiling
+    - No speculation about confidential matters
+    - Escalates harassment/discrimination to human HR
+
+  topics:
+    - name: Conversation Start
+      trigger: system event (new conversation)
+      behavior: Greets user by name, offers help with HR questions
+
+    - name: Seek Clarification
+      trigger: ambiguous queries ("How do I request time off?", "How does carryover work?")
+      behavior: Asks follow-up to determine specific type before answering
+
+    - name: Emotional Intelligence
+      trigger: emotional signals (grief, burnout, stress, anxiety)
+      behavior: Empathetic acknowledgment first, then resources (EAP, leave options)
+
+    - name: Sensitive Topics
+      trigger: harassment, discrimination, legal concerns
+      behavior: Directs to human HR, does not attempt to handle
+
+    - name: Agent Handoff
+      trigger: explicit request for human ("talk to HR", "escalate", "legal matter")
+      behavior: Offers connection to HR representative with skip option
+
+    - name: Crafted Response (Compa-ratio)
+      trigger: "what is my compa-ratio"
+      behavior: Displays Adaptive Card with official answer
+
+  personalization:
+    variables:
+      - user_name (from Azure AD)
+      - job_title / level (IC, Manager, Director+)
+      - country_code (US-LA, US-NYC, HK)
+      - is_manager (boolean)
+    behavior: >
+      Augments search queries with user context.
+      "What are the public holidays?" becomes
+      "public holidays in [user's country]".
+
+  risk_profile: medium
+  # Internal-facing, HR policy data, employee trust at stake
+  # Not customer-facing, not handling transactions
+
+  success_criteria:
+    - Accurate policy answers grounded in source documents
+    - Source citation in every factual response
+    - Less than 5% hallucination rate on out-of-scope topics
+    - Appropriate escalation for sensitive/legal topics
+    - Empathetic tone for emotional situations
+    - Correct personalization by country and employee level
+    - Clarification before answering ambiguous queries
