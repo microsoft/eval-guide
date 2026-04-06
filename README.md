@@ -1,31 +1,53 @@
 # eval-guide
 
-AI agent evaluation toolkit for [Copilot Studio](https://copilotstudio.microsoft.com). Plan evals, generate test cases, interpret results, and triage failures — all from Claude Code.
+AI agent evaluation toolkit for [Copilot Studio](https://copilotstudio.microsoft.com). Plan evals, generate test cases, interpret results, and triage failures — from Claude Code or GitHub Copilot.
 
 Grounded in Microsoft's [Eval Scenario Library](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/evaluation-checklist), [Triage & Improvement Playbook](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/evaluation-iterative-framework), [Common Evaluation Approaches](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/architecture/common-evaluation-approaches), and MS Learn agent evaluation documentation.
 
 ## Install
 
+### Claude Code
+
 ```bash
 claude plugin add microsoft/eval-guide
 ```
 
-## Skills
+### GitHub Copilot
 
-| Skill | Command | What it does |
-|-------|---------|-------------|
-| **Eval Guide** | `/eval-guide` | Full eval lifecycle — discover, plan, generate, run, interpret. Start here. |
-| **Eval Suite Planner** | `/eval-suite-planner` | Structured eval plan with scenarios, methods, quality signals, thresholds, and test data strategy |
-| **Eval Generator** | `/eval-generator` | Test cases for single-response and conversation (multi-turn) evaluation modes |
-| **Eval Result Interpreter** | `/eval-result-interpreter` | SHIP / ITERATE / BLOCK verdict with root cause classification |
-| **Eval Triage & Improvement** | `/eval-triage-and-improvement` | Interactive diagnosis and remediation for failing evals |
-| **Eval FAQ** | `/eval-faq` | Methodology questions answered from Microsoft's eval ecosystem |
+No installation needed. Clone this repo and the prompt files are automatically available:
+
+1. Open the repo in VS Code (or any IDE with GitHub Copilot)
+2. In Copilot Chat, attach a prompt file from `.github/prompts/` to start an eval workflow
+3. `AGENTS.md` is automatically loaded by Copilot's agent mode for routing guidance
+
+> **Tip:** Enable `"chat.promptFiles": true` in your VS Code workspace settings to use prompt files.
+
+## Skills / Prompts
+
+| Skill | Claude Code | GitHub Copilot | What it does |
+|-------|------------|----------------|-------------|
+| **Eval Guide** | `/eval-guide` | [eval-guide.prompt.md](.github/prompts/eval-guide.prompt.md) | Full eval lifecycle — discover, plan, generate, run, interpret. Start here. |
+| **Eval Suite Planner** | `/eval-suite-planner` | [eval-suite-planner.prompt.md](.github/prompts/eval-suite-planner.prompt.md) | Structured eval plan with scenarios, methods, quality signals, thresholds, and test data strategy |
+| **Eval Generator** | `/eval-generator` | [eval-generator.prompt.md](.github/prompts/eval-generator.prompt.md) | Test cases for single-response and conversation (multi-turn) evaluation modes |
+| **Eval Result Interpreter** | `/eval-result-interpreter` | [eval-result-interpreter.prompt.md](.github/prompts/eval-result-interpreter.prompt.md) | SHIP / ITERATE / BLOCK verdict with root cause classification |
+| **Eval Triage & Improvement** | `/eval-triage-and-improvement` | [eval-triage-and-improvement.prompt.md](.github/prompts/eval-triage-and-improvement.prompt.md) | Interactive diagnosis and remediation for failing evals |
+| **Eval FAQ** | `/eval-faq` | [eval-faq.prompt.md](.github/prompts/eval-faq.prompt.md) | Methodology questions answered from Microsoft's eval ecosystem |
 
 ## Quick start
+
+### Claude Code
 
 ```
 > /eval-guide
 
+Tell me about your agent — what does it do, who uses it, and what does "good" look like?
+```
+
+### GitHub Copilot
+
+In Copilot Chat, attach the `eval-guide.prompt.md` prompt file, then ask:
+
+```
 Tell me about your agent — what does it do, who uses it, and what does "good" look like?
 ```
 
@@ -85,7 +107,7 @@ Most agents benefit from a hybrid: Echo for fast regression, Synthesized persona
 | `/eval-triage-and-improvement` | Interactive remediation guidance with specific fixes per quality signal |
 | `/eval-faq` | Answers grounded in MS Learn, Eval Scenario Library, Triage Playbook |
 
-## Enhanced experience with Copilot Studio plugin
+## Enhanced experience with Copilot Studio plugin (Claude Code)
 
 For the full experience — connecting to a live agent, pulling its configuration, and running tests against it — also install the [Copilot Studio plugin](https://github.com/microsoft/skills-for-copilot-studio):
 
@@ -98,36 +120,79 @@ When both plugins are installed, `/eval-guide` can:
 - Run test cases against the live agent via `/chat-with-agent`
 - Ground the eval plan in what the agent actually does, not just what you describe
 
-Without the Copilot Studio plugin, all skills work in **description-based mode** — you describe your agent and the skills generate plans and test cases from that description.
+Without the Copilot Studio plugin (or when using GitHub Copilot), all skills work in **description-based mode** — you describe your agent and the skills generate plans and test cases from that description.
 
 ## Example workflows
 
 **"I have an idea for an agent and want to know how to evaluate it"**
+
+Claude Code:
 ```
 /eval-guide I'm building an HR policy bot that answers employee questions from our SharePoint knowledge base
 ```
+GitHub Copilot: Attach `eval-guide.prompt.md` and describe your agent.
 
 **"I have a plan and need test cases"**
+
+Claude Code:
 ```
 /eval-suite-planner Customer support agent handling refund requests, order tracking, and escalation to human agents
 /eval-generator
 ```
+GitHub Copilot: Attach `eval-suite-planner.prompt.md`, then `eval-generator.prompt.md`.
 
 **"My evals came back and I need to interpret them"**
+
+Claude Code:
 ```
 /eval-result-interpreter
 > [paste CSV results or attach file]
 ```
+GitHub Copilot: Attach `eval-result-interpreter.prompt.md` and paste your results.
 
 **"Some tests are failing and I don't know why"**
+
+Claude Code:
 ```
 /eval-triage-and-improvement
 > My agent scores 40% on knowledge grounding tests but 90% on general quality
 ```
+GitHub Copilot: Attach `eval-triage-and-improvement.prompt.md` and describe the failures.
 
 **"Quick methodology question"**
+
+Claude Code:
 ```
 /eval-faq How is evaluating a multi-step workflow different from a simple Q&A agent?
+```
+GitHub Copilot: Attach `eval-faq.prompt.md` and ask your question.
+
+## Repository structure
+
+```
+eval-guide/
+├── .claude-plugin/           # Claude Code plugin configuration
+│   ├── plugin.json
+│   └── marketplace.json
+├── .github/
+│   ├── copilot-instructions.md   # GitHub Copilot always-on instructions
+│   └── prompts/                  # GitHub Copilot prompt files
+│       ├── eval-guide.prompt.md
+│       ├── eval-suite-planner.prompt.md
+│       ├── eval-generator.prompt.md
+│       ├── eval-result-interpreter.prompt.md
+│       ├── eval-triage-and-improvement.prompt.md
+│       └── eval-faq.prompt.md
+├── skills/                   # Claude Code skills (SKILL.md format)
+│   ├── eval-guide/
+│   ├── eval-suite-planner/
+│   ├── eval-generator/
+│   ├── eval-result-interpreter/
+│   ├── eval-triage-and-improvement/
+│   └── eval-faq/
+├── AGENTS.md                 # Agent instructions (GitHub Copilot agent mode + other AI tools)
+├── CLAUDE.md                 # Claude Code project instructions
+└── README.md
 ```
 
 ## Methodology
