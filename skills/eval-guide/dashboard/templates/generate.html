@@ -1,0 +1,180 @@
+<!-- Stage 2: Generate — Test Cases Review (Editable) -->
+
+<div class="tabs" id="signal-tabs"></div>
+
+<div id="tab-panels"></div>
+
+<div class="section mt-2">
+  <div class="section-header flex-between">
+    <span>Summary</span>
+    <span class="text-sm text-muted" id="total-count"></span>
+  </div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Quality Signal</th><th>Test Cases</th><th>Methods Used</th></tr></thead>
+      <tbody id="summary-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let testSets = [];
+let activeTab = 0;
+
+function stageInit() {
+  testSets = (EMBEDDED_DATA.data.test_sets || []).map(ts => ({
+    ...ts,
+    cases: (ts.cases || []).map((c, i) => ({...c, _idx: i, _deleted: false})),
+  }));
+
+  renderTabs();
+  renderAllPanels();
+  switchTab(0);
+  updateSummary();
+
+  // Apply any saved edits
+  if (edits && Object.keys(edits).length > 0) {
+    document.querySelectorAll("[data-field]").forEach(el => {
+      if (edits[el.dataset.field] !== undefined && edits[el.dataset.field] !== "__DELETE__") {
+        el.value = edits[el.dataset.field];
+        el.classList.add("edited");
+      }
+    });
+  }
+}
+
+function renderTabs() {
+  const container = document.getElementById("signal-tabs");
+  container.innerHTML = "";
+  testSets.forEach((ts, i) => {
+    const tab = document.createElement("div");
+    tab.className = "tab" + (i === 0 ? " active" : "");
+    tab.textContent = ts.quality_signal.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    tab.dataset.index = i;
+    tab.onclick = () => switchTab(i);
+    container.appendChild(tab);
+  });
+}
+
+function switchTab(idx) {
+  activeTab = idx;
+  document.querySelectorAll(".tab").forEach((t, i) => t.classList.toggle("active", i === idx));
+  document.querySelectorAll(".tab-panel").forEach((p, i) => p.classList.toggle("active", i === idx));
+}
+
+function renderAllPanels() {
+  const container = document.getElementById("tab-panels");
+  container.innerHTML = "";
+  testSets.forEach((ts, tsIdx) => {
+    const panel = document.createElement("div");
+    panel.className = "tab-panel" + (tsIdx === 0 ? " active" : "");
+    panel.id = "panel-" + tsIdx;
+    panel.innerHTML = buildPanelHTML(ts, tsIdx);
+    container.appendChild(panel);
+  });
+}
+
+function buildPanelHTML(ts, tsIdx) {
+  const prefix = "test_sets[" + tsIdx + "]";
+  let html = '<div class="section"><div class="section-header flex-between">' +
+    '<span>' + escapeHtml(ts.quality_signal) + '</span>' +
+    '<span class="text-sm text-muted">' + ts.cases.filter(c => !c._deleted).length + ' test cases</span>' +
+    '</div><div class="section-body" style="padding:0;overflow-x:auto;">';
+
+  html += '<table><thead><tr>' +
+    '<th style="width:30px">#</th>' +
+    '<th style="width:30%">Question</th>' +
+    '<th style="width:35%">Expected Response</th>' +
+    '<th style="width:130px">Method</th>' +
+    '<th style="width:40px"></th>' +
+    '</tr></thead><tbody>';
+
+  ts.cases.forEach((c, cIdx) => {
+    if (c._deleted) return;
+    const fp = prefix + ".cases[" + cIdx + "]";
+    html += '<tr>' +
+      '<td class="text-muted">' + (cIdx + 1) + '</td>' +
+      '<td class="editable"><textarea data-field="' + fp + '.question" data-original="' + escapeAttr(c.question || "") + '" oninput="scheduleSave()">' + escapeHtml(c.question || "") + '</textarea></td>' +
+      '<td class="editable"><textarea data-field="' + fp + '.expected_response" data-original="' + escapeAttr(c.expected_response || "") + '" oninput="scheduleSave()">' + escapeHtml(c.expected_response || "") + '</textarea></td>' +
+      '<td><select class="inline-select" data-field="' + fp + '.method" data-original="' + escapeAttr(c.method || "") + '" onchange="scheduleSave()">' +
+        ["General quality","Compare meaning","Keyword match","Capability use","Text similarity","Exact match","Custom"]
+          .map(m => '<option value="' + m + '"' + (m === c.method ? ' selected' : '') + '>' + m + '</option>').join("") +
+      '</select></td>' +
+      '<td><button class="btn btn-sm btn-danger" onclick="deleteCase(' + tsIdx + ',' + cIdx + ')">x</button></td>' +
+      '</tr>';
+  });
+
+  html += '</tbody></table>';
+  html += '<button class="btn btn-add" onclick="addCase(' + tsIdx + ')">+ Add test case</button>';
+  html += '</div></div>';
+
+  return html;
+}
+
+function deleteCase(tsIdx, cIdx) {
+  testSets[tsIdx].cases[cIdx]._deleted = true;
+  edits["test_sets[" + tsIdx + "].cases[" + cIdx + "]"] = "__DELETE__";
+  rerenderPanel(tsIdx);
+  updateSummary();
+  scheduleSave();
+}
+
+function addCase(tsIdx) {
+  const ts = testSets[tsIdx];
+  const newIdx = ts.cases.length;
+  ts.cases.push({
+    _idx: newIdx,
+    _deleted: false,
+    question: "",
+    expected_response: "",
+    method: "General quality",
+  });
+  rerenderPanel(tsIdx);
+  updateSummary();
+  // Focus the new question textarea
+  const panel = document.getElementById("panel-" + tsIdx);
+  const textareas = panel.querySelectorAll('textarea[data-field$=".question"]');
+  if (textareas.length > 0) textareas[textareas.length - 1].focus();
+  scheduleSave();
+}
+
+function rerenderPanel(tsIdx) {
+  const panel = document.getElementById("panel-" + tsIdx);
+  const wasActive = panel.classList.contains("active");
+  panel.innerHTML = buildPanelHTML(testSets[tsIdx], tsIdx);
+  if (wasActive) panel.classList.add("active");
+}
+
+function updateSummary() {
+  const tbody = document.getElementById("summary-tbody");
+  let total = 0;
+  tbody.innerHTML = "";
+  testSets.forEach(ts => {
+    const active = ts.cases.filter(c => !c._deleted);
+    total += active.length;
+    const methods = [...new Set(active.map(c => c.method))].join(", ");
+    tbody.innerHTML +=
+      '<tr><td>' + escapeHtml(ts.quality_signal.replace(/-/g, " ")) + '</td>' +
+      '<td>' + active.length + '</td>' +
+      '<td class="text-sm">' + methods + '</td></tr>';
+  });
+  document.getElementById("total-count").textContent = total + " total test cases";
+}
+
+function escapeAttr(text) {
+  return text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function stageCollectEdits() {
+  const result = {};
+  document.querySelectorAll("[data-field]").forEach(el => {
+    if (el.dataset.deleted === "true") {
+      result[el.dataset.field] = "__DELETE__";
+    } else if (el.value !== (el.dataset.original || "")) {
+      result[el.dataset.field] = el.value;
+    }
+  });
+  Object.assign(result, edits);
+  return result;
+}
+</script>
