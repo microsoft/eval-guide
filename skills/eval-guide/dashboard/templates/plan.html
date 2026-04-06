@@ -1,0 +1,182 @@
+<!-- Stage 1: Plan — Eval Plan Review -->
+
+<div class="section">
+  <div class="section-header flex-between">
+    <span>Architecture</span>
+    <select class="field-select" id="f-architecture" data-field="architecture" style="width:auto;font-size:0.85rem;">
+      <option value="prompt">Prompt-level (simple Q&A)</option>
+      <option value="rag">RAG / Knowledge-grounded</option>
+      <option value="agentic">Agentic (tool use, orchestration)</option>
+    </select>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header flex-between">
+    <span>Scenario Plan</span>
+    <span class="text-sm text-muted" id="scenario-count"></span>
+  </div>
+  <div class="section-body" style="padding:0;">
+    <table id="scenario-table">
+      <thead>
+        <tr>
+          <th style="width:30px">#</th>
+          <th>Scenario Name</th>
+          <th style="width:130px">Category</th>
+          <th style="width:150px">Tag</th>
+          <th style="width:180px">Eval Methods</th>
+          <th style="width:40px"></th>
+        </tr>
+      </thead>
+      <tbody id="scenario-tbody"></tbody>
+    </table>
+    <button class="btn btn-add" onclick="addScenario()">+ Add scenario</button>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">Pass/Fail Thresholds</div>
+  <div class="section-body">
+    <table>
+      <thead>
+        <tr><th>Category</th><th style="width:100px">Threshold (%)</th></tr>
+      </thead>
+      <tbody id="threshold-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">Quality Signals</div>
+  <div class="section-body">
+    <div id="quality-signals-list"></div>
+    <button class="btn btn-add btn-sm" onclick="addQualitySignal()">+ Add signal</button>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">Priority Order</div>
+  <div class="section-body text-sm text-muted" id="priority-display"></div>
+</div>
+
+<script>
+const CATEGORIES = ["core_business", "capability", "safety", "edge_case"];
+const CATEGORY_LABELS = {core_business: "Core Business", capability: "Capability", safety: "Safety", edge_case: "Edge Case"};
+const METHODS = ["General quality", "Compare meaning", "Keyword match", "Capability use", "Text similarity", "Exact match", "Custom"];
+const TAGS = ["information_retrieval", "troubleshooting", "request_submission", "process_navigation", "triage_routing",
+              "knowledge_grounding", "tool_invocations", "trigger_routing", "compliance", "safety", "tone_quality", "graceful_failure", "regression", "red_teaming"];
+
+let scenarios = [];
+
+function stageInit() {
+  const d = EMBEDDED_DATA.data;
+  setVal("f-architecture", d.architecture || "rag");
+  document.getElementById("f-architecture").dataset.original = d.architecture || "rag";
+
+  scenarios = (d.scenarios || []).map((s, i) => ({...s, _idx: i}));
+  renderScenarios();
+  renderThresholds(d.thresholds || {});
+  renderQualitySignals(d.quality_signals || []);
+  renderPriority(d.priority_order || []);
+}
+
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val;
+}
+
+function renderScenarios() {
+  const tbody = document.getElementById("scenario-tbody");
+  tbody.innerHTML = "";
+  scenarios.forEach((s, i) => {
+    if (s._deleted) return;
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td class="text-muted">' + (i + 1) + '</td>' +
+      '<td class="editable"><textarea data-field="scenarios[' + i + '].name" data-original="' + escapeHtml(s.name || "") + '" oninput="scheduleSave()">' + escapeHtml(s.name || "") + '</textarea></td>' +
+      '<td><select class="inline-select" data-field="scenarios[' + i + '].category" data-original="' + (s.category||"") + '" onchange="scheduleSave()">' +
+        CATEGORIES.map(c => '<option value="' + c + '"' + (c === s.category ? ' selected' : '') + '>' + CATEGORY_LABELS[c] + '</option>').join("") +
+      '</select></td>' +
+      '<td><select class="inline-select" data-field="scenarios[' + i + '].tag" data-original="' + (s.tag||"") + '" onchange="scheduleSave()">' +
+        TAGS.map(t => '<option value="' + t + '"' + (t === s.tag ? ' selected' : '') + '>' + t.replace(/_/g," ") + '</option>').join("") +
+      '</select></td>' +
+      '<td class="text-sm">' + (s.methods || []).join(", ") + '</td>' +
+      '<td><button class="btn btn-sm btn-danger" onclick="deleteScenario(' + i + ')">x</button></td>';
+    tbody.appendChild(tr);
+  });
+  document.getElementById("scenario-count").textContent = scenarios.filter(s => !s._deleted).length + " scenarios";
+}
+
+function addScenario() {
+  scenarios.push({id: scenarios.length + 1, name: "", category: "core_business", tag: "information_retrieval", methods: ["General quality"], _idx: scenarios.length});
+  renderScenarios();
+  scheduleSave();
+}
+
+function deleteScenario(idx) {
+  scenarios[idx]._deleted = true;
+  edits["scenarios[" + idx + "]"] = "__DELETE__";
+  renderScenarios();
+  scheduleSave();
+}
+
+function renderThresholds(thresholds) {
+  const tbody = document.getElementById("threshold-tbody");
+  tbody.innerHTML = "";
+  const entries = Object.entries(thresholds);
+  if (entries.length === 0) {
+    entries.push(["core_business", 80], ["safety", 95], ["edge_cases", 70]);
+  }
+  entries.forEach(([key, val]) => {
+    const label = key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td>' + label + '</td>' +
+      '<td><input type="number" class="threshold-input" min="0" max="100" value="' + val + '" ' +
+      'data-field="thresholds.' + key + '" data-original="' + val + '" oninput="scheduleSave()">%</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function renderQualitySignals(signals) {
+  const container = document.getElementById("quality-signals-list");
+  container.innerHTML = "";
+  signals.forEach((sig, i) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:0.4rem;margin-bottom:0.3rem;align-items:center;";
+    row.innerHTML =
+      '<input type="text" class="field-input" style="flex:1" ' +
+      'data-field="quality_signals[' + i + ']" data-original="' + escapeHtml(sig) + '" value="' + escapeHtml(sig) + '" oninput="scheduleSave()">' +
+      '<button class="btn btn-sm btn-danger" onclick="this.parentElement.remove();scheduleSave()">x</button>';
+    container.appendChild(row);
+  });
+}
+
+function addQualitySignal() {
+  const container = document.getElementById("quality-signals-list");
+  const i = container.children.length;
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:0.4rem;margin-bottom:0.3rem;align-items:center;";
+  row.innerHTML =
+    '<input type="text" class="field-input edited" style="flex:1" data-field="quality_signals[' + i + ']" data-original="" placeholder="New signal..." oninput="scheduleSave()">' +
+    '<button class="btn btn-sm btn-danger" onclick="this.parentElement.remove();scheduleSave()">x</button>';
+  container.appendChild(row);
+  row.querySelector("input").focus();
+  scheduleSave();
+}
+
+function renderPriority(order) {
+  document.getElementById("priority-display").textContent = order.length > 0 ? order.join(" > ") : "Core business > Safety > Capability > Edge cases";
+}
+
+function stageCollectEdits() {
+  const result = {};
+  document.querySelectorAll("[data-field]").forEach(el => {
+    if (el.value !== (el.dataset.original || "")) {
+      result[el.dataset.field] = el.value;
+    }
+  });
+  Object.assign(result, edits);
+  return result;
+}
+</script>

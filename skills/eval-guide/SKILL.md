@@ -13,6 +13,23 @@ This skill is grounded in Microsoft's **Eval Scenario Library**, **Triage & Impr
 
 **Important: You are an enablement accelerator, not a replacement.** Each stage generates artifacts the customer can use immediately AND explains the reasoning so they internalize the methodology. After one session, they should be able to do the next eval without us.
 
+## Interactive Dashboard Workflow
+
+Each stage produces an **interactive HTML dashboard** for the customer to review before proceeding. The dashboard is served locally via `dashboard/serve.py` (Python, zero dependencies).
+
+**Flow at each stage:**
+1. Complete the stage's analysis
+2. Write stage data to a JSON file (e.g., `stage-0-data.json`)
+3. Launch: `python dashboard/serve.py --stage <name> --data <file>.json`
+4. The customer reviews in the browser: edits fields inline, adds comments
+5. Read the feedback JSON file after the customer clicks **Confirm** or **Request Changes**
+6. If confirmed → generate final deliverables (docx, CSV) and proceed to next stage
+7. If changes requested → apply feedback, regenerate, re-launch dashboard
+
+**Stages with dashboards:** Discover (0), Plan (1), Generate (2), Interpret (4). Stage 3 (Run) executes tests directly.
+
+**Key principle:** No docx or CSV files are generated until the customer confirms via the dashboard. The dashboard IS the review checkpoint — it replaces the "does this look right?" chat-based confirmation with a structured, visual review.
+
 ## Before You Start: Connect to the Agent
 
 **By default, always guide the customer to connect their Copilot Studio agent.** This grounds the entire eval session in the real agent — its topics, knowledge sources, and configuration — instead of working from a description alone.
@@ -113,6 +130,24 @@ Display this and ask: **"Does this capture what you're building? Anything to add
 
 **Why this matters for the customer:** Most customers have never written down what "good" looks like for their agent. This document becomes the foundation for everything — the eval plan, the test cases, and eventually the agent's system prompt. Tell them: "This Agent Vision is your eval spec. Everything we test from here ties back to what you just defined."
 
+### Interactive Dashboard Checkpoint
+
+After building the Agent Vision, launch the interactive dashboard for review:
+
+1. Write the Agent Vision to `stage-0-data.json`:
+   ```json
+   {"agent_name": "...", "vision": {"purpose": "...", "users": "...", "knowledge": [...], "capabilities": [...], "boundaries": [...], "success_criteria": "...", "role_based_access": false, "risk_profile": "medium"}}
+   ```
+2. Launch the dashboard:
+   ```bash
+   python dashboard/serve.py --stage discover --data stage-0-data.json
+   ```
+3. The user reviews the Agent Vision in the browser, edits fields inline, and adds comments.
+4. When the user clicks **Confirm & Continue**, read `discover-feedback.json`:
+   - If `status` is `"confirmed"`: Apply any edits from the `edits` field, then proceed to Stage 1.
+   - If `status` is `"changes_requested"`: Apply the feedback, regenerate the Agent Vision, and re-launch the dashboard.
+5. Only proceed to Stage 1 after the user confirms.
+
 ---
 
 ## Stage 1: Plan
@@ -203,7 +238,23 @@ Tell the customer: "If General Quality scores are low, these four criteria tell 
 
 ### Output
 
-Display the scenario plan table and thresholds. Then **automatically generate a customer-ready .docx eval plan report** using the `/docx` skill. This is the customer's first deliverable — the eval plan they can share with their team before any test cases are written.
+Display the scenario plan table and thresholds.
+
+### Interactive Dashboard Checkpoint
+
+Before generating any deliverable documents, launch the plan dashboard for review:
+
+1. Write the plan to `stage-1-data.json`:
+   ```json
+   {"agent_name": "...", "architecture": "rag", "scenarios": [...], "method_mapping": [...], "thresholds": {...}, "quality_signals": [...], "priority_order": [...]}
+   ```
+2. Launch the dashboard:
+   ```bash
+   python dashboard/serve.py --stage plan --data stage-1-data.json
+   ```
+3. The user reviews scenarios (add/remove/edit), adjusts thresholds, and changes methods in the browser.
+4. When the user confirms, read `plan-feedback.json` and apply edits. If changes requested, regenerate and re-launch.
+5. **After confirmation, automatically generate the customer-ready .docx eval plan report** using the `/docx` skill — do not wait for the user to ask for it. This is the customer's first deliverable.
 
 The report must be:
 - **Concise** — no filler, no walls of text. Tables over paragraphs.
@@ -290,9 +341,30 @@ Valid Testing method values: `General quality`, `Compare meaning`, `Similarity`,
 
 ### Output
 
-Write each CSV to the working directory. Display a summary table.
+Display a summary table of test cases per quality signal.
 
-**Always generate a customer-ready .docx report** using the `/docx` skill. This is the deliverable the customer keeps. The report must be:
+### Interactive Dashboard Checkpoint
+
+Before generating final CSV and report files, launch the test cases dashboard for review:
+
+1. Write the test cases to `stage-2-data.json`:
+   ```json
+   {"agent_name": "...", "test_sets": [{"quality_signal": "...", "filename": "...", "cases": [{"id": 1, "question": "...", "expected_response": "...", "method": "...", "scenario_id": 1}]}]}
+   ```
+2. Launch the dashboard:
+   ```bash
+   python dashboard/serve.py --stage generate --data stage-2-data.json
+   ```
+3. The user reviews test cases per quality signal tab, **edits expected responses inline**, adjusts test methods, adds or removes cases.
+4. When the user confirms, read `generate-feedback.json` and apply all edits. If changes requested, regenerate and re-launch.
+5. **After confirmation**, generate the final deliverables:
+
+**A. CSV files** — Write each quality signal's test cases to a separate CSV:
+```csv
+"Question","Expected response","Testing method"
+```
+
+**B. .docx report** — Generate a customer-ready report using the `/docx` skill. The report must be:
 - **Concise** — no filler, no walls of text. Tables over paragraphs.
 - **Presentable** — professional formatting with color-coded headers, clean tables, visual hierarchy
 - **Self-contained** — a customer who wasn't in the conversation can read it and understand the eval plan + test cases
@@ -361,12 +433,26 @@ Analyze eval results to understand what's working, what's failing, and what to f
 
 If 100% pass: "A 100% pass rate is a red flag — your eval is likely too easy."
 
-**Always generate a customer-ready .docx triage report** using the `/docx` skill. Same principles: concise, presentable, self-contained. Structure:
-1. Score summary table (pass rate per category and test method)
-2. Failure triage table (test case, root cause, classification)
-3. Top 3 actions (Change → Re-run → Expect)
-4. Pattern analysis
-5. Next steps
+### Interactive Dashboard Checkpoint
+
+Before generating the final triage report, launch the interpret dashboard for review:
+
+1. Write the triage data to `stage-4-data.json`:
+   ```json
+   {"agent_name": "...", "summary": {"total": 15, "passed": 12, "failed": 3, "pass_rate": 80}, "verdict": "ITERATE", "failures": [...], "top_actions": [...], "patterns": [...]}
+   ```
+2. Launch the dashboard:
+   ```bash
+   python dashboard/serve.py --stage interpret --data stage-4-data.json
+   ```
+3. The user reviews the verdict, re-classifies root causes if needed, and adds comments.
+4. When the user confirms, read `interpret-feedback.json` and apply edits. If changes requested, regenerate and re-launch.
+5. **After confirmation**, generate the customer-ready .docx triage report using the `/docx` skill. Same principles: concise, presentable, self-contained. Structure:
+   1. Score summary table (pass rate per category and test method)
+   2. Failure triage table (test case, root cause, classification)
+   3. Top 3 actions (Change → Re-run → Expect)
+   4. Pattern analysis
+   5. Next steps
 
 ---
 

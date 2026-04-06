@@ -1,0 +1,156 @@
+<!-- Stage 4: Interpret — Triage Report Review -->
+
+<div class="section">
+  <div class="section-header flex-between">
+    <span>Verdict</span>
+    <span id="verdict-badge"></span>
+  </div>
+  <div class="section-body" id="score-summary"></div>
+</div>
+
+<div class="section">
+  <div class="section-header flex-between">
+    <span>Failure Triage</span>
+    <span class="text-sm text-muted" id="failure-count"></span>
+  </div>
+  <div class="section-body" style="padding:0;overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:30px">#</th>
+          <th style="width:25%">Question</th>
+          <th style="width:20%">Expected</th>
+          <th style="width:20%">Actual</th>
+          <th style="width:120px">Root Cause</th>
+          <th style="width:100px">Method</th>
+        </tr>
+      </thead>
+      <tbody id="failure-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">Top Actions</div>
+  <div class="section-body" id="actions-list"></div>
+</div>
+
+<div class="section">
+  <div class="section-header">Patterns</div>
+  <div class="section-body" id="patterns-list"></div>
+</div>
+
+<script>
+const ROOT_CAUSES = ["eval_setup", "agent_config", "platform_limitation"];
+const ROOT_CAUSE_LABELS = {eval_setup: "Eval Setup Issue", agent_config: "Agent Config Issue", platform_limitation: "Platform Limitation"};
+const ROOT_CAUSE_BADGES = {eval_setup: "badge-yellow", agent_config: "badge-red", platform_limitation: "badge-blue"};
+
+function stageInit() {
+  const d = EMBEDDED_DATA.data;
+
+  // Verdict
+  renderVerdict(d.verdict, d.summary);
+
+  // Failures
+  renderFailures(d.failures || []);
+
+  // Actions
+  renderActions(d.top_actions || []);
+
+  // Patterns
+  renderPatterns(d.patterns || []);
+}
+
+function renderVerdict(verdict, summary) {
+  const badge = document.getElementById("verdict-badge");
+  const v = (verdict || "ITERATE").toUpperCase();
+  const cls = v === "SHIP" ? "verdict-ship" : v === "BLOCK" ? "verdict-block" : "verdict-iterate";
+  badge.innerHTML = '<span class="verdict ' + cls + '">' + v + '</span>';
+
+  const s = summary || {};
+  document.getElementById("score-summary").innerHTML =
+    '<table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>' +
+    '<tr><td>Total test cases</td><td>' + (s.total || 0) + '</td></tr>' +
+    '<tr><td>Passed</td><td><span class="badge badge-green">' + (s.passed || 0) + '</span></td></tr>' +
+    '<tr><td>Failed</td><td><span class="badge badge-red">' + (s.failed || 0) + '</span></td></tr>' +
+    '<tr><td>Pass rate</td><td><strong>' + (s.pass_rate || 0) + '%</strong></td></tr>' +
+    '</tbody></table>';
+}
+
+function renderFailures(failures) {
+  const tbody = document.getElementById("failure-tbody");
+  tbody.innerHTML = "";
+  document.getElementById("failure-count").textContent = failures.length + " failures";
+
+  failures.forEach((f, i) => {
+    const fp = "failures[" + i + "]";
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td class="text-muted">' + (f.id || i + 1) + '</td>' +
+      '<td class="text-sm">' + escapeHtml(f.question || "") + '</td>' +
+      '<td class="text-sm">' + escapeHtml(truncate(f.expected || "", 100)) + '</td>' +
+      '<td class="text-sm">' + escapeHtml(truncate(f.actual || "", 100)) + '</td>' +
+      '<td><select class="inline-select" data-field="' + fp + '.root_cause" data-original="' + (f.root_cause || "") + '" onchange="updateRootCauseBadge(this);scheduleSave()">' +
+        ROOT_CAUSES.map(rc =>
+          '<option value="' + rc + '"' + (rc === f.root_cause ? ' selected' : '') + '>' + ROOT_CAUSE_LABELS[rc] + '</option>'
+        ).join("") +
+      '</select></td>' +
+      '<td class="text-sm"><span class="badge badge-blue">' + escapeHtml(f.method || "") + '</span></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function updateRootCauseBadge(select) {
+  // Visual feedback — highlight if changed
+  if (select.value !== select.dataset.original) {
+    select.classList.add("edited");
+  } else {
+    select.classList.remove("edited");
+  }
+}
+
+function renderActions(actions) {
+  const container = document.getElementById("actions-list");
+  if (actions.length === 0) {
+    container.innerHTML = '<div class="text-muted text-sm">No actions recommended.</div>';
+    return;
+  }
+  container.innerHTML = actions.map((a, i) =>
+    '<div style="margin-bottom:0.8rem;padding:0.6rem;background:var(--bg);border-radius:var(--radius);">' +
+    '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;">' +
+    '<span class="badge badge-green">' + (i + 1) + '</span>' +
+    '<strong class="text-sm">Change:</strong> <span class="text-sm">' + escapeHtml(a.change || "") + '</span>' +
+    '</div>' +
+    '<div class="text-sm" style="margin-left:1.8rem;">' +
+    '<strong>Re-run:</strong> ' + escapeHtml(a.rerun || "") +
+    ' &rarr; <strong>Expect:</strong> ' + escapeHtml(a.expect || "") +
+    '</div>' +
+    '</div>'
+  ).join("");
+}
+
+function renderPatterns(patterns) {
+  const container = document.getElementById("patterns-list");
+  if (patterns.length === 0) {
+    container.innerHTML = '<div class="text-muted text-sm">No patterns detected.</div>';
+    return;
+  }
+  container.innerHTML = '<ul style="margin:0;padding-left:1.2rem;">' +
+    patterns.map(p => '<li class="text-sm" style="margin-bottom:0.3rem;">' + escapeHtml(p) + '</li>').join("") +
+    '</ul>';
+}
+
+function truncate(text, max) {
+  return text.length > max ? text.substring(0, max) + "..." : text;
+}
+
+function stageCollectEdits() {
+  const result = {};
+  document.querySelectorAll("[data-field]").forEach(el => {
+    if (el.value !== (el.dataset.original || "")) {
+      result[el.dataset.field] = el.value;
+    }
+  });
+  return result;
+}
+</script>

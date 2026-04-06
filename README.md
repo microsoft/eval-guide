@@ -63,6 +63,25 @@ The toolkit walks you through Microsoft's 4-stage evaluation lifecycle:
 
 Stages 0-2 work from just an agent description — no running agent required.
 
+## Interactive dashboard review
+
+Each stage generates an **interactive HTML dashboard** served locally in your browser. You review, edit inline, and confirm before the AI proceeds — no more back-and-forth in chat to fix test cases.
+
+```
+Stage complete → Dashboard opens → You review & edit → Confirm → Final artifacts generated
+```
+
+| Stage | What you review in the dashboard | What you can edit |
+|---|---|---|
+| **0. Discover** | Agent Vision (purpose, users, knowledge, capabilities, boundaries, success criteria) | All fields inline, add/remove list items |
+| **1. Plan** | Scenario table, methods, thresholds, quality signals | Add/remove scenarios, change methods, adjust thresholds |
+| **2. Generate** | Test cases per quality signal | Edit expected responses, questions, methods, add/remove cases |
+| **4. Interpret** | Verdict, failure triage, root causes, actions | Reclassify root causes, add comments |
+
+Final deliverables (`.docx` reports, `.csv` test sets) are only generated **after you confirm** via the dashboard.
+
+The dashboard runs via a zero-dependency Python server (`skills/eval-guide/dashboard/serve.py`). Feedback auto-saves as you edit — if the browser closes, your work is preserved.
+
 ## Architecture-aware eval scoping
 
 The toolkit automatically scopes evaluation depth based on your agent's architecture:
@@ -100,7 +119,7 @@ Most agents benefit from a hybrid: Echo for fast regression, Synthesized persona
 
 | Skill | Artifacts |
 |-------|-----------|
-| `/eval-guide` | Agent Vision doc, eval plan (.docx), test case CSVs, triage report (.docx) |
+| `/eval-guide` | Interactive dashboards at each stage, Agent Vision doc, eval plan (.docx), test case CSVs, triage report (.docx) |
 | `/eval-suite-planner` | Eval plan table with scenarios, methods, thresholds, test data strategy, priority order (.docx + .xlsx) |
 | `/eval-generator` | Copilot Studio-importable CSV (single-response) or conversation blueprint + .docx report |
 | `/eval-result-interpreter` | SHIP/ITERATE/BLOCK verdict with root cause analysis and pattern detection |
@@ -185,6 +204,17 @@ eval-guide/
 │       └── eval-faq.prompt.md
 ├── skills/                   # Claude Code skills (SKILL.md format)
 │   ├── eval-guide/
+│   │   ├── SKILL.md
+│   │   ├── scripts/
+│   │   │   └── eval-runner.js    # Run evals via DirectLine API
+│   │   └── dashboard/            # Interactive review dashboards
+│   │       ├── serve.py          # Python server (zero dependencies)
+│   │       └── templates/        # Stage-specific HTML templates
+│   │           ├── base.html     # Shared layout, CSS, feedback JS
+│   │           ├── discover.html # Stage 0: Agent Vision review
+│   │           ├── plan.html     # Stage 1: Eval plan review
+│   │           ├── generate.html # Stage 2: Test cases (editable)
+│   │           └── interpret.html# Stage 4: Triage report review
 │   ├── eval-suite-planner/
 │   ├── eval-generator/
 │   ├── eval-result-interpreter/

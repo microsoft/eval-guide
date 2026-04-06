@@ -1,0 +1,151 @@
+<!-- Stage 0: Discover — Agent Vision Review -->
+
+<div class="section">
+  <div class="section-header">Agent Vision</div>
+  <div class="section-body">
+    <div class="field-group">
+      <label class="field-label">Agent Name</label>
+      <input type="text" class="field-input" id="f-agent-name" data-field="agent_name">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Purpose</label>
+      <textarea class="field-textarea" id="f-purpose" data-field="vision.purpose" rows="2"></textarea>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Users</label>
+      <textarea class="field-textarea" id="f-users" data-field="vision.users" rows="2"></textarea>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Knowledge &amp; Data Sources</label>
+      <div id="knowledge-list"></div>
+      <button class="btn btn-add btn-sm" onclick="addKnowledgeItem()">+ Add source</button>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Core Capabilities</label>
+      <div id="capabilities-list"></div>
+      <button class="btn btn-add btn-sm" onclick="addCapabilityItem()">+ Add capability</button>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Boundaries (what it must NOT do)</label>
+      <div id="boundaries-list"></div>
+      <button class="btn btn-add btn-sm" onclick="addBoundaryItem()">+ Add boundary</button>
+    </div>
+    <div class="field-group" style="border:2px solid var(--accent);border-radius:var(--radius);padding:0.8rem;background:var(--blue-bg);">
+      <label class="field-label" style="color:var(--accent);font-size:0.85rem;">Success Criteria <span style="font-weight:400;font-size:0.75rem;">(These become your eval targets — each criterion maps to test cases)</span></label>
+      <div id="success-criteria-list"></div>
+      <button class="btn btn-add btn-sm" onclick="addSuccessCriterion()">+ Add criterion</button>
+    </div>
+    <div class="field-group flex-between">
+      <div style="flex:1;margin-right:1rem;">
+        <label class="field-label">Risk Profile</label>
+        <select class="field-select" id="f-risk" data-field="vision.risk_profile">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="critical">Critical</option>
+        </select>
+      </div>
+      <div style="flex:1;">
+        <label class="field-label">Role-Based Access</label>
+        <select class="field-select" id="f-role-based" data-field="vision.role_based_access">
+          <option value="false">No</option>
+          <option value="true">Yes</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function stageInit() {
+  const v = EMBEDDED_DATA.data.vision || {};
+
+  setVal("f-agent-name", EMBEDDED_DATA.data.agent_name || "");
+  setVal("f-purpose", v.purpose || "");
+  setVal("f-users", v.users || "");
+  setVal("f-risk", v.risk_profile || "medium");
+  setVal("f-role-based", String(v.role_based_access || false));
+
+  renderList("knowledge-list", v.knowledge || [], "vision.knowledge");
+  renderList("capabilities-list", v.capabilities || [], "vision.capabilities");
+  renderList("boundaries-list", v.boundaries || [], "vision.boundaries");
+
+  // Success criteria: support both string (legacy) and array format
+  let criteria = v.success_criteria || [];
+  if (typeof criteria === "string") {
+    criteria = criteria.split(",").map(s => s.trim()).filter(Boolean);
+  }
+  renderList("success-criteria-list", criteria, "vision.success_criteria");
+
+  // Store originals for edit tracking
+  document.querySelectorAll("[data-field]").forEach(el => {
+    el.dataset.original = el.value;
+  });
+}
+
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val;
+}
+
+function renderList(containerId, items, fieldBase) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  items.forEach((item, i) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:0.4rem;margin-bottom:0.3rem;align-items:center;";
+    row.innerHTML =
+      '<input type="text" class="field-input" style="flex:1" ' +
+      'data-field="' + fieldBase + '[' + i + ']" ' +
+      'data-original="' + escapeHtml(item) + '" ' +
+      'value="' + escapeHtml(item) + '" oninput="scheduleSave()">' +
+      '<button class="btn btn-sm btn-danger" onclick="removeListItem(\'' + containerId + '\',' + i + ',\'' + fieldBase + '\')">x</button>';
+    container.appendChild(row);
+  });
+}
+
+function addKnowledgeItem() { addToList("knowledge-list", "vision.knowledge"); }
+function addCapabilityItem() { addToList("capabilities-list", "vision.capabilities"); }
+function addBoundaryItem() { addToList("boundaries-list", "vision.boundaries"); }
+function addSuccessCriterion() { addToList("success-criteria-list", "vision.success_criteria"); }
+
+function addToList(containerId, fieldBase) {
+  const container = document.getElementById(containerId);
+  const i = container.children.length;
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:0.4rem;margin-bottom:0.3rem;align-items:center;";
+  row.innerHTML =
+    '<input type="text" class="field-input edited" style="flex:1" ' +
+    'data-field="' + fieldBase + '[' + i + ']" data-original="" ' +
+    'placeholder="New item..." oninput="scheduleSave()">' +
+    '<button class="btn btn-sm btn-danger" onclick="removeListItem(\'' + containerId + '\',' + i + ',\'' + fieldBase + '\')">x</button>';
+  container.appendChild(row);
+  row.querySelector("input").focus();
+  scheduleSave();
+}
+
+function removeListItem(containerId, index, fieldBase) {
+  // Mark as deleted in edits
+  edits[fieldBase + "[" + index + "]"] = "__DELETE__";
+  const container = document.getElementById(containerId);
+  if (container.children[index]) {
+    container.children[index].style.display = "none";
+    container.children[index].querySelector("input").dataset.deleted = "true";
+  }
+  scheduleSave();
+}
+
+function stageCollectEdits() {
+  const result = {};
+  document.querySelectorAll("[data-field]").forEach(el => {
+    if (el.dataset.deleted === "true") {
+      result[el.dataset.field] = "__DELETE__";
+    } else if (el.value !== (el.dataset.original || "")) {
+      result[el.dataset.field] = el.value;
+    }
+  });
+  // Merge any programmatic edits (like deletes)
+  Object.assign(result, edits);
+  return result;
+}
+</script>

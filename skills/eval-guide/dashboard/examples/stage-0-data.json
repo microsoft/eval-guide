@@ -1,0 +1,17 @@
+{
+  "agent_name": "HR Policy Bot",
+  "vision": {
+    "purpose": "Answer employee questions about HR policies, benefits, and PTO from the company SharePoint knowledge base",
+    "users": "Internal employees (non-technical), all departments, primarily asking via Teams",
+    "knowledge": ["SharePoint HR Policy Documents", "Benefits FAQ", "PTO Accrual Tables"],
+    "capabilities": ["Policy lookup by topic", "PTO balance inquiry", "Benefits enrollment guidance", "Leave request process"],
+    "boundaries": ["No salary or compensation data", "No hiring/termination decisions", "No medical advice", "No legal interpretations"],
+    "success_criteria": [
+      "90% accuracy on policy questions",
+      "<5% hallucination rate on out-of-scope topics",
+      "Always cite source document in factual responses"
+    ],
+    "role_based_access": false,
+    "risk_profile": "medium"
+  }
+}
