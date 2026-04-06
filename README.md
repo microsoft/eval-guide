@@ -14,28 +14,24 @@ claude plugin add microsoft/eval-guide
 
 ### GitHub Copilot
 
-No installation needed. Clone this repo and the prompt files are automatically available:
+```bash
+gh extension install microsoft/eval-guide
+```
 
-1. Open the repo in VS Code (or any IDE with GitHub Copilot)
-2. In Copilot Chat, attach a prompt file from `.github/prompts/` to start an eval workflow
-3. `AGENTS.md` is automatically loaded by Copilot's agent mode for routing guidance
+Or clone the repo and open it in VS Code — the skills are automatically available via `.github/prompts/` and `AGENTS.md`.
 
-> **Tip:** Enable `"chat.promptFiles": true` in your VS Code workspace settings to use prompt files.
+## Skills
 
-## Skills / Prompts
-
-| Skill | Claude Code | GitHub Copilot | What it does |
-|-------|------------|----------------|-------------|
-| **Eval Guide** | `/eval-guide` | [eval-guide.prompt.md](.github/prompts/eval-guide.prompt.md) | Full eval lifecycle — discover, plan, generate, run, interpret. Start here. |
-| **Eval Suite Planner** | `/eval-suite-planner` | [eval-suite-planner.prompt.md](.github/prompts/eval-suite-planner.prompt.md) | Structured eval plan with scenarios, methods, quality signals, thresholds, and test data strategy |
-| **Eval Generator** | `/eval-generator` | [eval-generator.prompt.md](.github/prompts/eval-generator.prompt.md) | Test cases for single-response and conversation (multi-turn) evaluation modes |
-| **Eval Result Interpreter** | `/eval-result-interpreter` | [eval-result-interpreter.prompt.md](.github/prompts/eval-result-interpreter.prompt.md) | SHIP / ITERATE / BLOCK verdict with root cause classification |
-| **Eval Triage & Improvement** | `/eval-triage-and-improvement` | [eval-triage-and-improvement.prompt.md](.github/prompts/eval-triage-and-improvement.prompt.md) | Interactive diagnosis and remediation for failing evals |
-| **Eval FAQ** | `/eval-faq` | [eval-faq.prompt.md](.github/prompts/eval-faq.prompt.md) | Methodology questions answered from Microsoft's eval ecosystem |
+| Skill | Command | What it does |
+|-------|---------|-------------|
+| **Eval Guide** | `/eval-guide` | Full eval lifecycle — discover, plan, generate, run, interpret. Start here. |
+| **Eval Suite Planner** | `/eval-suite-planner` | Structured eval plan with scenarios, methods, quality signals, thresholds, and test data strategy |
+| **Eval Generator** | `/eval-generator` | Test cases for single-response and conversation (multi-turn) evaluation modes |
+| **Eval Result Interpreter** | `/eval-result-interpreter` | SHIP / ITERATE / BLOCK verdict with root cause classification |
+| **Eval Triage & Improvement** | `/eval-triage-and-improvement` | Interactive diagnosis and remediation for failing evals |
+| **Eval FAQ** | `/eval-faq` | Methodology questions answered from Microsoft's eval ecosystem |
 
 ## Quick start
-
-### Claude Code
 
 ```
 > /eval-guide
@@ -43,13 +39,7 @@ No installation needed. Clone this repo and the prompt files are automatically a
 Tell me about your agent — what does it do, who uses it, and what does "good" look like?
 ```
 
-### GitHub Copilot
-
-In Copilot Chat, attach the `eval-guide.prompt.md` prompt file, then ask:
-
-```
-Tell me about your agent — what does it do, who uses it, and what does "good" look like?
-```
+Works the same in both Claude Code and GitHub Copilot.
 
 The toolkit walks you through Microsoft's 4-stage evaluation lifecycle:
 
@@ -144,47 +134,32 @@ Without the Copilot Studio plugin (or when using GitHub Copilot), all skills wor
 ## Example workflows
 
 **"I have an idea for an agent and want to know how to evaluate it"**
-
-Claude Code:
 ```
 /eval-guide I'm building an HR policy bot that answers employee questions from our SharePoint knowledge base
 ```
-GitHub Copilot: Attach `eval-guide.prompt.md` and describe your agent.
 
 **"I have a plan and need test cases"**
-
-Claude Code:
 ```
 /eval-suite-planner Customer support agent handling refund requests, order tracking, and escalation to human agents
 /eval-generator
 ```
-GitHub Copilot: Attach `eval-suite-planner.prompt.md`, then `eval-generator.prompt.md`.
 
 **"My evals came back and I need to interpret them"**
-
-Claude Code:
 ```
 /eval-result-interpreter
 > [paste CSV results or attach file]
 ```
-GitHub Copilot: Attach `eval-result-interpreter.prompt.md` and paste your results.
 
 **"Some tests are failing and I don't know why"**
-
-Claude Code:
 ```
 /eval-triage-and-improvement
 > My agent scores 40% on knowledge grounding tests but 90% on general quality
 ```
-GitHub Copilot: Attach `eval-triage-and-improvement.prompt.md` and describe the failures.
 
 **"Quick methodology question"**
-
-Claude Code:
 ```
 /eval-faq How is evaluating a multi-step workflow different from a simple Q&A agent?
 ```
-GitHub Copilot: Attach `eval-faq.prompt.md` and ask your question.
 
 ## Repository structure
 
