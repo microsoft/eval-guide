@@ -15,10 +15,8 @@ claude plugin add microsoft/eval-guide
 ### GitHub Copilot
 
 ```bash
-gh extension install microsoft/eval-guide
+npx skills add microsoft/eval-guide
 ```
-
-Or clone the repo and open it in VS Code — the skills are automatically available via `.github/prompts/` and `AGENTS.md`.
 
 ## Skills
 
