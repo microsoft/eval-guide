@@ -2,7 +2,7 @@
 
 <div class="section">
   <div class="section-header flex-between">
-    <span>Verdict</span>
+    <span data-tooltip="Overall ship/iterate/block decision based on aggregated pass rates against the thresholds you set in the Plan stage. SHIP means all categories met their thresholds; ITERATE means some fell short; BLOCK means critical failures in safety or core business.">Verdict</span>
     <span id="verdict-badge"></span>
   </div>
   <div class="section-body" id="score-summary"></div>
@@ -10,7 +10,7 @@
 
 <div class="section">
   <div class="section-header flex-between">
-    <span>Failure Triage</span>
+    <span data-tooltip="Root cause classification of each failed test case. Distinguishing eval setup issues (bad test data) from real agent problems (wrong config) prevents wasted effort fixing the wrong thing.">Failure Triage</span>
     <span class="text-sm text-muted" id="failure-count"></span>
   </div>
   <div class="section-body" style="padding:0;overflow-x:auto;">
@@ -31,12 +31,12 @@
 </div>
 
 <div class="section">
-  <div class="section-header">Top Actions</div>
+  <div class="section-header"><span data-tooltip="Prioritized changes to make to the agent or eval setup, each with a specific re-run expectation. Follow these in order — the highest-impact fixes come first.">Top Actions</span></div>
   <div class="section-body" id="actions-list"></div>
 </div>
 
 <div class="section">
-  <div class="section-header">Patterns</div>
+  <div class="section-header"><span data-tooltip="Cross-cutting failure patterns that suggest systemic issues rather than one-off test failures. A pattern like 'all date-related queries fail' points to a knowledge source gap, not individual test problems.">Patterns</span></div>
   <div class="section-body" id="patterns-list"></div>
 </div>
 

@@ -1,7 +1,7 @@
 <!-- Stage 0: Discover — Agent Vision Review -->
 
 <div class="section">
-  <div class="section-header">Agent Vision</div>
+  <div class="section-header"><span data-tooltip="Defines what the agent does, who it serves, and what success looks like. This is the foundation for all evaluation criteria — every test case traces back to something declared here.">Agent Vision</span></div>
   <div class="section-body">
     <div class="field-group">
       <label class="field-label">Agent Name</label>
@@ -31,7 +31,7 @@
       <button class="btn btn-add btn-sm" onclick="addBoundaryItem()">+ Add boundary</button>
     </div>
     <div class="field-group" style="border:2px solid var(--accent);border-radius:var(--radius);padding:0.8rem;background:var(--blue-bg);">
-      <label class="field-label" style="color:var(--accent);font-size:0.85rem;">Success Criteria <span style="font-weight:400;font-size:0.75rem;">(These become your eval targets — each criterion maps to test cases)</span></label>
+      <label class="field-label" style="color:var(--accent);font-size:0.85rem;"><span data-tooltip="These become your eval targets — each criterion maps directly to test cases. Be specific and measurable: 'answers HR policy questions correctly 90% of the time' is testable, 'works well' is not.">Success Criteria</span></label>
       <div id="success-criteria-list"></div>
       <button class="btn btn-add btn-sm" onclick="addSuccessCriterion()">+ Add criterion</button>
     </div>
