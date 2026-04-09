@@ -244,10 +244,29 @@ Display the scenario plan table and thresholds.
 
 Before generating any deliverable documents, launch the plan dashboard for review:
 
-1. Write the plan to `stage-1-data.json`:
+1. Write the plan to `stage-1-data.json` using the Zone Model structure:
    ```json
-   {"agent_name": "...", "architecture": "rag", "scenarios": [...], "method_mapping": [...], "thresholds": {...}, "quality_signals": [...], "priority_order": [...]}
+   {
+     "agent_name": "...",
+     "scenarios": [
+       {
+         "id": 1,
+         "name": "PTO policy lookup",
+         "zone": "1",
+         "quality_dimension": "Policy Accuracy",
+         "acceptance_criteria": "Pass = agent returns correct PTO accrual rate matching HR policy.\nFail = incorrect rate or information from wrong tenure band.",
+         "target_pass_rate": 90
+       }
+     ],
+     "quality_dimensions": ["Policy Accuracy", "Source Attribution", "Hallucination Prevention", ...]
+   }
    ```
+   Each scenario must have: `zone` ("1", "2", or "3"), `quality_dimension`, `acceptance_criteria` (with Pass = and Fail = conditions), and `target_pass_rate` (increment of 5%).
+   
+   **Zone assignment guidelines:**
+   - Zone 1 ("This Must Work"): Safety failures, core business functions, guardrail tests. Highest value, full investment.
+   - Zone 2 ("Real but Lower Priority"): Nice-to-have features, low-traffic use cases, areas where higher score doesn't justify effort.
+   - Zone 3 ("Exploratory"): Emergent patterns, new tools with minimal effort, capabilities you're exploring.
 2. Launch the dashboard:
    ```bash
    python dashboard/serve.py --stage plan --data stage-1-data.json
@@ -263,13 +282,13 @@ The report must be:
 
 Report structure:
 1. Agent Vision summary (from Stage 0) — 5-6 lines max
-2. Scenario type matching rationale
-3. Eval plan table (scenarios, categories, methods)
-4. Method mapping and quality signal explanation
-5. Pass/fail thresholds with rationale
-6. User profile test sets (if applicable)
+2. Zone Model overview — explain the three zones and how scenarios were classified based on Priority + Value + Effort
+3. Zone assignment table — scenarios grouped by zone (Zone 1: "This Must Work", Zone 2: "Real but Lower Priority", Zone 3: "Exploratory") with acceptance criteria (Pass = / Fail = conditions)
+4. Quality Dimensions to Test — list dimensions with grouped scenarios under each
+5. Success Metrics table — Zone, Scenario, Quality Dimension, Target Pass Rate for each scenario
+6. Method mapping explanation — which test methods apply to which quality dimensions
 
-Tell the customer: "Here's your eval plan report. Share this with your team for alignment before we generate test cases."
+Tell the customer: "Here's your eval plan report with the Zone Model prioritization. Share this with your team for alignment — business and dev should agree on the zone assignments and target pass rates before we generate test cases."
 
 ---
 
@@ -347,15 +366,39 @@ Display a summary table of test cases per quality signal.
 
 Before generating final CSV and report files, launch the test cases dashboard for review:
 
-1. Write the test cases to `stage-2-data.json`:
+1. Write the test cases to `stage-2-data.json` using the Zone Model structure:
    ```json
-   {"agent_name": "...", "test_sets": [{"quality_signal": "...", "filename": "...", "cases": [{"id": 1, "question": "...", "expected_response": "...", "method": "...", "scenario_id": 1}]}]}
+   {
+     "agent_name": "...",
+     "test_sets": [
+       {
+         "quality_dimension": "Policy Accuracy",
+         "methods": ["Compare meaning", "Keyword match"],
+         "scenarios": [
+           {
+             "scenario_id": 1,
+             "name": "PTO policy lookup",
+             "zone": "1",
+             "acceptance_criteria": "Pass = correct PTO accrual rate.\nFail = incorrect rate.",
+             "cases": [
+               {"id": 1, "question": "...", "expected_response": "Text with [VERIFY: factual content to check] markers"}
+             ]
+           }
+         ]
+       }
+     ]
+   }
    ```
+   Key requirements:
+   - Group test cases by `quality_dimension` (not quality_signal), with `scenarios` nested under each dimension
+   - Each scenario carries its `zone`, `acceptance_criteria` (from Stage 1), and `cases`
+   - Test `methods` are set at the dimension level, not per-case
+   - Wrap AI-generated factual content in `[VERIFY: ...]` markers so the dashboard highlights them for human review
 2. Launch the dashboard:
    ```bash
    python dashboard/serve.py --stage generate --data stage-2-data.json
    ```
-3. The user reviews test cases per quality signal tab, **edits expected responses inline**, adjusts test methods, adds or removes cases.
+3. The user reviews test cases per quality dimension tab (zone-colored), reviews acceptance criteria per scenario group, checks VERIFY-highlighted factual content, and edits expected responses inline.
 4. When the user confirms, read `generate-feedback.json` and apply all edits. If changes requested, regenerate and re-launch.
 5. **After confirmation**, generate the final deliverables:
 
@@ -371,12 +414,14 @@ Before generating final CSV and report files, launch the test cases dashboard fo
 
 Report structure:
 1. Agent Vision summary (from Stage 0) — 5-6 lines max
-2. Eval plan table (scenarios, categories, methods)
-3. Test case summary table per quality signal (question + expected response + method)
-4. "What these tests catch" callout — 3-4 bullet points on what the customer would have missed
-5. Next steps — what to do with these files
+2. Zone Model summary — scenarios by zone with acceptance criteria (Pass/Fail)
+3. Test cases organized by quality dimension, with scenario groups showing zone badge and acceptance criteria
+4. For each test case: Question, Expected Response (with [VERIFY] content called out), and suggested test method
+5. Summary table: quality dimension, scenario count, test case count, methods
+6. "What these tests catch" callout — 3-4 bullet points on what the customer would have missed
+7. Next steps — what to do with these files
 
-Tell the customer: "These CSVs are importable directly into Copilot Studio's Evaluation tab. The report is your reference doc — share it with your team."
+Tell the customer: "These CSVs are importable directly into Copilot Studio's Evaluation tab. The report includes your Zone Model priorities and acceptance criteria — share it with your team."
 
 ---
 
@@ -437,21 +482,40 @@ If 100% pass: "A 100% pass rate is a red flag — your eval is likely too easy."
 
 Before generating the final triage report, launch the interpret dashboard for review:
 
-1. Write the triage data to `stage-4-data.json`:
+1. Write the triage data to `stage-4-data.json` using the success metrics structure:
    ```json
-   {"agent_name": "...", "summary": {"total": 15, "passed": 12, "failed": 3, "pass_rate": 80}, "verdict": "ITERATE", "failures": [...], "top_actions": [...], "patterns": [...]}
+   {
+     "agent_name": "...",
+     "summary": {"total": 28, "passed": 19, "failed": 9},
+     "success_metrics": [
+       {"scenario_id": 1, "name": "PTO policy lookup", "zone": "1", "quality_dimension": "Policy Accuracy", "target_pass_rate": 90, "actual_pass_rate": 100, "cases_total": 2, "cases_passed": 2}
+     ],
+     "eval_results": [
+       {"scenario_id": 1, "question": "...", "expected": "...", "actual": "...", "method": "Compare meaning", "score": 0.92, "pass": true, "explanation": "Rationale from LLM judge..."}
+     ],
+     "failures": [
+       {"id": 1, "scenario_id": 2, "scenario_name": "...", "zone": "1", "quality_dimension": "...", "question": "...", "expected": "...", "actual": "...", "root_cause": "agent_config", "explanation": "..."}
+     ],
+     "top_actions": [...],
+     "patterns": [...]
+   }
    ```
+   Key requirements:
+   - `success_metrics` maps each scenario to its target vs actual pass rate (from Stage 1 targets)
+   - `eval_results` contains ALL test case results (not just failures) so scenarios can be expanded in the dashboard
+   - Each eval result includes `explanation` (the LLM judge rationale) for human review
+   - No `verdict` field — the dashboard shows success metrics status per zone instead of SHIP/ITERATE/BLOCK
 2. Launch the dashboard:
    ```bash
    python dashboard/serve.py --stage interpret --data stage-4-data.json
    ```
-3. The user reviews the verdict, re-classifies root causes if needed, and adds comments.
-4. When the user confirms, read `interpret-feedback.json` and apply edits. If changes requested, regenerate and re-launch.
+3. The user reviews success metrics status per zone, expands scenario rows to see test case details, uses Human Judgement (Agree/Disagree) to override LLM judge assessments, and re-classifies root causes.
+4. When the user confirms, read `interpret-feedback.json` and apply edits (including human disagrees which become eval_setup root causes). If changes requested, regenerate and re-launch.
 5. **After confirmation**, generate the customer-ready .docx triage report using the `/docx` skill. Same principles: concise, presentable, self-contained. Structure:
-   1. Score summary table (pass rate per category and test method)
-   2. Failure triage table (test case, root cause, classification)
-   3. Top 3 actions (Change → Re-run → Expect)
-   4. Pattern analysis
+   1. Success Metrics Status — zone summary cards (targets met per zone) + full scenario table (zone, scenario, quality dimension, target vs actual, status)
+   2. Failure triage table (zone, scenario, question, expected, actual, root cause) — include human-disagreed entries as "Eval Setup — Human Disagrees"
+   3. Top actions (Change → Re-run → Expect)
+   4. Pattern analysis — zone-aware patterns highlighting systemic issues
    5. Next steps
 
 ---
