@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eval-Driven Development — End-to-End Process</title>
+<style>
+  :root {
+    --navy: #1B3A5C;
+    --blue: #2E75B6;
+    --light-blue: #4A9BD9;
+    --sky: #E8F2FB;
+    --teal: #0D8A72;
+    --green: #2E7D32;
+    --amber: #E8890C;
+    --red: #C62828;
+    --purple: #6A1B9A;
+    --gray-50: #FAFAFA;
+    --gray-100: #F5F5F5;
+    --gray-200: #EEEEEE;
+    --gray-300: #E0E0E0;
+    --gray-500: #9E9E9E;
+    --gray-700: #616161;
+    --gray-900: #212121;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--gray-900);
+    background: var(--gray-50);
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  .hero {
+    background: linear-gradient(135deg, var(--navy) 0%, #1a4a7a 50%, var(--blue) 100%);
+    color: white;
+    padding: 4rem 2rem 3.5rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .hero h1 {
+    font-size: 2.6rem;
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+    letter-spacing: -0.5px;
+  }
+  .hero .subtitle {
+    font-size: 1.15rem;
+    opacity: 0.85;
+    max-width: 700px;
+    margin: 0 auto 1.5rem;
+  }
+  .hero .badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 20px;
+    padding: 0.3rem 1rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.3px;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  /* ── Overview Strip ── */
+  .overview {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin: -2rem auto 3rem;
+    padding: 2rem 2.5rem;
+    max-width: 1100px;
+    position: relative;
+    z-index: 2;
+  }
+  .overview h2 {
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--gray-500);
+    margin-bottom: 1.2rem;
+  }
+  .overview p {
+    font-size: 1.05rem;
+    color: var(--gray-700);
+    max-width: 800px;
+  }
+  .overview p strong { color: var(--gray-900); }
+
+  /* ── Pipeline Visual ── */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 2.5rem auto 3.5rem;
+    max-width: 1100px;
+    padding: 0 2rem;
+    position: relative;
+  }
+  .pipeline::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 4rem;
+    right: 4rem;
+    height: 3px;
+    background: var(--gray-300);
+    z-index: 0;
+    transform: translateY(-50%);
+  }
+  .pipe-stage {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    padding: 0 0.3rem;
+  }
+  .pipe-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    margin: 0 auto 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+    position: relative;
+  }
+  .pipe-icon .num {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--navy);
+    color: white;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+  }
+  .pipe-stage .label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 0.2rem;
+  }
+  .pipe-stage .desc {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    line-height: 1.4;
+  }
+  .pipe-arrow {
+    flex: 0 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    color: var(--gray-300);
+    font-size: 1.2rem;
+  }
+
+  /* ── Stage Cards ── */
+  .stages { margin-bottom: 3rem; }
+
+  .stage-card {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+    overflow: hidden;
+    border-left: 5px solid transparent;
+  }
+  .stage-header {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    padding: 1.5rem 2rem;
+    cursor: default;
+  }
+  .stage-number {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+  .stage-title-group { flex: 1; }
+  .stage-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--gray-900);
+  }
+  .stage-tagline {
+    font-size: 0.9rem;
+    color: var(--gray-500);
+  }
+  .stage-badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .stage-badge {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .stage-body {
+    padding: 0 2rem 2rem;
+  }
+  .stage-body h4 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gray-500);
+    margin-bottom: 0.6rem;
+    margin-top: 1.2rem;
+  }
+  .stage-body h4:first-child { margin-top: 0; }
+
+  .stage-body ul {
+    list-style: none;
+    padding: 0;
+  }
+  .stage-body li {
+    padding: 0.3rem 0 0.3rem 1.4rem;
+    position: relative;
+    font-size: 0.95rem;
+    color: var(--gray-700);
+  }
+  .stage-body li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.7rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--gray-300);
+  }
+
+  /* Artifact chips */
+  .artifacts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  .artifact {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.8rem;
+    color: var(--gray-700);
+    font-weight: 500;
+  }
+  .artifact .icon { font-size: 0.9rem; }
+
+  /* Prompt chip */
+  .prompt-chip {
+    display: inline-block;
+    background: var(--navy);
+    color: white;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    margin-top: 0.5rem;
+  }
+
+  /* Key insight callout */
+  .insight {
+    background: var(--sky);
+    border-left: 4px solid var(--blue);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 0.8rem 1.2rem;
+    margin-top: 0.8rem;
+    font-size: 0.9rem;
+    color: var(--navy);
+  }
+  .insight strong { color: var(--navy); }
+
+  /* ── Stage-specific colors ── */
+  .stage-0 { border-left-color: var(--purple); }
+  .stage-0 .stage-number { background: var(--purple); }
+  .stage-0 li::before { background: var(--purple); }
+
+  .stage-1 { border-left-color: var(--blue); }
+  .stage-1 .stage-number { background: var(--blue); }
+  .stage-1 li::before { background: var(--blue); }
+
+  .stage-2 { border-left-color: var(--teal); }
+  .stage-2 .stage-number { background: var(--teal); }
+  .stage-2 li::before { background: var(--teal); }
+
+  .stage-3 { border-left-color: var(--amber); }
+  .stage-3 .stage-number { background: var(--amber); }
+  .stage-3 li::before { background: var(--amber); }
+
+  .stage-4 { border-left-color: var(--red); }
+  .stage-4 .stage-number { background: var(--red); }
+  .stage-4 li::before { background: var(--red); }
+
+  /* Pipe icon colors */
+  .bg-purple { background: var(--purple); }
+  .bg-blue { background: var(--blue); }
+  .bg-teal { background: var(--teal); }
+  .bg-amber { background: var(--amber); }
+  .bg-red { background: var(--red); }
+
+  /* ── Microsoft Mapping ── */
+  .ms-mapping {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 2rem 2.5rem;
+    margin-bottom: 3rem;
+  }
+  .ms-mapping h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 0.5rem;
+  }
+  .ms-mapping .intro {
+    color: var(--gray-700);
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+  }
+  .ms-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .ms-card {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    padding: 1.2rem;
+    position: relative;
+  }
+  .ms-card-num {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.3rem;
+  }
+  .ms-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 0.4rem;
+  }
+  .ms-card p {
+    font-size: 0.85rem;
+    color: var(--gray-700);
+    margin-bottom: 0.6rem;
+  }
+  .ms-maps-to {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  .ms-maps-to span {
+    font-size: 0.72rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    color: white;
+  }
+
+  /* ── Architecture Scoping ── */
+  .arch-section {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 2rem 2.5rem;
+    margin-bottom: 3rem;
+  }
+  .arch-section h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 0.5rem;
+  }
+  .arch-section .intro {
+    color: var(--gray-700);
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+  }
+  .arch-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .arch-layer {
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.5rem;
+    position: relative;
+    margin-top: -1px;
+  }
+  .arch-layer:first-child { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+  .arch-layer:last-child { border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+  .arch-layer h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+  }
+  .arch-layer .arch-desc {
+    font-size: 0.85rem;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+  }
+  .arch-tests {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .arch-tests span {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    background: var(--gray-100);
+    color: var(--gray-700);
+    border: 1px solid var(--gray-200);
+  }
+  .arch-layer.agentic { border-color: var(--red); background: #FFF5F5; }
+  .arch-layer.agentic h3 { color: var(--red); }
+  .arch-layer.agentic .arch-tests span { background: #FFEBEE; border-color: #FFCDD2; color: var(--red); }
+
+  .arch-layer.rag { border-color: var(--teal); background: #F0FBF8; }
+  .arch-layer.rag h3 { color: var(--teal); }
+  .arch-layer.rag .arch-tests span { background: #E0F2EF; border-color: #B2DFDB; color: var(--teal); }
+
+  .arch-layer.prompt { border-color: var(--blue); background: #F5F9FF; }
+  .arch-layer.prompt h3 { color: var(--blue); }
+  .arch-layer.prompt .arch-tests span { background: #E3F0FC; border-color: #BBDEFB; color: var(--blue); }
+
+  /* ── Iteration Loop Visual ── */
+  .loop-section {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 2rem 2.5rem;
+    margin-bottom: 3rem;
+  }
+  .loop-section h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 0.5rem;
+  }
+  .loop-section .intro {
+    color: var(--gray-700);
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+  }
+  .loop-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding: 1.5rem 0;
+  }
+  .loop-node {
+    background: var(--navy);
+    color: white;
+    padding: 0.7rem 1.2rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+    min-width: 110px;
+  }
+  .loop-arrow {
+    font-size: 1.4rem;
+    color: var(--gray-400);
+  }
+  .loop-node.change { background: var(--teal); }
+  .loop-node.run { background: var(--amber); }
+  .loop-node.interpret { background: var(--red); }
+  .loop-node.fix { background: var(--blue); }
+
+  .loop-caption {
+    text-align: center;
+    color: var(--gray-500);
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+  }
+
+  /* ── Verdicts Strip ── */
+  .verdict-section {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 2rem 2.5rem;
+    margin-bottom: 3rem;
+  }
+  .verdict-section h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 1.2rem;
+  }
+  .verdicts {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+  .verdict-card {
+    border-radius: var(--radius-sm);
+    padding: 1.2rem;
+    text-align: center;
+  }
+  .verdict-card h3 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin-bottom: 0.3rem;
+  }
+  .verdict-card p {
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+  .verdict-card.ship { background: #E8F5E9; color: var(--green); }
+  .verdict-card.ship-gaps { background: #FFF3E0; color: #E65100; }
+  .verdict-card.iterate { background: #FFF8E1; color: #F57F17; }
+  .verdict-card.block { background: #FFEBEE; color: var(--red); }
+  .verdict-card .verdict-threshold {
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    opacity: 0.7;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--gray-500);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--gray-200);
+    margin-top: 2rem;
+  }
+  .footer a {
+    color: var(--blue);
+    text-decoration: none;
+  }
+  .footer a:hover { text-decoration: underline; }
+
+  /* ── Two-col inside stage cards ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 1.8rem; }
+    .pipeline { flex-direction: column; align-items: center; gap: 0.5rem; }
+    .pipeline::before { display: none; }
+    .pipe-arrow { transform: rotate(90deg); }
+    .ms-grid { grid-template-columns: 1fr; }
+    .verdicts { grid-template-columns: 1fr 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HERO ═══════════ -->
+<div class="hero">
+  <h1>Eval-Driven Development</h1>
+  <p class="subtitle">The end-to-end process for building AI agents that work — from defining "good" to shipping with confidence.</p>
+  <span class="badge">microsoft/eval-guide &middot; 5 Stages &middot; Grounded in Microsoft's Evaluation Framework</span>
+</div>
+
+<!-- ═══════════ OVERVIEW ═══════════ -->
+<div class="container">
+  <div class="overview">
+    <h2>The Idea</h2>
+    <p>Most teams build agents first and test later — if they test at all. <strong>Eval-driven development flips this:</strong> define what "good" looks like before you build, write test cases before you write the prompt, then iterate with data instead of intuition. The eval suite becomes your specification, your regression safety net, and your ship/no-ship decision gate.</p>
+  </div>
+</div>
+
+<!-- ═══════════ PIPELINE VISUAL ═══════════ -->
+<div class="pipeline">
+  <div class="pipe-stage">
+    <div class="pipe-icon bg-purple">
+      <span style="font-size:1.4rem">&#x1F50D;</span>
+      <span class="num">0</span>
+    </div>
+    <div class="label">Discover</div>
+    <div class="desc">Define what the agent does &amp; what success looks like</div>
+  </div>
+  <div class="pipe-arrow">&rarr;</div>
+  <div class="pipe-stage">
+    <div class="pipe-icon bg-blue">
+      <span style="font-size:1.4rem">&#x1F4CB;</span>
+      <span class="num">1</span>
+    </div>
+    <div class="label">Plan</div>
+    <div class="desc">Zone Model, scenarios, acceptance criteria, success metrics</div>
+  </div>
+  <div class="pipe-arrow">&rarr;</div>
+  <div class="pipe-stage">
+    <div class="pipe-icon bg-teal">
+      <span style="font-size:1.4rem">&#x2699;</span>
+      <span class="num">2</span>
+    </div>
+    <div class="label">Generate</div>
+    <div class="desc">Zone-grouped test cases with VERIFY highlights</div>
+  </div>
+  <div class="pipe-arrow">&rarr;</div>
+  <div class="pipe-stage">
+    <div class="pipe-icon bg-amber">
+      <span style="font-size:1.4rem">&#x25B6;</span>
+      <span class="num">3</span>
+    </div>
+    <div class="label">Run</div>
+    <div class="desc">Execute tests against the live agent</div>
+  </div>
+  <div class="pipe-arrow">&rarr;</div>
+  <div class="pipe-stage">
+    <div class="pipe-icon bg-red">
+      <span style="font-size:1.4rem">&#x1F4CA;</span>
+      <span class="num">4</span>
+    </div>
+    <div class="label">Interpret</div>
+    <div class="desc">Success metrics status, human judgement, triage</div>
+  </div>
+</div>
+
+<!-- ═══════════ STAGE CARDS ═══════════ -->
+<div class="container stages">
+
+  <!-- Stage 0 -->
+  <div class="stage-card stage-0">
+    <div class="stage-header">
+      <div class="stage-number">0</div>
+      <div class="stage-title-group">
+        <div class="stage-title">Discover</div>
+        <div class="stage-tagline">Articulate what "good" looks like — before writing a single test</div>
+      </div>
+      <div class="stage-badges">
+        <span class="stage-badge" style="background:#F3E5F5;color:var(--purple)">No agent needed</span>
+      </div>
+    </div>
+    <div class="stage-body">
+      <div class="two-col">
+        <div>
+          <h4>What happens</h4>
+          <ul>
+            <li>Define the agent's purpose, users, and context</li>
+            <li>Inventory knowledge sources and capabilities</li>
+            <li>Set explicit boundaries — what it must NOT do</li>
+            <li>Establish measurable success criteria</li>
+            <li>Assess risk profile (low / medium / high)</li>
+            <li>Determine if behavior varies by user role</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Output: Agent Vision</h4>
+          <ul>
+            <li><strong>Purpose</strong> — one sentence on the core problem it solves</li>
+            <li><strong>Users</strong> — who, in what context</li>
+            <li><strong>Knowledge &amp; Data</strong> — planned or actual sources</li>
+            <li><strong>Core Capabilities</strong> — 3-5 things the agent should do</li>
+            <li><strong>Boundaries</strong> — what it must never attempt</li>
+            <li><strong>Success Criteria</strong> — these become your eval targets</li>
+          </ul>
+        </div>
+      </div>
+      <div class="insight">
+        <strong>Why this matters:</strong> Most teams have never written down what "good" looks like for their agent. This Agent Vision becomes the foundation for everything — the eval plan, the test cases, and eventually the agent's system prompt. Every test you write ties back to what you define here.
+      </div>
+      <h4>Artifacts</h4>
+      <div class="artifacts">
+        <span class="artifact"><span class="icon">&#128196;</span> Agent Vision document</span>
+        <span class="artifact"><span class="icon">&#128202;</span> Risk profile assessment</span>
+      </div>
+      <div class="prompt-chip">#eval-guide</div>
+    </div>
+  </div>
+
+  <!-- Stage 1 -->
+  <div class="stage-card stage-1">
+    <div class="stage-header">
+      <div class="stage-number">1</div>
+      <div class="stage-title-group">
+        <div class="stage-title">Plan</div>
+        <div class="stage-tagline">Align business and dev on priorities, expectations, and what "good enough" means</div>
+      </div>
+      <div class="stage-badges">
+        <span class="stage-badge" style="background:#E3F2FD;color:var(--blue)">No agent needed</span>
+      </div>
+    </div>
+    <div class="stage-body">
+      <div class="two-col">
+        <div>
+          <h4>Zone Model for Prioritization</h4>
+          <ul>
+            <li>Classify scenarios into 3 zones based on <strong>Priority + Value + Effort</strong></li>
+            <li><strong>Zone 1: "This Must Work"</strong> &mdash; highest value, full investment, clear acceptance criteria. Eval every change.</li>
+            <li><strong>Zone 2: "Real but Lower Priority"</strong> &mdash; scoped capabilities, intentionally lower expectations. Eval before releases.</li>
+            <li><strong>Zone 3: "Exploratory"</strong> &mdash; emergent patterns from production usage. Eval periodically.</li>
+            <li>Drag scenarios between zones in the interactive dashboard to reprioritize</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Dashboard sections</h4>
+          <ul>
+            <li><strong>Scenarios &amp; Acceptance Criteria:</strong> Each scenario gets Pass = and Fail = conditions specific enough for two reviewers to agree</li>
+            <li><strong>Quality Dimensions to Test:</strong> Group scenarios by dimension (Policy Accuracy, Hallucination Prevention, Privacy Protection, etc.) with draggable chips</li>
+            <li><strong>Success Metrics:</strong> Zone + Scenario + Quality Dimension + Target Pass Rate &mdash; the agreement on what "good enough" means</li>
+          </ul>
+        </div>
+      </div>
+      <div class="insight">
+        <strong>The Zone Model is the shared language.</strong> Business wants to ship. Dev wants quality. The Zone Model gives both a way to set expectations together &mdash; Zone 1 must work, Zone 2 is intentionally lower investment, Zone 3 is exploration. If everything is Zone 1, nothing is prioritized.
+      </div>
+      <h4>Artifacts</h4>
+      <div class="artifacts">
+        <span class="artifact"><span class="icon">&#128196;</span> Eval plan report (.docx) with Zone Model</span>
+        <span class="artifact"><span class="icon">&#127919;</span> Quality dimension mapping</span>
+        <span class="artifact"><span class="icon">&#9989;</span> Success metrics (target pass rates per scenario)</span>
+        <span class="artifact"><span class="icon">&#128202;</span> Acceptance criteria (Pass/Fail)</span>
+      </div>
+      <div class="prompt-chip">#eval-suite-planner</div>
+    </div>
+  </div>
+
+  <!-- Stage 2 -->
+  <div class="stage-card stage-2">
+    <div class="stage-header">
+      <div class="stage-number">2</div>
+      <div class="stage-title-group">
+        <div class="stage-title">Generate &amp; Baseline</div>
+        <div class="stage-tagline">Produce zone-aware test cases with factual verification markers</div>
+      </div>
+      <div class="stage-badges">
+        <span class="stage-badge" style="background:#E0F2EF;color:var(--teal)">No agent needed</span>
+      </div>
+    </div>
+    <div class="stage-body">
+      <div class="two-col">
+        <div>
+          <h4>Dashboard features</h4>
+          <ul>
+            <li><strong>Zone-colored tabs:</strong> Each quality dimension tab is color-coded by dominant zone (red=Zone 1, yellow=Zone 2, blue=Zone 3)</li>
+            <li><strong>Scenario groups:</strong> Test cases grouped by scenario, showing zone badge + acceptance criteria (Pass in green, Fail in red)</li>
+            <li><strong>VERIFY highlights:</strong> AI-generated factual content marked in yellow &mdash; click to edit and check against real knowledge sources</li>
+            <li><strong>Suggested test methods:</strong> Set at the dimension level, not per-row</li>
+          </ul>
+        </div>
+        <div>
+          <h4>What gets generated</h4>
+          <ul>
+            <li>Test cases organized by quality dimension with nested scenario groups</li>
+            <li>Expected responses with <span style="background:#fff3cd;padding:0 0.3rem;border-radius:2px;font-size:0.85rem;color:#856404;">[VERIFY]</span> markers for facts to check</li>
+            <li>Acceptance criteria carried forward from Stage 1 for each scenario group</li>
+            <li>CSV files importable into Copilot Studio evaluation</li>
+          </ul>
+        </div>
+      </div>
+      <div class="insight">
+        <strong>What you'd miss without this:</strong> Most teams write 5-10 happy-path tests. The generator produces 20-30 cases across adversarial attacks, hallucination traps, robustness tests, and safety boundaries. VERIFY markers flag AI-generated facts so you don't ship untested claims.
+      </div>
+      <h4>Artifacts</h4>
+      <div class="artifacts">
+        <span class="artifact"><span class="icon">&#128196;</span> CSV files per quality dimension</span>
+        <span class="artifact"><span class="icon">&#128196;</span> Test case report (.docx) with Zone Model</span>
+        <span class="artifact"><span class="icon">&#9888;</span> VERIFY-flagged factual content</span>
+      </div>
+      <div class="prompt-chip">#eval-generator</div>
+    </div>
+  </div>
+
+  <!-- Stage 3 -->
+  <div class="stage-card stage-3">
+    <div class="stage-header">
+      <div class="stage-number">3</div>
+      <div class="stage-title-group">
+        <div class="stage-title">Run</div>
+        <div class="stage-tagline">Execute tests against the live agent and collect scores</div>
+      </div>
+      <div class="stage-badges">
+        <span class="stage-badge" style="background:#FFF3E0;color:var(--amber)">Requires running agent</span>
+      </div>
+    </div>
+    <div class="stage-body">
+      <div class="two-col">
+        <div>
+          <h4>What happens</h4>
+          <ul>
+            <li>Import CSV test sets into Copilot Studio's Evaluation tab</li>
+            <li>Run evaluation against the published agent</li>
+            <li>Copilot Studio scores each case using the specified test method</li>
+            <li>Export results CSV with scores, pass/fail, and explanations</li>
+            <li>Alternative: run via DirectLine API with eval-runner.js for CI/CD integration</li>
+          </ul>
+        </div>
+        <div>
+          <h4>How scoring works</h4>
+          <ul>
+            <li><strong>General Quality:</strong> LLM judge scores on Relevance, Groundedness, Completeness, Abstention (0.0-1.0)</li>
+            <li><strong>Compare Meaning:</strong> Semantic equivalence between expected and actual (0.0-1.0)</li>
+            <li><strong>Keyword Match:</strong> Code-based string matching — are required terms present?</li>
+            <li><strong>Exact Match:</strong> Code-based string equality</li>
+            <li><strong>Custom:</strong> Domain-specific criteria with your own labels</li>
+          </ul>
+        </div>
+      </div>
+      <div class="insight">
+        <strong>Run at least 3 times.</strong> AI agents are non-deterministic. A single run might mislead you. Microsoft recommends 3 runs minimum: &plusmn;5% variance is normal, &plusmn;10% needs investigation. Always export results — they're only available in Copilot Studio for 89 days.
+      </div>
+      <h4>Artifacts</h4>
+      <div class="artifacts">
+        <span class="artifact"><span class="icon">&#128200;</span> Results CSV with scores</span>
+        <span class="artifact"><span class="icon">&#128202;</span> Per-method pass/fail summary</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage 4 -->
+  <div class="stage-card stage-4">
+    <div class="stage-header">
+      <div class="stage-number">4</div>
+      <div class="stage-title-group">
+        <div class="stage-title">Interpret &amp; Improve</div>
+        <div class="stage-tagline">Compare results against success metrics, triage failures, decide what to fix</div>
+      </div>
+      <div class="stage-badges">
+        <span class="stage-badge" style="background:#FFEBEE;color:var(--red)">Requires eval results</span>
+      </div>
+    </div>
+    <div class="stage-body">
+      <div class="two-col">
+        <div>
+          <h4>Dashboard features</h4>
+          <ul>
+            <li><strong>Success Metrics Status:</strong> Zone summary cards (e.g., Zone 1: 5/8 met) + scenario table comparing targets vs actuals</li>
+            <li><strong>Expandable rows:</strong> Click any scenario to see test case details &mdash; question, expected, actual, score, pass/fail</li>
+            <li><strong>Human Judgement:</strong> Agree/Disagree per test case &mdash; override the LLM judge when you know better</li>
+            <li><strong>Failure Triage:</strong> Root cause classification (Eval Setup / Agent Config / Platform Limitation)</li>
+            <li><strong>Top Actions &amp; Patterns:</strong> Prioritized fixes + systemic issue detection</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Human-in-the-loop</h4>
+          <ul>
+            <li>Each test case shows the LLM judge's <strong>Rationale</strong> explaining the score</li>
+            <li>Select <strong>Disagree</strong> to override &mdash; automatically moves the case to "Eval Setup &mdash; Human Disagrees" in triage</li>
+            <li>This prevents wasted effort fixing the agent when the eval setup was wrong</li>
+            <li><strong>At least 20% of failures in a new eval are eval setup issues, not agent issues</strong></li>
+          </ul>
+        </div>
+      </div>
+      <div class="insight">
+        <strong>No more SHIP/BLOCK verdicts.</strong> Instead, you see exactly which success metrics were met per zone. Zone 1: 5/8 tells you more than "ITERATE" &mdash; you know which 3 scenarios need work and what the target gap is. Deploy when Zone 1 targets are met at acceptable rates.
+      </div>
+      <h4>Artifacts</h4>
+      <div class="artifacts">
+        <span class="artifact"><span class="icon">&#128196;</span> Triage report (.docx) with zone breakdown</span>
+        <span class="artifact"><span class="icon">&#128202;</span> Success metrics status (target vs actual)</span>
+        <span class="artifact"><span class="icon">&#128736;</span> Prioritized action items</span>
+        <span class="artifact"><span class="icon">&#128200;</span> Zone-aware pattern analysis</span>
+      </div>
+      <div class="prompt-chip">#eval-result-interpreter</div>
+      <span style="margin-left:0.5rem" class="prompt-chip">#eval-triage-and-improvement</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════ ITERATION LOOP ═══════════ -->
+<div class="container">
+  <div class="loop-section">
+    <h2>The Iteration Loop</h2>
+    <p class="intro">Stages 0-2 happen once (with expansions later). Stages 3-4 repeat on every change. This is where eval-driven development becomes a habit — not a one-time activity.</p>
+    <div class="loop-diagram">
+      <div class="loop-node change">Make a Change</div>
+      <span class="loop-arrow">&rarr;</span>
+      <div class="loop-node run">Run Evals</div>
+      <span class="loop-arrow">&rarr;</span>
+      <div class="loop-node interpret">Interpret Results</div>
+      <span class="loop-arrow">&rarr;</span>
+      <div class="loop-node fix">Fix or Ship</div>
+      <span class="loop-arrow">&circlearrowleft;</span>
+    </div>
+    <div class="loop-caption">Changed the prompt? Run the eval. Updated knowledge sources? Run the eval. New model version? Run the eval.</div>
+    <div style="margin-top:1.5rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
+      <div style="background:#FFEBEE;border-radius:var(--radius-sm);padding:1rem;text-align:center;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:0.5px;">Zone 1</div>
+        <div style="font-size:0.85rem;font-weight:700;margin:0.3rem 0 0.2rem">Every Change</div>
+        <div style="font-size:0.78rem;color:var(--gray-500)">Regression baseline &mdash; failures here block deployment</div>
+      </div>
+      <div style="background:#FFF8E1;border-radius:var(--radius-sm);padding:1rem;text-align:center;">
+        <div style="font-size:0.75rem;font-weight:700;color:#996600;text-transform:uppercase;letter-spacing:0.5px;">Zone 2</div>
+        <div style="font-size:0.85rem;font-weight:700;margin:0.3rem 0 0.2rem">Before Releases</div>
+        <div style="font-size:0.78rem;color:var(--gray-500)">Track improvement trends &mdash; failures are signals, not emergencies</div>
+      </div>
+      <div style="background:#E3F2FD;border-radius:var(--radius-sm);padding:1rem;text-align:center;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.5px;">Zone 3</div>
+        <div style="font-size:0.85rem;font-weight:700;margin:0.3rem 0 0.2rem">Periodic / Discovery</div>
+        <div style="font-size:0.78rem;color:var(--gray-500)">Watch for rising usage &mdash; promote to higher zones as patterns emerge</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ VERDICTS ═══════════ -->
+<div class="container">
+  <div class="verdict-section">
+    <h2>The Deploy Decision: Zone-Based</h2>
+    <p style="color:var(--gray-700);margin-bottom:1.2rem;font-size:0.95rem;">Instead of a single SHIP/BLOCK verdict, deployment decisions are made per zone. The question is: "At what point does this agent create more value than it costs?"</p>
+    <div class="verdicts">
+      <div class="verdict-card" style="background:#FFEBEE;color:var(--red);">
+        <h3>Zone 1 Met?</h3>
+        <p>All "must work" scenarios meet their targets. Safety + core business passing at acceptable rates.</p>
+        <div class="verdict-threshold">Deploy when Zone 1 targets are met</div>
+      </div>
+      <div class="verdict-card" style="background:#FFF8E1;color:#996600;">
+        <h3>Zone 2 Tracked</h3>
+        <p>Lower-priority gaps are documented, not blockers. Improvement signals for the next iteration.</p>
+        <div class="verdict-threshold">Zone 2 gaps don't block deployment</div>
+      </div>
+      <div class="verdict-card" style="background:#E3F2FD;color:var(--blue);">
+        <h3>Zone 3 Explored</h3>
+        <p>Emerging patterns monitored. Promote rising use cases to higher zones over time.</p>
+        <div class="verdict-threshold">Research &amp; discovery, not operations</div>
+      </div>
+      <div class="verdict-card" style="background:#F3E5F5;color:var(--purple);">
+        <h3>Human Override</h3>
+        <p>Disagree with the LLM judge? Override any test case. Eval setup issues don't count against the agent.</p>
+        <div class="verdict-threshold">Human judgement > automated scoring</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ ARCHITECTURE SCOPING ═══════════ -->
+<div class="container">
+  <div class="arch-section">
+    <h2>Architecture-Aware Eval Scoping</h2>
+    <p class="intro">Different agent architectures need different eval layers. The toolkit automatically scopes what to test based on complexity — each layer inherits all tests from layers below it.</p>
+    <div class="arch-stack">
+      <div class="arch-layer agentic">
+        <h3>Agentic (multi-step, tool use, orchestration)</h3>
+        <div class="arch-desc">Agent calls APIs, uses connectors, chains actions, makes decisions across steps</div>
+        <div class="arch-tests">
+          <span>Tool selection accuracy</span>
+          <span>Action correctness</span>
+          <span>Error recovery</span>
+          <span>Multi-turn context retention</span>
+          <span>Task completion rate</span>
+        </div>
+      </div>
+      <div class="arch-layer rag">
+        <h3>RAG / Knowledge-grounded (has knowledge sources, no tools)</h3>
+        <div class="arch-desc">Agent retrieves from documents, SharePoint, websites to ground responses</div>
+        <div class="arch-tests">
+          <span>Retrieval accuracy</span>
+          <span>Source attribution</span>
+          <span>Hallucination prevention</span>
+          <span>Completeness</span>
+          <span>Grounding</span>
+        </div>
+      </div>
+      <div class="arch-layer prompt">
+        <h3>Prompt-level (simple Q&amp;A, no knowledge sources)</h3>
+        <div class="arch-desc">Agent responds from system prompt and LLM knowledge only</div>
+        <div class="arch-tests">
+          <span>Response quality</span>
+          <span>Tone &amp; empathy</span>
+          <span>Boundary enforcement</span>
+          <span>Refusal behavior</span>
+          <span>Safety &amp; red-teaming</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MICROSOFT MAPPING ═══════════ -->
+<div class="container">
+  <div class="ms-mapping">
+    <h2>How This Maps to Microsoft's Official Framework</h2>
+    <p class="intro">Microsoft's <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/evaluation-checklist" style="color:var(--blue)">evaluation checklist</a> defines a 4-stage lifecycle. Our 5 stages map directly to it:</p>
+    <div class="ms-grid">
+      <div class="ms-card">
+        <div class="ms-card-num" style="color:var(--purple)">Microsoft Stage 1</div>
+        <h3>Define</h3>
+        <p>Create foundational test cases with clear acceptance criteria. Translate agent scenarios into testable components.</p>
+        <div class="ms-maps-to">
+          <span style="background:var(--purple)">Stage 0: Discover</span>
+          <span style="background:var(--blue)">Stage 1: Plan</span>
+          <span style="background:var(--teal)">Stage 2: Generate</span>
+        </div>
+      </div>
+      <div class="ms-card">
+        <div class="ms-card-num" style="color:var(--amber)">Microsoft Stage 2</div>
+        <h3>Set Baseline &amp; Iterate</h3>
+        <p>Run tests, establish quantitative baseline, enter the evaluate &rarr; analyze &rarr; improve loop.</p>
+        <div class="ms-maps-to">
+          <span style="background:var(--amber)">Stage 3: Run</span>
+          <span style="background:var(--red)">Stage 4: Interpret</span>
+        </div>
+      </div>
+      <div class="ms-card">
+        <div class="ms-card-num" style="color:var(--teal)">Microsoft Stage 3</div>
+        <h3>Systematic Expansion</h3>
+        <p>Add variation, architecture, and edge-case test categories. Build comprehensive coverage: Core, Variations, Architecture, Edge cases.</p>
+        <div class="ms-maps-to">
+          <span style="background:var(--blue)">Repeat Stage 1-2</span>
+          <span style="background:var(--gray-500)">Broader categories</span>
+        </div>
+      </div>
+      <div class="ms-card">
+        <div class="ms-card-num" style="color:var(--green)">Microsoft Stage 4</div>
+        <h3>Operationalize</h3>
+        <p>Establish cadence and triggers. Core on every change, full suite weekly + before releases. Track quality signals over time.</p>
+        <div class="ms-maps-to">
+          <span style="background:var(--red)">Stage 4 ongoing</span>
+          <span style="background:var(--gray-500)">CI/CD integration</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<div class="footer">
+  <p>
+    <a href="https://github.com/microsoft/eval-guide">microsoft/eval-guide</a>
+    &middot; Grounded in Microsoft's
+    <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/evaluation-checklist">Eval Scenario Library</a>,
+    <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/evaluation-iterative-framework">Triage &amp; Improvement Playbook</a>, and
+    <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/architecture/common-evaluation-approaches">Common Evaluation Approaches</a>
+  </p>
+</div>
+
+</body>
+</html>
