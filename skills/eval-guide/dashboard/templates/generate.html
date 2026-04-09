@@ -6,7 +6,7 @@
 
 <div class="section mt-2">
   <div class="section-header flex-between">
-    <span>Summary</span>
+    <span data-tooltip="Overview of test case distribution across quality signals. Use this to verify balanced coverage — if one signal has far fewer cases, consider adding more before running evals.">Summary</span>
     <span class="text-sm text-muted" id="total-count"></span>
   </div>
   <div class="section-body">
@@ -18,6 +18,21 @@
 </div>
 
 <script>
+const SIGNAL_TOOLTIPS = {
+  "knowledge-accuracy": "Tests whether the agent retrieves and presents correct information from its knowledge sources. Catches hallucination, outdated content, and grounding failures.",
+  "safety-compliance": "Tests that the agent refuses or redirects harmful, off-topic, or policy-violating requests. Critical for risk mitigation and regulatory compliance.",
+  "tone-quality": "Tests whether the agent's language, formality, and empathy match your brand and audience expectations. Covers greeting style, escalation tone, and cultural sensitivity.",
+  "red-teaming": "Adversarial prompts designed to make the agent break — jailbreaks, prompt injection, role confusion. Validates the agent's guardrails under attack.",
+  "graceful-failure": "Tests how the agent handles ambiguous, incomplete, or out-of-scope inputs. A good agent fails gracefully rather than guessing or hallucinating.",
+  "tool-invocation": "Tests that the agent correctly calls external tools/APIs with the right parameters and handles their responses appropriately.",
+  "trigger-routing": "Tests that user messages are routed to the correct topic or workflow. Catches misroutes and fallback failures.",
+  "process-navigation": "Tests multi-step workflows where the agent must guide users through a sequence of actions or decisions.",
+};
+function getSignalTooltip(signal) {
+  const key = (signal || "").toLowerCase().replace(/[_ ]/g, "-");
+  return SIGNAL_TOOLTIPS[key] || "";
+}
+
 let testSets = [];
 let activeTab = 0;
 
@@ -76,8 +91,9 @@ function renderAllPanels() {
 
 function buildPanelHTML(ts, tsIdx) {
   const prefix = "test_sets[" + tsIdx + "]";
+  const sigTooltip = getSignalTooltip(ts.quality_signal);
   let html = '<div class="section"><div class="section-header flex-between">' +
-    '<span>' + escapeHtml(ts.quality_signal) + '</span>' +
+    '<span' + (sigTooltip ? ' data-tooltip="' + escapeAttr(sigTooltip) + '"' : '') + '>' + escapeHtml(ts.quality_signal) + '</span>' +
     '<span class="text-sm text-muted">' + ts.cases.filter(c => !c._deleted).length + ' test cases</span>' +
     '</div><div class="section-body" style="padding:0;overflow-x:auto;">';
 
