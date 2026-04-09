@@ -1,4 +1,100 @@
-<!-- Stage 2: Generate — Test Cases Review (Editable) -->
+<!-- Stage 2: Generate — Test Cases Review (Editable, Zone Model) -->
+
+<style>
+/* Zone-colored tabs */
+.tab.zone-1 { border-left: 3px solid var(--red); }
+.tab.zone-2 { border-left: 3px solid var(--yellow); }
+.tab.zone-3 { border-left: 3px solid var(--blue); }
+.tab.zone-mixed { border-left: 3px solid var(--text-muted); }
+.tab .tab-zone-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+  vertical-align: middle;
+}
+.tab-zone-dot.dot-1 { background: var(--red); }
+.tab-zone-dot.dot-2 { background: var(--yellow); }
+.tab-zone-dot.dot-3 { background: var(--blue); }
+
+/* Dimension-level method bar */
+.dim-methods-bar {
+  padding: 0.5rem 1rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+.dim-methods-bar label { font-weight: 600; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.method-chip {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+/* Scenario group header */
+.scenario-group-header {
+  background: var(--bg);
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.scenario-group-header .scenario-name {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+.zone-badge-sm {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.zone-badge-sm-1 { background: var(--red-bg); color: var(--red); }
+.zone-badge-sm-2 { background: var(--yellow-bg); color: #996600; }
+.zone-badge-sm-3 { background: var(--blue-bg); color: var(--blue); }
+
+/* Acceptance criteria row */
+.acceptance-row {
+  background: var(--blue-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0.4rem 0.7rem;
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+.acceptance-row .ac-label {
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  margin-bottom: 0.15rem;
+}
+.acceptance-row .ac-pass { color: var(--green); }
+.acceptance-row .ac-fail { color: var(--red); }
+
+/* VERIFY highlight */
+.verify-highlight {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 2px;
+  padding: 0 0.2rem;
+  font-weight: 500;
+  color: #856404;
+  cursor: help;
+}
+</style>
 
 <div class="tabs" id="signal-tabs"></div>
 
@@ -6,32 +102,22 @@
 
 <div class="section mt-2">
   <div class="section-header flex-between">
-    <span data-tooltip="Overview of test case distribution across quality signals. Use this to verify balanced coverage — if one signal has far fewer cases, consider adding more before running evals.">Summary</span>
+    <span data-tooltip="Overview of test case distribution across quality dimensions and zones. Use this to verify balanced coverage — if one dimension has far fewer cases, consider adding more before running evals.">Summary</span>
     <span class="text-sm text-muted" id="total-count"></span>
   </div>
   <div class="section-body">
     <table>
-      <thead><tr><th>Quality Signal</th><th>Test Cases</th><th>Methods Used</th></tr></thead>
+      <thead><tr><th>Quality Dimension</th><th>Scenarios</th><th>Test Cases</th><th>Methods</th></tr></thead>
       <tbody id="summary-tbody"></tbody>
     </table>
   </div>
 </div>
 
 <script>
-const SIGNAL_TOOLTIPS = {
-  "knowledge-accuracy": "Tests whether the agent retrieves and presents correct information from its knowledge sources. Catches hallucination, outdated content, and grounding failures.",
-  "safety-compliance": "Tests that the agent refuses or redirects harmful, off-topic, or policy-violating requests. Critical for risk mitigation and regulatory compliance.",
-  "tone-quality": "Tests whether the agent's language, formality, and empathy match your brand and audience expectations. Covers greeting style, escalation tone, and cultural sensitivity.",
-  "red-teaming": "Adversarial prompts designed to make the agent break — jailbreaks, prompt injection, role confusion. Validates the agent's guardrails under attack.",
-  "graceful-failure": "Tests how the agent handles ambiguous, incomplete, or out-of-scope inputs. A good agent fails gracefully rather than guessing or hallucinating.",
-  "tool-invocation": "Tests that the agent correctly calls external tools/APIs with the right parameters and handles their responses appropriately.",
-  "trigger-routing": "Tests that user messages are routed to the correct topic or workflow. Catches misroutes and fallback failures.",
-  "process-navigation": "Tests multi-step workflows where the agent must guide users through a sequence of actions or decisions.",
-};
-function getSignalTooltip(signal) {
-  const key = (signal || "").toLowerCase().replace(/[_ ]/g, "-");
-  return SIGNAL_TOOLTIPS[key] || "";
-}
+const ZONE_LABELS = {"1": "Zone 1", "2": "Zone 2", "3": "Zone 3"};
+const ZONE_BADGE_CSS = {"1": "zone-badge-sm-1", "2": "zone-badge-sm-2", "3": "zone-badge-sm-3"};
+const ZONE_DOT_CSS = {"1": "dot-1", "2": "dot-2", "3": "dot-3"};
+const ZONE_TAB_CSS = {"1": "zone-1", "2": "zone-2", "3": "zone-3"};
 
 let testSets = [];
 let activeTab = 0;
@@ -39,7 +125,11 @@ let activeTab = 0;
 function stageInit() {
   testSets = (EMBEDDED_DATA.data.test_sets || []).map(ts => ({
     ...ts,
-    cases: (ts.cases || []).map((c, i) => ({...c, _idx: i, _deleted: false})),
+    scenarios: (ts.scenarios || []).map(sc => ({
+      ...sc,
+      zone: String(sc.zone || "1"),
+      cases: (sc.cases || []).map((c, i) => ({...c, _idx: i, _deleted: false})),
+    })),
   }));
 
   renderTabs();
@@ -47,7 +137,6 @@ function stageInit() {
   switchTab(0);
   updateSummary();
 
-  // Apply any saved edits
   if (edits && Object.keys(edits).length > 0) {
     document.querySelectorAll("[data-field]").forEach(el => {
       if (edits[el.dataset.field] !== undefined && edits[el.dataset.field] !== "__DELETE__") {
@@ -58,13 +147,34 @@ function stageInit() {
   }
 }
 
+// ── Tabs ──
+
+function getDominantZone(ts) {
+  const zones = {};
+  ts.scenarios.forEach(sc => {
+    const z = sc.zone;
+    const count = sc.cases.filter(c => !c._deleted).length;
+    zones[z] = (zones[z] || 0) + count;
+  });
+  const entries = Object.entries(zones);
+  if (entries.length === 0) return "1";
+  if (entries.length === 1) return entries[0][0];
+  entries.sort((a, b) => b[1] - a[1]);
+  // If top zone has >60% of cases, use it; otherwise mixed
+  const total = entries.reduce((s, e) => s + e[1], 0);
+  return entries[0][1] / total > 0.6 ? entries[0][0] : "mixed";
+}
+
 function renderTabs() {
   const container = document.getElementById("signal-tabs");
   container.innerHTML = "";
   testSets.forEach((ts, i) => {
+    const zone = getDominantZone(ts);
     const tab = document.createElement("div");
-    tab.className = "tab" + (i === 0 ? " active" : "");
-    tab.textContent = ts.quality_signal.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    tab.className = "tab" + (i === 0 ? " active" : "") + " " + (zone === "mixed" ? "zone-mixed" : ZONE_TAB_CSS[zone] || "");
+    const dotClass = zone === "mixed" ? "" : ZONE_DOT_CSS[zone] || "";
+    tab.innerHTML = (dotClass ? '<span class="tab-zone-dot ' + dotClass + '"></span>' : '') +
+      escapeHtml(ts.quality_dimension || ts.quality_signal || "");
     tab.dataset.index = i;
     tab.onclick = () => switchTab(i);
     container.appendChild(tab);
@@ -76,6 +186,8 @@ function switchTab(idx) {
   document.querySelectorAll(".tab").forEach((t, i) => t.classList.toggle("active", i === idx));
   document.querySelectorAll(".tab-panel").forEach((p, i) => p.classList.toggle("active", i === idx));
 }
+
+// ── Panels ──
 
 function renderAllPanels() {
   const container = document.getElementById("tab-panels");
@@ -91,63 +203,142 @@ function renderAllPanels() {
 
 function buildPanelHTML(ts, tsIdx) {
   const prefix = "test_sets[" + tsIdx + "]";
-  const sigTooltip = getSignalTooltip(ts.quality_signal);
+  const totalCases = ts.scenarios.reduce((s, sc) => s + sc.cases.filter(c => !c._deleted).length, 0);
+
   let html = '<div class="section"><div class="section-header flex-between">' +
-    '<span' + (sigTooltip ? ' data-tooltip="' + escapeAttr(sigTooltip) + '"' : '') + '>' + escapeHtml(ts.quality_signal) + '</span>' +
-    '<span class="text-sm text-muted">' + ts.cases.filter(c => !c._deleted).length + ' test cases</span>' +
-    '</div><div class="section-body" style="padding:0;overflow-x:auto;">';
+    '<span>' + escapeHtml(ts.quality_dimension || ts.quality_signal || "") + '</span>' +
+    '<span class="text-sm text-muted">' + totalCases + ' test cases across ' + ts.scenarios.length + ' scenarios</span>' +
+    '</div>';
 
-  html += '<table><thead><tr>' +
-    '<th style="width:30px">#</th>' +
-    '<th style="width:30%">Question</th>' +
-    '<th style="width:35%">Expected Response</th>' +
-    '<th style="width:130px">Method</th>' +
-    '<th style="width:40px"></th>' +
-    '</tr></thead><tbody>';
+  // Method bar at dimension level
+  html += '<div class="dim-methods-bar"><label>Suggested Test Methods:</label>';
+  (ts.methods || []).forEach(m => {
+    html += '<span class="method-chip">' + escapeHtml(m) + '</span>';
+  });
+  html += '</div>';
 
-  ts.cases.forEach((c, cIdx) => {
-    if (c._deleted) return;
-    const fp = prefix + ".cases[" + cIdx + "]";
-    html += '<tr>' +
-      '<td class="text-muted">' + (cIdx + 1) + '</td>' +
-      '<td class="editable"><textarea data-field="' + fp + '.question" data-original="' + escapeAttr(c.question || "") + '" oninput="scheduleSave()">' + escapeHtml(c.question || "") + '</textarea></td>' +
-      '<td class="editable"><textarea data-field="' + fp + '.expected_response" data-original="' + escapeAttr(c.expected_response || "") + '" oninput="scheduleSave()">' + escapeHtml(c.expected_response || "") + '</textarea></td>' +
-      '<td><select class="inline-select" data-field="' + fp + '.method" data-original="' + escapeAttr(c.method || "") + '" onchange="scheduleSave()">' +
-        ["General quality","Compare meaning","Keyword match","Capability use","Text similarity","Exact match","Custom"]
-          .map(m => '<option value="' + m + '"' + (m === c.method ? ' selected' : '') + '>' + m + '</option>').join("") +
-      '</select></td>' +
-      '<td><button class="btn btn-sm btn-danger" onclick="deleteCase(' + tsIdx + ',' + cIdx + ')">x</button></td>' +
-      '</tr>';
+  // Scenarios
+  ts.scenarios.forEach((sc, scIdx) => {
+    const scPrefix = prefix + ".scenarios[" + scIdx + "]";
+    const activeCases = sc.cases.filter(c => !c._deleted);
+
+    // Scenario group header
+    html += '<div class="scenario-group-header">' +
+      '<span class="zone-badge-sm ' + (ZONE_BADGE_CSS[sc.zone] || "") + '">' + (ZONE_LABELS[sc.zone] || "") + '</span>' +
+      '<span class="scenario-name">Scenario: ' + escapeHtml(sc.name || "") + '</span>' +
+      '<span class="text-sm text-muted">(' + activeCases.length + ' cases)</span>' +
+      '</div>';
+
+    // Acceptance criteria
+    if (sc.acceptance_criteria) {
+      html += '<div class="acceptance-row"><div class="ac-label">Acceptance Criteria</div>';
+      const lines = sc.acceptance_criteria.split('\n');
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed.toLowerCase().startsWith('pass')) {
+          const match = trimmed.match(/^(Pass\s*=\s*)(.*)/i);
+          if (match) {
+            html += '<div class="ac-pass"><strong>' + escapeHtml(match[1]) + '</strong>' + escapeHtml(match[2]) + '</div>';
+          } else {
+            html += '<div class="ac-pass">' + escapeHtml(trimmed) + '</div>';
+          }
+        } else if (trimmed.toLowerCase().startsWith('fail')) {
+          const match = trimmed.match(/^(Fail\s*=\s*)(.*)/i);
+          if (match) {
+            html += '<div class="ac-fail"><strong>' + escapeHtml(match[1]) + '</strong>' + escapeHtml(match[2]) + '</div>';
+          } else {
+            html += '<div class="ac-fail">' + escapeHtml(trimmed) + '</div>';
+          }
+        } else {
+          html += '<div>' + escapeHtml(trimmed) + '</div>';
+        }
+      });
+      html += '</div>';
+    }
+
+    // Test cases table
+    html += '<div style="overflow-x:auto;"><table><thead><tr>' +
+      '<th style="width:30px">#</th>' +
+      '<th style="width:40%">Question</th>' +
+      '<th style="width:50%">Expected Response</th>' +
+      '<th style="width:40px"></th>' +
+      '</tr></thead><tbody>';
+
+    sc.cases.forEach((c, cIdx) => {
+      if (c._deleted) return;
+      const fp = scPrefix + ".cases[" + cIdx + "]";
+      html += '<tr>' +
+        '<td class="text-muted">' + (cIdx + 1) + '</td>' +
+        '<td class="editable"><textarea data-field="' + fp + '.question" data-original="' + escapeAttr(c.question || "") + '" oninput="scheduleSave()">' + escapeHtml(c.question || "") + '</textarea></td>' +
+        '<td class="editable"><div class="verify-container" data-field-target="' + fp + '.expected_response">' + renderVerifyText(c.expected_response || "") + '</div>' +
+        '<textarea data-field="' + fp + '.expected_response" data-original="' + escapeAttr(c.expected_response || "") + '" oninput="onExpectedEdit(this);scheduleSave()" style="display:none;">' + escapeHtml(c.expected_response || "") + '</textarea></td>' +
+        '<td><button class="btn btn-sm btn-danger" onclick="deleteCase(' + tsIdx + ',' + scIdx + ',' + cIdx + ')">&#x2715;</button></td>' +
+        '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    html += '<button class="btn btn-add" onclick="addCase(' + tsIdx + ',' + scIdx + ')" style="margin:0;">+ Add test case</button>';
   });
 
-  html += '</tbody></table>';
-  html += '<button class="btn btn-add" onclick="addCase(' + tsIdx + ')">+ Add test case</button>';
-  html += '</div></div>';
-
+  html += '</div>';
   return html;
 }
 
-function deleteCase(tsIdx, cIdx) {
-  testSets[tsIdx].cases[cIdx]._deleted = true;
-  edits["test_sets[" + tsIdx + "].cases[" + cIdx + "]"] = "__DELETE__";
+function renderVerifyText(text) {
+  // Replace [VERIFY: ...] with highlighted spans
+  const escaped = escapeHtml(text);
+  return escaped.replace(/\[VERIFY:\s*(.*?)\]/g, '<span class="verify-highlight" title="AI-generated — please verify this information">$1</span>');
+}
+
+function onExpectedEdit(textarea) {
+  // Update the rendered verify container
+  const container = textarea.previousElementSibling;
+  if (container && container.classList.contains("verify-container")) {
+    container.innerHTML = renderVerifyText(textarea.value);
+  }
+}
+
+// Click verify container to edit raw textarea
+document.addEventListener("click", function(e) {
+  const container = e.target.closest(".verify-container");
+  if (!container) return;
+  const textarea = container.nextElementSibling;
+  if (textarea && textarea.tagName === "TEXTAREA") {
+    container.style.display = "none";
+    textarea.style.display = "";
+    textarea.focus();
+  }
+});
+document.addEventListener("focusout", function(e) {
+  if (e.target.tagName === "TEXTAREA" && e.target.previousElementSibling && e.target.previousElementSibling.classList.contains("verify-container")) {
+    const container = e.target.previousElementSibling;
+    container.innerHTML = renderVerifyText(e.target.value);
+    container.style.display = "";
+    e.target.style.display = "none";
+  }
+});
+
+// ── CRUD ──
+
+function deleteCase(tsIdx, scIdx, cIdx) {
+  testSets[tsIdx].scenarios[scIdx].cases[cIdx]._deleted = true;
+  edits["test_sets[" + tsIdx + "].scenarios[" + scIdx + "].cases[" + cIdx + "]"] = "__DELETE__";
   rerenderPanel(tsIdx);
   updateSummary();
   scheduleSave();
 }
 
-function addCase(tsIdx) {
-  const ts = testSets[tsIdx];
-  const newIdx = ts.cases.length;
-  ts.cases.push({
+function addCase(tsIdx, scIdx) {
+  const sc = testSets[tsIdx].scenarios[scIdx];
+  const newIdx = sc.cases.length;
+  sc.cases.push({
     _idx: newIdx,
     _deleted: false,
     question: "",
     expected_response: "",
-    method: "General quality",
   });
   rerenderPanel(tsIdx);
   updateSummary();
-  // Focus the new question textarea
   const panel = document.getElementById("panel-" + tsIdx);
   const textareas = panel.querySelectorAll('textarea[data-field$=".question"]');
   if (textareas.length > 0) textareas[textareas.length - 1].focus();
@@ -161,24 +352,31 @@ function rerenderPanel(tsIdx) {
   if (wasActive) panel.classList.add("active");
 }
 
+// ── Summary ──
+
 function updateSummary() {
   const tbody = document.getElementById("summary-tbody");
   let total = 0;
   tbody.innerHTML = "";
   testSets.forEach(ts => {
-    const active = ts.cases.filter(c => !c._deleted);
-    total += active.length;
-    const methods = [...new Set(active.map(c => c.method))].join(", ");
+    let dimCases = 0;
+    let scenarioCount = ts.scenarios.length;
+    ts.scenarios.forEach(sc => {
+      dimCases += sc.cases.filter(c => !c._deleted).length;
+    });
+    total += dimCases;
+    const methods = (ts.methods || []).join(", ");
     tbody.innerHTML +=
-      '<tr><td>' + escapeHtml(ts.quality_signal.replace(/-/g, " ")) + '</td>' +
-      '<td>' + active.length + '</td>' +
+      '<tr><td>' + escapeHtml(ts.quality_dimension || ts.quality_signal || "") + '</td>' +
+      '<td>' + scenarioCount + '</td>' +
+      '<td>' + dimCases + '</td>' +
       '<td class="text-sm">' + methods + '</td></tr>';
   });
   document.getElementById("total-count").textContent = total + " total test cases";
 }
 
 function escapeAttr(text) {
-  return text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return (text || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function stageCollectEdits() {
