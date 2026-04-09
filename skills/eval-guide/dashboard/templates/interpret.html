@@ -1,13 +1,152 @@
-<!-- Stage 4: Interpret — Triage Report Review -->
+<!-- Stage 4: Interpret — Results & Success Metrics Review -->
 
+<style>
+.zone-badge-sm {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.zone-badge-sm-1 { background: var(--red-bg); color: var(--red); }
+.zone-badge-sm-2 { background: var(--yellow-bg); color: #996600; }
+.zone-badge-sm-3 { background: var(--blue-bg); color: var(--blue); }
+
+.metric-met { color: var(--green); }
+.metric-missed { color: var(--red); }
+.metric-bar {
+  display: inline-block;
+  height: 6px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-left: 0.3rem;
+}
+.metric-bar-bg {
+  display: inline-block;
+  width: 60px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  vertical-align: middle;
+  margin-left: 0.3rem;
+  position: relative;
+}
+.metric-bar-fill {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  border-radius: 3px;
+}
+
+/* Zone summary cards */
+.zone-summary-cards {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 0;
+}
+.zone-summary-card {
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius);
+  text-align: center;
+}
+.zone-summary-card .zsc-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.zone-summary-card .zsc-stat { font-size: 1.3rem; font-weight: 700; margin: 0.2rem 0; }
+.zone-summary-card .zsc-detail { font-size: 0.72rem; opacity: 0.8; }
+.zsc-1 { background: var(--red-bg); color: var(--red); }
+.zsc-2 { background: var(--yellow-bg); color: #996600; }
+.zsc-3 { background: var(--blue-bg); color: var(--blue); }
+
+.failure-scenario { font-size: 0.7rem; color: var(--text-muted); }
+
+/* Expandable scenario rows */
+.metric-row { cursor: pointer; transition: background 0.1s; }
+.metric-row:hover { background: rgba(0,120,212,0.04) !important; }
+.metric-row .expand-icon {
+  display: inline-block;
+  width: 1em;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+  margin-right: 0.3rem;
+}
+.metric-row.expanded .expand-icon { transform: rotate(90deg); }
+.metric-detail-row { display: none; }
+.metric-detail-row.visible { display: table-row; }
+.metric-detail-row td { padding: 0 !important; }
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  background: var(--bg);
+}
+.detail-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  padding: 0.35rem 0.7rem;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.detail-table td {
+  padding: 0.35rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  line-height: 1.4;
+}
+.detail-table tr:last-child td { border-bottom: none; }
+.detail-pass { color: var(--green); font-weight: 600; }
+.detail-fail { color: var(--red); font-weight: 600; }
+.detail-score { font-family: var(--mono); font-size: 0.75rem; }
+.detail-explanation { color: var(--text-muted); font-size: 0.72rem; font-style: italic; }
+.detail-rationale-label { font-weight: 600; font-style: normal; color: var(--accent); }
+.judgement-select {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.15rem 0.3rem;
+  font-family: var(--font);
+  font-size: 0.72rem;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.judgement-select:focus { outline: none; border-color: var(--accent); }
+.judgement-select.disagree { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+.judgement-select.agree { background: var(--green-bg); color: var(--green); border-color: var(--green); }
+</style>
+
+<!-- Section 1: Success Metrics Status -->
 <div class="section">
   <div class="section-header flex-between">
-    <span data-tooltip="Overall ship/iterate/block decision based on aggregated pass rates against the thresholds you set in the Plan stage. SHIP means all categories met their thresholds; ITERATE means some fell short; BLOCK means critical failures in safety or core business.">Verdict</span>
-    <span id="verdict-badge"></span>
+    <span data-tooltip="Compares actual pass rates against the targets set in the Plan stage. Green = target met, red = target missed. This tells you exactly which scenarios are ready and which need more work.">Success Metrics Status</span>
+    <span class="text-sm text-muted" id="metrics-status-count"></span>
   </div>
-  <div class="section-body" id="score-summary"></div>
+  <div class="section-body">
+    <div class="zone-summary-cards" id="zone-summary-cards"></div>
+  </div>
+  <div class="section-body" style="padding-top:0;overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:60px">Zone</th>
+          <th style="width:25%">Scenario</th>
+          <th style="width:18%">Quality Dimension</th>
+          <th style="width:80px">Target</th>
+          <th style="width:80px">Actual</th>
+          <th style="width:100px">Results</th>
+          <th style="width:60px">Status</th>
+        </tr>
+      </thead>
+      <tbody id="metrics-tbody"></tbody>
+    </table>
+  </div>
 </div>
 
+<!-- Section 2: Failure Triage -->
 <div class="section">
   <div class="section-header flex-between">
     <span data-tooltip="Root cause classification of each failed test case. Distinguishing eval setup issues (bad test data) from real agent problems (wrong config) prevents wasted effort fixing the wrong thing.">Failure Triage</span>
@@ -17,12 +156,12 @@
     <table>
       <thead>
         <tr>
-          <th style="width:30px">#</th>
-          <th style="width:25%">Question</th>
+          <th style="width:60px">Zone</th>
+          <th style="width:18%">Scenario</th>
+          <th style="width:22%">Question</th>
           <th style="width:20%">Expected</th>
           <th style="width:20%">Actual</th>
           <th style="width:120px">Root Cause</th>
-          <th style="width:100px">Method</th>
         </tr>
       </thead>
       <tbody id="failure-tbody"></tbody>
@@ -30,83 +169,228 @@
   </div>
 </div>
 
+<!-- Section 3: Top Actions -->
 <div class="section">
   <div class="section-header"><span data-tooltip="Prioritized changes to make to the agent or eval setup, each with a specific re-run expectation. Follow these in order — the highest-impact fixes come first.">Top Actions</span></div>
   <div class="section-body" id="actions-list"></div>
 </div>
 
+<!-- Section 4: Patterns -->
 <div class="section">
   <div class="section-header"><span data-tooltip="Cross-cutting failure patterns that suggest systemic issues rather than one-off test failures. A pattern like 'all date-related queries fail' points to a knowledge source gap, not individual test problems.">Patterns</span></div>
   <div class="section-body" id="patterns-list"></div>
 </div>
 
 <script>
+const ZONE_LABELS = {"1": "Zone 1", "2": "Zone 2", "3": "Zone 3"};
+const ZONE_BADGE_CSS = {"1": "zone-badge-sm-1", "2": "zone-badge-sm-2", "3": "zone-badge-sm-3"};
+const ZONE_CARD_CSS = {"1": "zsc-1", "2": "zsc-2", "3": "zsc-3"};
 const ROOT_CAUSES = ["eval_setup", "agent_config", "platform_limitation"];
 const ROOT_CAUSE_LABELS = {eval_setup: "Eval Setup Issue", agent_config: "Agent Config Issue", platform_limitation: "Platform Limitation"};
-const ROOT_CAUSE_BADGES = {eval_setup: "badge-yellow", agent_config: "badge-red", platform_limitation: "badge-blue"};
+
+let evalResults = [];
 
 function stageInit() {
   const d = EMBEDDED_DATA.data;
-
-  // Verdict
-  renderVerdict(d.verdict, d.summary);
-
-  // Failures
+  evalResults = d.eval_results || [];
+  renderMetricsStatus(d.success_metrics || []);
   renderFailures(d.failures || []);
-
-  // Actions
   renderActions(d.top_actions || []);
-
-  // Patterns
   renderPatterns(d.patterns || []);
 }
 
-function renderVerdict(verdict, summary) {
-  const badge = document.getElementById("verdict-badge");
-  const v = (verdict || "ITERATE").toUpperCase();
-  const cls = v === "SHIP" ? "verdict-ship" : v === "BLOCK" ? "verdict-block" : "verdict-iterate";
-  badge.innerHTML = '<span class="verdict ' + cls + '">' + v + '</span>';
+function renderMetricsStatus(metrics) {
+  // Zone summary cards
+  const cardContainer = document.getElementById("zone-summary-cards");
+  const zoneStats = {};
+  metrics.forEach(m => {
+    const z = String(m.zone || "1");
+    if (!zoneStats[z]) zoneStats[z] = {total: 0, met: 0, cases_total: 0, cases_passed: 0};
+    zoneStats[z].total++;
+    if (m.actual_pass_rate >= m.target_pass_rate) zoneStats[z].met++;
+    zoneStats[z].cases_total += (m.cases_total || 0);
+    zoneStats[z].cases_passed += (m.cases_passed || 0);
+  });
 
-  const s = summary || {};
-  document.getElementById("score-summary").innerHTML =
-    '<table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>' +
-    '<tr><td>Total test cases</td><td>' + (s.total || 0) + '</td></tr>' +
-    '<tr><td>Passed</td><td><span class="badge badge-green">' + (s.passed || 0) + '</span></td></tr>' +
-    '<tr><td>Failed</td><td><span class="badge badge-red">' + (s.failed || 0) + '</span></td></tr>' +
-    '<tr><td>Pass rate</td><td><strong>' + (s.pass_rate || 0) + '%</strong></td></tr>' +
-    '</tbody></table>';
+  let cardsHtml = "";
+  ["1", "2", "3"].forEach(z => {
+    const s = zoneStats[z];
+    if (!s) return;
+    const pct = s.total > 0 ? Math.round(s.met / s.total * 100) : 0;
+    cardsHtml +=
+      '<div class="zone-summary-card ' + ZONE_CARD_CSS[z] + '">' +
+      '<div class="zsc-label">' + ZONE_LABELS[z] + '</div>' +
+      '<div class="zsc-stat">' + s.met + '/' + s.total + '</div>' +
+      '<div class="zsc-detail">scenarios met target (' + pct + '%)</div>' +
+      '</div>';
+  });
+  cardContainer.innerHTML = cardsHtml;
+
+  // Metrics table
+  const tbody = document.getElementById("metrics-tbody");
+  tbody.innerHTML = "";
+  const sorted = [...metrics].sort((a, b) => String(a.zone).localeCompare(String(b.zone)) || a.name.localeCompare(b.name));
+  let metCount = 0;
+  sorted.forEach((m, idx) => {
+    const z = String(m.zone || "1");
+    const met = m.actual_pass_rate >= m.target_pass_rate;
+    if (met) metCount++;
+    const barColor = met ? "var(--green)" : "var(--red)";
+    const scenarioCases = evalResults.filter(r => r.scenario_id === m.scenario_id);
+    const hasDetails = scenarioCases.length > 0;
+    const rowId = "metric-detail-" + idx;
+
+    const tr = document.createElement("tr");
+    tr.className = "metric-row";
+    if (hasDetails) tr.onclick = function() { toggleDetail(rowId, this); };
+    tr.innerHTML =
+      '<td><span class="zone-badge-sm ' + (ZONE_BADGE_CSS[z] || "") + '">' + (ZONE_LABELS[z] || "") + '</span></td>' +
+      '<td class="text-sm" style="font-weight:500;">' + (hasDetails ? '<span class="expand-icon">&#x25B6;</span>' : '<span style="width:1em;display:inline-block;"></span>') + escapeHtml(m.name || "") + '</td>' +
+      '<td class="text-sm">' + escapeHtml(m.quality_dimension || "") + '</td>' +
+      '<td class="text-sm" style="text-align:right;font-family:var(--mono);">' + m.target_pass_rate + '%</td>' +
+      '<td class="text-sm" style="text-align:right;font-family:var(--mono);font-weight:600;' + (met ? 'color:var(--green)' : 'color:var(--red)') + ';">' + m.actual_pass_rate + '%</td>' +
+      '<td><span class="metric-bar-bg"><span class="metric-bar-fill" style="width:' + Math.min(100, m.actual_pass_rate) + '%;background:' + barColor + ';"></span></span>' +
+      ' <span class="text-sm text-muted">' + (m.cases_passed || 0) + '/' + (m.cases_total || 0) + '</span></td>' +
+      '<td style="text-align:center;font-size:0.85rem;">' + (met ? '<span class="metric-met">&#x2713;</span>' : '<span class="metric-missed">&#x2717;</span>') + '</td>';
+    tbody.appendChild(tr);
+
+    // Detail row (hidden by default)
+    if (hasDetails) {
+      const detailTr = document.createElement("tr");
+      detailTr.className = "metric-detail-row";
+      detailTr.id = rowId;
+      let detailHtml = '<td colspan="7"><table class="detail-table"><thead><tr>' +
+        '<th style="width:22%">Question</th>' +
+        '<th style="width:22%">Expected Response</th>' +
+        '<th style="width:22%">Actual Response</th>' +
+        '<th style="width:70px">Method</th>' +
+        '<th style="width:45px">Score</th>' +
+        '<th style="width:40px">Result</th>' +
+        '<th style="width:90px">Human Judgement</th>' +
+        '</tr></thead><tbody>';
+      scenarioCases.forEach((c, cIdx) => {
+        const caseKey = m.scenario_id + "_" + cIdx;
+        detailHtml += '<tr>' +
+          '<td>' + escapeHtml(c.question || "") + '</td>' +
+          '<td>' + escapeHtml(truncate(c.expected || "", 150)) + '</td>' +
+          '<td>' + escapeHtml(truncate(c.actual || "", 150)) + '</td>' +
+          '<td>' + escapeHtml(c.method || "") + '</td>' +
+          '<td class="detail-score">' + (c.score !== undefined ? c.score.toFixed(2) : "—") + '</td>' +
+          '<td>' + (c.pass ? '<span class="detail-pass">Pass</span>' : '<span class="detail-fail">Fail</span>') + '</td>' +
+          '<td><select class="judgement-select" data-case-key="' + caseKey + '" data-scenario-id="' + m.scenario_id + '" data-question="' + escapeAttr(c.question || "") + '" data-expected="' + escapeAttr(truncate(c.expected || "", 100)) + '" data-actual="' + escapeAttr(truncate(c.actual || "", 100)) + '" data-zone="' + z + '" data-scenario-name="' + escapeAttr(m.name || "") + '" data-quality-dim="' + escapeAttr(m.quality_dimension || "") + '" onchange="onJudgementChange(this)">' +
+            '<option value="">—</option>' +
+            '<option value="agree">Agree</option>' +
+            '<option value="disagree">Disagree</option>' +
+          '</select></td>' +
+          '</tr>';
+        if (c.explanation) {
+          detailHtml += '<tr><td colspan="7" class="detail-explanation"><span class="detail-rationale-label">Rationale:</span> ' + escapeHtml(c.explanation) + '</td></tr>';
+        }
+      });
+      detailHtml += '</tbody></table></td>';
+      detailTr.innerHTML = detailHtml;
+      tbody.appendChild(detailTr);
+    }
+  });
+  document.getElementById("metrics-status-count").textContent = metCount + '/' + metrics.length + ' targets met';
+}
+
+function toggleDetail(rowId, clickedRow) {
+  const detailRow = document.getElementById(rowId);
+  if (!detailRow) return;
+  detailRow.classList.toggle("visible");
+  clickedRow.classList.toggle("expanded");
+}
+
+// Human judgement tracking
+let humanDisagrees = {}; // key -> {scenario_name, zone, quality_dimension, question, expected, actual}
+
+function onJudgementChange(select) {
+  const key = select.dataset.caseKey;
+  // Style the select
+  select.classList.remove("agree", "disagree");
+  if (select.value) select.classList.add(select.value);
+
+  if (select.value === "disagree") {
+    humanDisagrees[key] = {
+      scenario_name: select.dataset.scenarioName,
+      zone: select.dataset.zone,
+      quality_dimension: select.dataset.qualityDim,
+      question: select.dataset.question,
+      expected: select.dataset.expected,
+      actual: select.dataset.actual,
+    };
+  } else {
+    delete humanDisagrees[key];
+  }
+
+  // Re-render failure triage to include disagreements
+  const d = EMBEDDED_DATA.data;
+  renderFailures(d.failures || []);
+  scheduleSave();
+  edits["human_disagrees"] = JSON.stringify(humanDisagrees);
+}
+
+function escapeAttr(text) {
+  return (text || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&#39;");
 }
 
 function renderFailures(failures) {
   const tbody = document.getElementById("failure-tbody");
   tbody.innerHTML = "";
-  document.getElementById("failure-count").textContent = failures.length + " failures";
 
-  failures.forEach((f, i) => {
-    const fp = "failures[" + i + "]";
+  // Build set of questions that human disagrees with (to filter out originals)
+  const disagreeQuestions = new Set(Object.values(humanDisagrees).map(d => d.question));
+
+  const disagreeEntries = Object.entries(humanDisagrees).map(([key, d]) => ({
+    zone: d.zone,
+    scenario_name: d.scenario_name,
+    quality_dimension: d.quality_dimension,
+    question: d.question,
+    expected: d.expected,
+    actual: d.actual,
+    root_cause: "eval_setup",
+    _from_disagree: true,
+  }));
+
+  // Remove original failures that have been overridden by human disagree
+  const filteredFailures = failures.filter(f => !disagreeQuestions.has(f.question));
+  const allFailures = [...filteredFailures, ...disagreeEntries];
+  const totalCount = allFailures.length;
+  const disagreeCount = disagreeEntries.length;
+
+  let countText = totalCount + " failure" + (totalCount !== 1 ? "s" : "");
+  if (disagreeCount > 0) countText += " (" + disagreeCount + " from human review)";
+  document.getElementById("failure-count").textContent = countText;
+
+  if (allFailures.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-sm text-muted" style="text-align:center;padding:1rem;">No failures — all test cases passed.</td></tr>';
+    return;
+  }
+
+  allFailures.forEach((f, i) => {
+    const fp = f._from_disagree ? "disagree_" + i : "failures[" + i + "]";
+    const z = String(f.zone || "1");
     const tr = document.createElement("tr");
+    if (f._from_disagree) tr.style.background = "var(--yellow-bg)";
+
+    const rootCauseHtml = f._from_disagree
+      ? '<span class="badge badge-yellow" style="font-size:0.72rem;">Eval Setup — Human Disagrees</span>'
+      : '<select class="inline-select" data-field="' + fp + '.root_cause" data-original="' + (f.root_cause || "") + '" onchange="scheduleSave()">' +
+          ROOT_CAUSES.map(rc =>
+            '<option value="' + rc + '"' + (rc === f.root_cause ? ' selected' : '') + '>' + ROOT_CAUSE_LABELS[rc] + '</option>'
+          ).join("") +
+        '</select>';
+
     tr.innerHTML =
-      '<td class="text-muted">' + (f.id || i + 1) + '</td>' +
+      '<td><span class="zone-badge-sm ' + (ZONE_BADGE_CSS[z] || "") + '">' + (ZONE_LABELS[z] || "") + '</span></td>' +
+      '<td class="text-sm"><div style="font-weight:500;">' + escapeHtml(f.scenario_name || "") + '</div><div class="failure-scenario">' + escapeHtml(f.quality_dimension || "") + '</div></td>' +
       '<td class="text-sm">' + escapeHtml(f.question || "") + '</td>' +
-      '<td class="text-sm">' + escapeHtml(truncate(f.expected || "", 100)) + '</td>' +
-      '<td class="text-sm">' + escapeHtml(truncate(f.actual || "", 100)) + '</td>' +
-      '<td><select class="inline-select" data-field="' + fp + '.root_cause" data-original="' + (f.root_cause || "") + '" onchange="updateRootCauseBadge(this);scheduleSave()">' +
-        ROOT_CAUSES.map(rc =>
-          '<option value="' + rc + '"' + (rc === f.root_cause ? ' selected' : '') + '>' + ROOT_CAUSE_LABELS[rc] + '</option>'
-        ).join("") +
-      '</select></td>' +
-      '<td class="text-sm"><span class="badge badge-blue">' + escapeHtml(f.method || "") + '</span></td>';
+      '<td class="text-sm">' + escapeHtml(truncate(f.expected || "", 120)) + '</td>' +
+      '<td class="text-sm">' + escapeHtml(truncate(f.actual || "", 120)) + '</td>' +
+      '<td>' + rootCauseHtml + '</td>';
     tbody.appendChild(tr);
   });
-}
-
-function updateRootCauseBadge(select) {
-  // Visual feedback — highlight if changed
-  if (select.value !== select.dataset.original) {
-    select.classList.add("edited");
-  } else {
-    select.classList.remove("edited");
-  }
 }
 
 function renderActions(actions) {
