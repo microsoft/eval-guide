@@ -1,13 +1,28 @@
 ---
 name: eval-guide
-description: Eval enablement accelerator — help customers think through "what does good look like" for their AI agent, then generate a structured eval plan and test cases they can use immediately. No running agent required. Works from a description, an idea, or even a vague goal. Use when anyone mentions agent evaluation, eval planning, "what should we test", "how do we know if the agent is good", test case generation, or interpreting eval results.
+description: Eval enablement accelerator — help customers think through "what does good look like" for their AI agent, then generate a structured eval plan and test cases they can use immediately. No built agent required — an idea or description is enough. Promotes eval-first development: write evals before building. Use when anyone mentions agent evaluation, eval planning, "what should we test", "how do we know if the agent is good", test case generation, or interpreting eval results.
 ---
 
 # Eval Guide — Enablement Accelerator
 
 Help customers go from "I don't know where to start with eval" to "I have a plan, test cases, and know how to interpret results" — in one session. The customer becomes self-sufficient for future eval cycles.
 
-**No running agent required.** This skill works from a description, an idea, or even a vague goal. Most customers don't have an agent yet when they need eval guidance.
+## Eval-First Mindset
+
+**You do NOT need a built agent to start.** All you need is an idea, a description, or even a vague goal. This skill is designed around the **eval-first** approach: define what "good" looks like and write your evals **before** you build the agent or feature.
+
+Why eval-first?
+- **Evals sharpen your thinking.** Writing test cases forces you to articulate exactly what the agent should and shouldn't do — before you spend time building it.
+- **Evals become your spec.** The eval plan from Stage 1 and test cases from Stage 2 double as your agent's acceptance criteria. Build the agent to pass these tests.
+- **Evals prevent drift.** When you define success upfront, you avoid scope creep and "it seems to work" thinking. You'll know objectively whether the agent meets the bar.
+
+**Start here whether you:**
+- Have only a rough idea ("we want an HR bot")
+- Have a written description but no agent yet
+- Have a built agent you want to evaluate
+- Are adding a new feature to an existing agent
+
+Stages 0 (Discover), 1 (Plan), and 2 (Generate) all work without a running agent. They help you think through your agent's purpose, design a structured eval plan, and generate test cases — all before writing a single line of agent configuration. Stage 3 (Run) is the only stage that requires a live agent, and it's optional.
 
 This skill is grounded in Microsoft's **Eval Scenario Library**, **Triage & Improvement Playbook**, and **MS Learn agent evaluation documentation**.
 
@@ -15,44 +30,42 @@ This skill is grounded in Microsoft's **Eval Scenario Library**, **Triage & Impr
 
 ## Interactive Dashboard Workflow
 
-Each stage produces an **interactive HTML dashboard** for the customer to review before proceeding. The dashboard is served locally via `dashboard/serve.py` (Python, zero dependencies).
+Stages 1, 2, and 4 produce an **interactive HTML dashboard** for the customer to review before proceeding. The dashboard is served locally via `dashboard/serve.py` (Python, zero dependencies).
 
-**Flow at each stage:**
+**Flow at each dashboard stage:**
 1. Complete the stage's analysis
-2. Write stage data to a JSON file (e.g., `stage-0-data.json`)
+2. Write stage data to a JSON file (e.g., `stage-1-data.json`)
 3. Launch: `python dashboard/serve.py --stage <name> --data <file>.json`
 4. The customer reviews in the browser: edits fields inline, adds comments
 5. Read the feedback JSON file after the customer clicks **Confirm** or **Request Changes**
 6. If confirmed → generate final deliverables (docx, CSV) and proceed to next stage
 7. If changes requested → apply feedback, regenerate, re-launch dashboard
 
-**Stages with dashboards:** Discover (0), Plan (1), Generate (2), Interpret (4). Stage 3 (Run) executes tests directly.
+**Stages with dashboards:** Plan (1), Generate (2), Interpret (4). Stage 0 (Discover) is conversational — no dashboard. Stage 3 (Run) executes tests directly.
 
 **Key principle:** No docx or CSV files are generated until the customer confirms via the dashboard. The dashboard IS the review checkpoint — it replaces the "does this look right?" chat-based confirmation with a structured, visual review.
 
-## Before You Start: Connect to the Agent
+## Before You Start
 
-**By default, always guide the customer to connect their Copilot Studio agent.** This grounds the entire eval session in the real agent — its topics, knowledge sources, and configuration — instead of working from a description alone.
+**Start from wherever the customer is.** Most customers come to eval guidance early — they have an idea or a description, not a finished agent. That's exactly right. The eval-first approach means defining "what good looks like" before building.
 
-**Proactively ask for connection details.** Don't wait for the customer to figure out the process — lead them through it:
+Ask: **"Tell me about the agent you're building or planning to build. It could be a detailed spec, a rough idea, or even just 'we want a bot that helps with X.' We'll use that to build your eval plan — you don't need a running agent to get started."**
 
-Ask: **"Let's start by connecting to your Copilot Studio agent so I can pull its configuration directly. Could you share your tenant ID? I'll use that to connect to your environment and import the agent's topics, knowledge sources, and settings — that way we're building the eval plan from the real agent, not just a description."**
+- **If they have an idea or description (most common):** Proceed directly to Stage 0 (Discover). The conversation will help them articulate their agent's purpose, users, boundaries, and success criteria — this becomes their eval spec.
+- **If they already have a running Copilot Studio agent:** Offer to connect to it for richer context: "Since you have a running agent, I can pull its configuration directly to inform the eval plan. Want to share your tenant ID so I can connect?" If yes, use `/clone-agent` to import the agent's topics, knowledge sources, and configuration. Use this to pre-fill the Agent Vision in Stage 0.
+- **If they already have eval results:** Route directly to Stage 4 (Interpret).
 
-If the customer isn't sure what a tenant ID is: **"Your tenant ID is the unique identifier for your Microsoft 365 organization. You can find it in the Azure portal under Azure Active Directory > Properties > Tenant ID, or ask your IT admin. It looks like a GUID — something like `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`."**
-
-- **If they provide a tenant ID:** Use `/clone-agent` to connect to their Copilot Studio environment. Pull the agent's topics, knowledge sources, and configuration. Use this as the ground truth for Stage 0 (Discover) — pre-fill the Agent Vision from the actual agent config, then confirm with the customer.
-- **If they don't have a tenant ID or agent yet:** Say: "No problem — we can work from a description instead. I'll walk you through defining what the agent should do, and we'll build the eval plan from that." Proceed with the description-based flow below.
-
-This is the **default and preferred path**. Working from a connected agent produces more accurate eval plans because you can see the actual topics, triggers, knowledge sources, and boundaries rather than relying on the customer's verbal description.
+**The key message:** Writing evals early makes the agent better. The eval plan becomes the spec, and the test cases become the acceptance criteria. Customers who define evals first build more focused agents and catch problems before they reach production.
 ---
 
 ## How to Route
 
 | Customer says... | Start at |
 |---|---|
-| "We're planning to build an agent for..." | **Stage 0: Discover** |
-| "We have an idea for an agent, what should we test?" | **Stage 0: Discover** |
+| "We're planning to build an agent for..." | **Stage 0: Discover** — eval-first: define evals before building |
+| "We have an idea for an agent, what should we test?" | **Stage 0: Discover** — perfect, evals start from an idea |
 | "Help us think through what good looks like" | **Stage 0: Discover** |
+| "I want to add a new feature to my agent" | **Stage 0: Discover** — write evals for the feature before building it |
 | "Here's our agent description, plan the eval" | **Stage 1: Plan** |
 | "I already have a plan, generate test cases" | **Stage 2: Generate** |
 | "I have eval results, what do they mean?" | **Stage 4: Interpret** |
@@ -130,23 +143,18 @@ Display this and ask: **"Does this capture what you're building? Anything to add
 
 **Why this matters for the customer:** Most customers have never written down what "good" looks like for their agent. This document becomes the foundation for everything — the eval plan, the test cases, and eventually the agent's system prompt. Tell them: "This Agent Vision is your eval spec. Everything we test from here ties back to what you just defined."
 
-### Interactive Dashboard Checkpoint
+### Confirm and Proceed
 
-After building the Agent Vision, launch the interactive dashboard for review:
+After building the Agent Vision, display it to the customer and ask: **"Does this capture what you're building? Anything to add or change?"**
 
-1. Write the Agent Vision to `stage-0-data.json`:
-   ```json
-   {"agent_name": "...", "vision": {"purpose": "...", "users": "...", "knowledge": [...], "capabilities": [...], "boundaries": [...], "success_criteria": "...", "role_based_access": false, "risk_profile": "medium"}}
-   ```
-2. Launch the dashboard:
-   ```bash
-   python dashboard/serve.py --stage discover --data stage-0-data.json
-   ```
-3. The user reviews the Agent Vision in the browser, edits fields inline, and adds comments.
-4. When the user clicks **Confirm & Continue**, read `discover-feedback.json`:
-   - If `status` is `"confirmed"`: Apply any edits from the `edits` field, then proceed to Stage 1.
-   - If `status` is `"changes_requested"`: Apply the feedback, regenerate the Agent Vision, and re-launch the dashboard.
-5. Only proceed to Stage 1 after the user confirms.
+Iterate on the Agent Vision based on their feedback until they confirm. Write the confirmed Agent Vision to `stage-0-data.json` for use by downstream stages:
+```json
+{"agent_name": "...", "vision": {"purpose": "...", "users": "...", "knowledge": [...], "capabilities": [...], "boundaries": [...], "success_criteria": "...", "role_based_access": false, "risk_profile": "medium"}}
+```
+
+Once confirmed, proceed directly to Stage 1. No dashboard or document generation at this stage — the value is the conversation itself and the clarity it produces.
+
+**Reinforce the eval-first message:** "Now that we've defined what your agent should do, we'll turn this into a structured eval plan. These evals will serve as your acceptance criteria — build the agent to pass these tests."
 
 ---
 
