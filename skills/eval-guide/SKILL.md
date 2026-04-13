@@ -58,18 +58,23 @@ This skill is grounded in Microsoft's **Eval Scenario Library**, **Triage & Impr
 
 ## Interactive Dashboard Workflow
 
-Stages 1, 2, and 4 produce an **interactive HTML dashboard** for the customer to review before proceeding. The dashboard is served locally via `dashboard/serve.py` (Python, zero dependencies).
+Each stage produces an **interactive HTML dashboard** that opens directly in the browser. No server required — `dashboard/serve.py` generates a standalone HTML file and opens it (Python, zero dependencies).
 
 **Flow at each dashboard stage:**
 1. Complete the stage's analysis
 2. Write stage data to a JSON file (e.g., `stage-1-data.json`)
 3. Launch: `python dashboard/serve.py --stage <name> --data <file>.json`
+   - This generates `<stage>-dashboard.html` next to the data file and opens it in the browser
+   - The script then waits for the user to confirm or request changes
 4. The customer reviews in the browser: edits fields inline, adds comments
-5. Read the feedback JSON file after the customer clicks **Confirm** or **Request Changes**
-6. If confirmed → generate final deliverables (docx, CSV) and proceed to next stage
-7. If changes requested → apply feedback, regenerate, re-launch dashboard
+5. When the customer clicks **Confirm** or **Request Changes**, the feedback JSON downloads automatically
+   - The customer saves it next to the data file (same directory)
+   - The script detects the feedback file and exits
+6. Read the feedback JSON file (`<stage>-feedback.json`)
+7. If confirmed → generate final deliverables (docx, CSV) and proceed to next stage
+8. If changes requested → apply feedback, regenerate, re-launch dashboard
 
-**Stages with dashboards:** Plan (1), Generate (2), Interpret (4). Stage 0 (Discover) is conversational — no dashboard. Stage 3 (Run) executes tests directly.
+**Stages with dashboards:** Discover (0), Plan (1), Generate (2), Interpret (4). Stage 3 (Run) executes tests directly.
 
 **Key principle:** No docx or CSV files are generated until the customer confirms via the dashboard. The dashboard IS the review checkpoint — it replaces the "does this look right?" chat-based confirmation with a structured, visual review.
 

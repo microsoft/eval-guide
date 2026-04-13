@@ -491,11 +491,23 @@ function init() {
     banner.innerHTML = html;
   }
 
-  fetch("/api/feedback").then(r => r.json()).then(saved => {
-    if (saved && saved.edits) edits = saved.edits;
-    if (saved && saved.comments) document.getElementById("general-comments").value = saved.comments;
+  const isOffline = window.location.protocol === "file:";
+  // Load saved progress — from localStorage (file://) or server
+  if (isOffline) {
+    try {
+      const key = "eval-dashboard-" + EMBEDDED_DATA.stage;
+      const saved = JSON.parse(localStorage.getItem(key) || "{}");
+      if (saved && saved.edits) edits = saved.edits;
+      if (saved && saved.comments) document.getElementById("general-comments").value = saved.comments;
+    } catch(e) {}
     if (typeof stageInit === "function") stageInit();
-  }).catch(() => { if (typeof stageInit === "function") stageInit(); });
+  } else {
+    fetch("/api/feedback").then(r => r.json()).then(saved => {
+      if (saved && saved.edits) edits = saved.edits;
+      if (saved && saved.comments) document.getElementById("general-comments").value = saved.comments;
+      if (typeof stageInit === "function") stageInit();
+    }).catch(() => { if (typeof stageInit === "function") stageInit(); });
+  }
 
   document.getElementById("general-comments").addEventListener("input", scheduleSave);
 }
@@ -522,9 +534,20 @@ function scheduleSave() {
 
 function saveFeedback() {
   const payload = buildFeedback("in_progress");
-  fetch("/api/feedback", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
-    .then(() => { document.getElementById("save-status").textContent = "Saved"; })
-    .catch(() => { document.getElementById("save-status").textContent = "Will download on confirm"; });
+  const isOffline = window.location.protocol === "file:";
+  if (isOffline) {
+    try {
+      const key = "eval-dashboard-" + EMBEDDED_DATA.stage;
+      localStorage.setItem(key, JSON.stringify(payload));
+      document.getElementById("save-status").textContent = "Saved";
+    } catch(e) {
+      document.getElementById("save-status").textContent = "Auto-save unavailable";
+    }
+  } else {
+    fetch("/api/feedback", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
+      .then(() => { document.getElementById("save-status").textContent = "Saved"; })
+      .catch(() => { document.getElementById("save-status").textContent = "Will download on confirm"; });
+  }
 }
 
 function confirmStage() { document.getElementById("confirm-overlay").classList.add("visible"); }
@@ -537,16 +560,34 @@ function doConfirm() { submitFeedback("confirmed"); }
 function doRequestChanges() { submitFeedback("changes_requested"); }
 
 function submitFeedback(status) {
-  const payload = JSON.stringify(buildFeedback(status), null, 2);
-  fetch("/api/feedback", { method: "POST", headers: {"Content-Type": "application/json"}, body: payload })
-    .then(() => { closeOverlay(); showToast(status === "confirmed" ? "Confirmed! You can close this tab." : "Feedback sent! Waiting for next iteration..."); })
-    .catch(() => {
-      const blob = new Blob([payload], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = EMBEDDED_DATA.stage + "-feedback.json"; a.click();
-      URL.revokeObjectURL(url); closeOverlay(); showToast("Downloaded feedback file.");
-    });
+  const feedback = buildFeedback(status);
+  const payload = JSON.stringify(feedback, null, 2);
+  const filename = (EMBEDDED_DATA.data && EMBEDDED_DATA.data.__feedback_filename__)
+    || EMBEDDED_DATA.stage + "-feedback.json";
+  const isOffline = window.location.protocol === "file:";
+
+  function downloadFeedback(msg) {
+    const blob = new Blob([payload], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+    // Also save to localStorage
+    try { localStorage.setItem("eval-dashboard-" + EMBEDDED_DATA.stage, payload); } catch(e) {}
+    closeOverlay();
+    showToast(msg);
+  }
+
+  if (isOffline) {
+    const msg = status === "confirmed"
+      ? "Confirmed! Feedback file downloaded — save it next to your data file."
+      : "Feedback downloaded! Save it next to your data file for the next iteration.";
+    downloadFeedback(msg);
+  } else {
+    fetch("/api/feedback", { method: "POST", headers: {"Content-Type": "application/json"}, body: payload })
+      .then(() => { closeOverlay(); showToast(status === "confirmed" ? "Confirmed! You can close this tab." : "Feedback sent! Waiting for next iteration..."); })
+      .catch(() => { downloadFeedback("Downloaded feedback file."); });
+  }
 }
 
 function showToast(msg) {
