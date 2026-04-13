@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+# eval-guide-update-check — compare local VERSION against GitHub remote.
+# Called from the SKILL.md preamble on every skill invocation.
+#
+# Output (stdout):
+#   UPGRADE_AVAILABLE <local> <remote>   — newer version exists
+#   JUST_UPGRADED <old> <new>            — upgrade just completed
+#   (nothing)                            — up to date, snoozed, disabled, or network error
+#
+# State directory: ~/.eval-guide/
+#   config.yaml          — update_check: true/false, auto_upgrade: true/false
+#   last-update-check    — cached result + timestamp
+#   update-snoozed       — snooze state (version, level, epoch)
+#   just-upgraded-from   — marker written after upgrade, consumed on next check
+
+set -euo pipefail
+
+# --- Resolve paths ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+STATE_DIR="$HOME/.eval-guide"
+REMOTE_URL="https://raw.githubusercontent.com/microsoft/eval-guide/main/VERSION"
+
+# --- Ensure state directory ---
+mkdir -p "$STATE_DIR"
+
+# --- Read local version ---
+LOCAL_VERSION_FILE="$PLUGIN_ROOT/VERSION"
+if [[ ! -f "$LOCAL_VERSION_FILE" ]]; then
+  exit 0  # No VERSION file — skip silently
+fi
+LOCAL_VERSION="$(tr -d '[:space:]' < "$LOCAL_VERSION_FILE")"
+
+# --- Read config ---
+CONFIG_FILE="$STATE_DIR/config.yaml"
+read_config() {
+  local key="$1"
+  local default="$2"
+  if [[ -f "$CONFIG_FILE" ]]; then
+    local val
+    val="$(grep "^${key}:" "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/^[^:]*:[[:space:]]*//' | tr -d '[:space:]')" || true
+    if [[ -n "$val" ]]; then
+      echo "$val"
+      return
+    fi
+  fi
+  echo "$default"
+}
+
+UPDATE_CHECK="$(read_config "update_check" "true")"
+AUTO_UPGRADE="$(read_config "auto_upgrade" "false")"
+
+# --- Bail if disabled ---
+if [[ "$UPDATE_CHECK" == "false" ]]; then
+  exit 0
+fi
+
+# --- Handle "just upgraded" marker ---
+JUST_UPGRADED_FILE="$STATE_DIR/just-upgraded-from"
+if [[ -f "$JUST_UPGRADED_FILE" ]]; then
+  OLD_VERSION="$(tr -d '[:space:]' < "$JUST_UPGRADED_FILE")"
+  rm -f "$JUST_UPGRADED_FILE"
+  echo "JUST_UPGRADED $OLD_VERSION $LOCAL_VERSION"
+  exit 0
+fi
+
+# --- Check snooze ---
+SNOOZE_FILE="$STATE_DIR/update-snoozed"
+if [[ -f "$SNOOZE_FILE" ]]; then
+  SNOOZE_EPOCH="$(grep "^epoch:" "$SNOOZE_FILE" 2>/dev/null | sed 's/^[^:]*:[[:space:]]*//' | tr -d '[:space:]')" || true
+  SNOOZE_LEVEL="$(grep "^level:" "$SNOOZE_FILE" 2>/dev/null | sed 's/^[^:]*:[[:space:]]*//' | tr -d '[:space:]')" || true
+  SNOOZE_VERSION="$(grep "^version:" "$SNOOZE_FILE" 2>/dev/null | sed 's/^[^:]*:[[:space:]]*//' | tr -d '[:space:]')" || true
+
+  if [[ -n "$SNOOZE_EPOCH" ]]; then
+    NOW="$(date +%s)"
+    # Escalating snooze: level 1 = 24h, 2 = 48h, 3+ = 7 days
+    case "${SNOOZE_LEVEL:-1}" in
+      1) SNOOZE_DURATION=86400 ;;
+      2) SNOOZE_DURATION=172800 ;;
+      *) SNOOZE_DURATION=604800 ;;
+    esac
+    if (( NOW - SNOOZE_EPOCH < SNOOZE_DURATION )); then
+      exit 0  # Still snoozed
+    fi
+    # Snooze expired — continue checking
+  fi
+fi
+
+# --- Check cache ---
+CACHE_FILE="$STATE_DIR/last-update-check"
+if [[ -f "$CACHE_FILE" ]]; then
+  CACHE_EPOCH="$(grep "^epoch:" "$CACHE_FILE" 2>/dev/null | sed 's/^[^:]*:[[:space:]]*//' | tr -d '[:space:]')" || true
+  CACHE_RESULT="$(grep "^result:" "$CACHE_FILE" 2>/dev/null | sed 's/^[^:]*:[[:space:]]*//')" || true
+
+  if [[ -n "$CACHE_EPOCH" ]]; then
+    NOW="$(date +%s)"
+    # UP_TO_DATE: 60 min TTL (detect new releases quickly)
+    # UPGRADE_AVAILABLE: 720 min TTL (keep reminding)
+    if [[ "$CACHE_RESULT" == UP_TO_DATE ]] && (( NOW - CACHE_EPOCH < 3600 )); then
+      exit 0
+    elif [[ "$CACHE_RESULT" == UPGRADE_AVAILABLE* ]] && (( NOW - CACHE_EPOCH < 43200 )); then
+      echo "$CACHE_RESULT"
+      exit 0
+    fi
+  fi
+fi
+
+# --- Fetch remote version (timeout 5s) ---
+REMOTE_VERSION=""
+if command -v curl &>/dev/null; then
+  REMOTE_VERSION="$(curl -fsSL --connect-timeout 5 --max-time 10 "$REMOTE_URL" 2>/dev/null | tr -d '[:space:]')" || true
+elif command -v wget &>/dev/null; then
+  REMOTE_VERSION="$(wget -qO- --timeout=10 "$REMOTE_URL" 2>/dev/null | tr -d '[:space:]')" || true
+fi
+
+# --- Bail on network failure ---
+if [[ -z "$REMOTE_VERSION" ]]; then
+  # Cache as up-to-date to avoid hammering on flaky networks
+  cat > "$CACHE_FILE" <<CACHE
+epoch: $(date +%s)
+result: UP_TO_DATE
+local: $LOCAL_VERSION
+remote: unknown
+CACHE
+  exit 0
+fi
+
+# --- Compare versions ---
+if [[ "$LOCAL_VERSION" == "$REMOTE_VERSION" ]]; then
+  cat > "$CACHE_FILE" <<CACHE
+epoch: $(date +%s)
+result: UP_TO_DATE
+local: $LOCAL_VERSION
+remote: $REMOTE_VERSION
+CACHE
+  exit 0
+fi
+
+# --- Simple semver comparison (major.minor.patch) ---
+version_gt() {
+  local IFS=.
+  local i a=($1) b=($2)
+  for ((i=0; i<${#a[@]} || i<${#b[@]}; i++)); do
+    local va="${a[i]:-0}" vb="${b[i]:-0}"
+    if (( va > vb )); then return 0; fi
+    if (( va < vb )); then return 1; fi
+  done
+  return 1
+}
+
+if version_gt "$REMOTE_VERSION" "$LOCAL_VERSION"; then
+  RESULT="UPGRADE_AVAILABLE $LOCAL_VERSION $REMOTE_VERSION"
+  cat > "$CACHE_FILE" <<CACHE
+epoch: $(date +%s)
+result: $RESULT
+local: $LOCAL_VERSION
+remote: $REMOTE_VERSION
+CACHE
+  echo "$RESULT"
+else
+  # Local is newer or equal (dev build?) — treat as up to date
+  cat > "$CACHE_FILE" <<CACHE
+epoch: $(date +%s)
+result: UP_TO_DATE
+local: $LOCAL_VERSION
+remote: $REMOTE_VERSION
+CACHE
+fi

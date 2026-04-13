@@ -175,6 +175,10 @@ eval-guide/
 │       ├── eval-result-interpreter.prompt.md
 │       ├── eval-triage-and-improvement.prompt.md
 │       └── eval-faq.prompt.md
+├── bin/                      # CLI utilities
+│   ├── eval-guide-update-check   # Version check (local vs GitHub remote)
+│   ├── eval-guide-update-snooze  # Snooze upgrade reminders
+│   └── eval-guide-update-config  # Read/write ~/.eval-guide/config.yaml
 ├── skills/                   # Claude Code skills (SKILL.md format)
 │   ├── eval-guide/
 │   │   ├── SKILL.md
@@ -195,7 +199,8 @@ eval-guide/
 │   └── eval-faq/
 ├── AGENTS.md                 # Agent instructions (GitHub Copilot agent mode + other AI tools)
 ├── CLAUDE.md                 # Claude Code project instructions
-└── README.md
+├── README.md
+└── VERSION                   # Current release version (semver)
 ```
 
 ## Methodology

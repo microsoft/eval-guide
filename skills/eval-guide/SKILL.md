@@ -1,7 +1,35 @@
 ---
 name: eval-guide
 description: Eval enablement accelerator — help customers think through "what does good look like" for their AI agent, then generate a structured eval plan and test cases they can use immediately. No built agent required — an idea or description is enough. Promotes eval-first development: write evals before building. Use when anyone mentions agent evaluation, eval planning, "what should we test", "how do we know if the agent is good", test case generation, or interpreting eval results.
+preamble: |
+  _UPD=$(~/.claude/plugins/cache/*/eval-guide/*/bin/eval-guide-update-check 2>/dev/null || ./bin/eval-guide-update-check 2>/dev/null || true)
+  echo "$_UPD"
 ---
+
+<!-- VERSION CHECK INSTRUCTIONS
+When the preamble outputs text, handle it as follows:
+
+If the output contains "UPGRADE_AVAILABLE <old> <new>":
+  Use AskUserQuestion to ask the user:
+  "eval-guide v<new> is available (you're on v<old>). Upgrade now?"
+  With these options:
+  1. "Yes, upgrade now" — Run: claude plugin add microsoft/eval-guide
+  2. "Always keep me up to date" — Run: eval-guide-update-config set auto_upgrade true
+     Then run: claude plugin add microsoft/eval-guide
+  3. "Not now" — Run: eval-guide-update-snooze <new>
+     Then continue with the skill normally.
+  4. "Never ask again" — Run: eval-guide-update-config set update_check false
+     Then continue with the skill normally.
+
+  The config and snooze scripts are in the same bin/ directory as the update check script.
+  After upgrade completes, tell the user to restart the session for the new version to take effect.
+
+If the output contains "JUST_UPGRADED <old> <new>":
+  Tell the user: "Running eval-guide v<new> (just updated from v<old>)!" and continue normally.
+
+If the output is empty:
+  Continue normally — the user is up to date (or check was snoozed/disabled).
+-->
 
 # Eval Guide — Enablement Accelerator
 

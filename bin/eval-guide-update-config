@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Read or write eval-guide config values.
+# Usage:
+#   eval-guide-update-config get <key> [default]
+#   eval-guide-update-config set <key> <value>
+set -euo pipefail
+
+STATE_DIR="$HOME/.eval-guide"
+CONFIG_FILE="$STATE_DIR/config.yaml"
+
+mkdir -p "$STATE_DIR"
+
+ACTION="${1:-}"
+KEY="${2:-}"
+VALUE="${3:-}"
+
+case "$ACTION" in
+  get)
+    DEFAULT="${3:-}"
+    if [[ -f "$CONFIG_FILE" ]]; then
+      VAL="$(grep "^${KEY}:" "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/^[^:]*:[[:space:]]*//' | tr -d '[:space:]')" || true
+      if [[ -n "$VAL" ]]; then echo "$VAL"; exit 0; fi
+    fi
+    echo "$DEFAULT"
+    ;;
+  set)
+    if [[ -z "$KEY" || -z "$VALUE" ]]; then
+      echo "Usage: eval-guide-update-config set <key> <value>" >&2
+      exit 1
+    fi
+    if [[ -f "$CONFIG_FILE" ]] && grep -q "^${KEY}:" "$CONFIG_FILE" 2>/dev/null; then
+      # Update existing key
+      sed -i "s/^${KEY}:.*/${KEY}: ${VALUE}/" "$CONFIG_FILE"
+    else
+      # Append new key
+      echo "${KEY}: ${VALUE}" >> "$CONFIG_FILE"
+    fi
+    echo "Set ${KEY}: ${VALUE}"
+    ;;
+  *)
+    echo "Usage: eval-guide-update-config {get|set} <key> [value]" >&2
+    exit 1
+    ;;
+esac
