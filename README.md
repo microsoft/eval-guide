@@ -9,7 +9,8 @@ Grounded in Microsoft's [Eval Scenario Library](https://learn.microsoft.com/en-u
 ### Claude Code
 
 ```bash
-claude plugin add microsoft/eval-guide
+claude plugin marketplace add microsoft/eval-guide
+claude plugin install eval-guide@eval-guide
 ```
 
 ### GitHub Copilot
@@ -119,7 +120,8 @@ Most agents benefit from a hybrid: Echo for fast regression, Synthesized persona
 For the full experience — connecting to a live agent, pulling its configuration, and running tests against it — also install the [Copilot Studio plugin](https://github.com/microsoft/skills-for-copilot-studio):
 
 ```bash
-claude plugin add microsoft/skills-for-copilot-studio
+claude plugin marketplace add microsoft/skills-for-copilot-studio
+claude plugin install skills-for-copilot-studio@skills-for-copilot-studio
 ```
 
 When both plugins are installed, `/eval-guide` can:

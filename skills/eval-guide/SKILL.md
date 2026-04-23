@@ -13,9 +13,9 @@ If the output contains "UPGRADE_AVAILABLE <old> <new>":
   Use AskUserQuestion to ask the user:
   "eval-guide v<new> is available (you're on v<old>). Upgrade now?"
   With these options:
-  1. "Yes, upgrade now" — Run: claude plugin add microsoft/eval-guide
+  1. "Yes, upgrade now" — Run: claude plugin install eval-guide@eval-guide (the marketplace source `microsoft/eval-guide` must already be added via `claude plugin marketplace add microsoft/eval-guide`)
   2. "Always keep me up to date" — Run: eval-guide-update-config set auto_upgrade true
-     Then run: claude plugin add microsoft/eval-guide
+     Then run: claude plugin install eval-guide@eval-guide
   3. "Not now" — Run: eval-guide-update-snooze <new>
      Then continue with the skill normally.
   4. "Never ask again" — Run: eval-guide-update-config set update_check false
