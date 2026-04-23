@@ -1,30 +1,27 @@
-<!-- Stage 4: Interpret — Results & Success Metrics Review -->
+<!-- Stage 4: Interpret — Results Review (Quadrant-based) -->
 
 <style>
-.zone-badge-sm {
+.q-badge-sm {
   display: inline-block;
   padding: 0.05rem 0.4rem;
   border-radius: 3px;
   font-size: 0.65rem;
   font-weight: 600;
   white-space: nowrap;
+  text-transform: capitalize;
 }
-.zone-badge-sm-1 { background: var(--red-bg); color: var(--red); }
-.zone-badge-sm-2 { background: var(--yellow-bg); color: #996600; }
-.zone-badge-sm-3 { background: var(--blue-bg); color: var(--blue); }
+.q-badge-sm-critical   { background: var(--red-bg); color: var(--red); }
+.q-badge-sm-core       { background: var(--blue-bg); color: var(--blue); }
+.q-badge-sm-guardrails { background: var(--yellow-bg); color: #996600; }
+.q-badge-sm-deprioritize { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
 
-.metric-met { color: var(--green); }
-.metric-missed { color: var(--red); }
-.metric-bar {
-  display: inline-block;
-  height: 6px;
-  border-radius: 3px;
-  vertical-align: middle;
-  margin-left: 0.3rem;
-}
+.rate-high { color: var(--green); font-weight: 600; }
+.rate-mid  { color: #996600; font-weight: 600; }
+.rate-low  { color: var(--red); font-weight: 600; }
+
 .metric-bar-bg {
   display: inline-block;
-  width: 60px;
+  width: 80px;
   height: 6px;
   border-radius: 3px;
   background: var(--border);
@@ -39,28 +36,29 @@
   border-radius: 3px;
 }
 
-/* Zone summary cards */
-.zone-summary-cards {
-  display: flex;
+/* Quadrant summary cards */
+.quadrant-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.8rem;
   margin-bottom: 0;
 }
-.zone-summary-card {
-  flex: 1;
+.quadrant-summary-card {
   padding: 0.6rem 0.8rem;
   border-radius: var(--radius);
   text-align: center;
 }
-.zone-summary-card .zsc-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
-.zone-summary-card .zsc-stat { font-size: 1.3rem; font-weight: 700; margin: 0.2rem 0; }
-.zone-summary-card .zsc-detail { font-size: 0.72rem; opacity: 0.8; }
-.zsc-1 { background: var(--red-bg); color: var(--red); }
-.zsc-2 { background: var(--yellow-bg); color: #996600; }
-.zsc-3 { background: var(--blue-bg); color: var(--blue); }
+.quadrant-summary-card .qsc-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.quadrant-summary-card .qsc-stat  { font-size: 1.3rem; font-weight: 700; margin: 0.2rem 0; }
+.quadrant-summary-card .qsc-detail { font-size: 0.72rem; opacity: 0.85; }
+.qsc-critical   { background: var(--red-bg); color: var(--red); }
+.qsc-core       { background: var(--blue-bg); color: var(--blue); }
+.qsc-guardrails { background: var(--yellow-bg); color: #996600; }
+.qsc-deprioritize { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
 
-.failure-scenario { font-size: 0.7rem; color: var(--text-muted); }
+.failure-sub { font-size: 0.7rem; color: var(--text-muted); }
 
-/* Expandable scenario rows */
+/* Expandable criterion rows */
 .metric-row { cursor: pointer; transition: background 0.1s; }
 .metric-row:hover { background: rgba(0,120,212,0.04) !important; }
 .metric-row .expand-icon {
@@ -119,26 +117,24 @@
 .judgement-select.agree { background: var(--green-bg); color: var(--green); border-color: var(--green); }
 </style>
 
-<!-- Section 1: Success Metrics Status -->
+<!-- Section 1: Quadrant Performance -->
 <div class="section">
   <div class="section-header flex-between">
-    <span data-tooltip="Compares actual pass rates against the targets set in the Plan stage. Green = target met, red = target missed. This tells you exactly which scenarios are ready and which need more work.">Success Metrics Status</span>
+    <span data-tooltip="Actual pass rate of each criterion, grouped by quadrant. Quadrant tells you where effort matters most — a Guardrails failure is more urgent than a Deprioritize failure at the same pass rate.">Quadrant Performance</span>
     <span class="text-sm text-muted" id="metrics-status-count"></span>
   </div>
   <div class="section-body">
-    <div class="zone-summary-cards" id="zone-summary-cards"></div>
+    <div class="quadrant-summary-cards" id="quadrant-summary-cards"></div>
   </div>
   <div class="section-body" style="padding-top:0;overflow-x:auto;">
     <table>
       <thead>
         <tr>
-          <th style="width:60px">Zone</th>
-          <th style="width:25%">Scenario</th>
+          <th style="width:85px">Quadrant</th>
+          <th style="width:40%">Criterion (The agent should...)</th>
           <th style="width:18%">Quality Dimension</th>
-          <th style="width:80px">Target</th>
-          <th style="width:80px">Actual</th>
-          <th style="width:100px">Results</th>
-          <th style="width:60px">Status</th>
+          <th style="width:80px">Pass Rate</th>
+          <th style="width:130px">Results</th>
         </tr>
       </thead>
       <tbody id="metrics-tbody"></tbody>
@@ -156,12 +152,12 @@
     <table>
       <thead>
         <tr>
-          <th style="width:60px">Zone</th>
-          <th style="width:18%">Scenario</th>
-          <th style="width:22%">Question</th>
-          <th style="width:20%">Expected</th>
-          <th style="width:20%">Actual</th>
-          <th style="width:120px">Root Cause</th>
+          <th style="width:85px">Quadrant</th>
+          <th style="width:22%">Criterion</th>
+          <th style="width:20%">Question</th>
+          <th style="width:18%">Expected</th>
+          <th style="width:18%">Actual</th>
+          <th style="width:130px">Root Cause</th>
         </tr>
       </thead>
       <tbody id="failure-tbody"></tbody>
@@ -171,95 +167,157 @@
 
 <!-- Section 3: Top Actions -->
 <div class="section">
-  <div class="section-header"><span data-tooltip="Prioritized changes to make to the agent or eval setup, each with a specific re-run expectation. Follow these in order — the highest-impact fixes come first.">Top Actions</span></div>
+  <div class="section-header"><span data-tooltip="Prioritized changes to make to the agent or eval setup, each with a specific re-run expectation. When re-running, run the full set — not just the failing cases — to catch regressions elsewhere.">Top Actions</span></div>
   <div class="section-body" id="actions-list"></div>
 </div>
 
 <!-- Section 4: Patterns -->
 <div class="section">
-  <div class="section-header"><span data-tooltip="Cross-cutting failure patterns that suggest systemic issues rather than one-off test failures. A pattern like 'all date-related queries fail' points to a knowledge source gap, not individual test problems.">Patterns</span></div>
+  <div class="section-header"><span data-tooltip="Cross-cutting failure patterns. Guardrails failures are more urgent than Deprioritize failures at the same rate — patterns should be read with quadrant weight in mind.">Patterns</span></div>
   <div class="section-body" id="patterns-list"></div>
 </div>
 
 <script>
-const ZONE_LABELS = {"1": "Zone 1", "2": "Zone 2", "3": "Zone 3"};
-const ZONE_BADGE_CSS = {"1": "zone-badge-sm-1", "2": "zone-badge-sm-2", "3": "zone-badge-sm-3"};
-const ZONE_CARD_CSS = {"1": "zsc-1", "2": "zsc-2", "3": "zsc-3"};
+const QUADRANTS_ORDER = ["critical", "core", "guardrails", "deprioritize"];
+const QUADRANT_LABELS = {
+  critical: "Critical",
+  core: "Core",
+  guardrails: "Guardrails",
+  deprioritize: "Deprioritize",
+};
+const Q_BADGE_CSS = {
+  critical: "q-badge-sm-critical",
+  core: "q-badge-sm-core",
+  guardrails: "q-badge-sm-guardrails",
+  deprioritize: "q-badge-sm-deprioritize",
+};
+const Q_CARD_CSS = {
+  critical: "qsc-critical",
+  core: "qsc-core",
+  guardrails: "qsc-guardrails",
+  deprioritize: "qsc-deprioritize",
+};
 const ROOT_CAUSES = ["eval_setup", "agent_config", "platform_limitation"];
 const ROOT_CAUSE_LABELS = {eval_setup: "Eval Setup Issue", agent_config: "Agent Config Issue", platform_limitation: "Platform Limitation"};
 
 let evalResults = [];
 
+function zoneToQuadrant(zone) {
+  const z = String(zone || "");
+  if (z === "1") return "critical";
+  if (z === "2") return "core";
+  if (z === "3") return "deprioritize";
+  return "core";
+}
+
+function normalizeCriterionMetric(raw) {
+  return {
+    criterion_id: raw.criterion_id || raw.scenario_id || raw.id,
+    statement: raw.statement || raw.name || "",
+    quadrant: raw.quadrant || zoneToQuadrant(raw.zone),
+    quality_dimension: raw.quality_dimension || "",
+    actual_pass_rate: raw.actual_pass_rate || 0,
+    cases_total: raw.cases_total || 0,
+    cases_passed: raw.cases_passed || 0,
+  };
+}
+
+function normalizeEvalResult(raw) {
+  return {
+    ...raw,
+    criterion_id: raw.criterion_id || raw.scenario_id || raw.id,
+  };
+}
+
+function normalizeFailure(raw) {
+  return {
+    ...raw,
+    criterion_id: raw.criterion_id || raw.scenario_id,
+    criterion_statement: raw.criterion_statement || raw.scenario_name || raw.name || "",
+    quadrant: raw.quadrant || zoneToQuadrant(raw.zone),
+  };
+}
+
+function rateClass(rate) {
+  if (rate >= 90) return "rate-high";
+  if (rate >= 70) return "rate-mid";
+  return "rate-low";
+}
+
 function stageInit() {
   const d = EMBEDDED_DATA.data;
-  evalResults = d.eval_results || [];
-  renderMetricsStatus(d.success_metrics || []);
-  renderFailures(d.failures || []);
+  evalResults = (d.eval_results || []).map(normalizeEvalResult);
+  const metrics = (d.criterion_metrics || d.success_metrics || []).map(normalizeCriterionMetric);
+  const failures = (d.failures || []).map(normalizeFailure);
+  renderMetricsStatus(metrics);
+  renderFailures(failures);
   renderActions(d.top_actions || []);
   renderPatterns(d.patterns || []);
 }
 
 function renderMetricsStatus(metrics) {
-  // Zone summary cards
-  const cardContainer = document.getElementById("zone-summary-cards");
-  const zoneStats = {};
+  // Quadrant summary cards
+  const cardContainer = document.getElementById("quadrant-summary-cards");
+  const stats = {};
   metrics.forEach(m => {
-    const z = String(m.zone || "1");
-    if (!zoneStats[z]) zoneStats[z] = {total: 0, met: 0, cases_total: 0, cases_passed: 0};
-    zoneStats[z].total++;
-    if (m.actual_pass_rate >= m.target_pass_rate) zoneStats[z].met++;
-    zoneStats[z].cases_total += (m.cases_total || 0);
-    zoneStats[z].cases_passed += (m.cases_passed || 0);
+    const q = m.quadrant;
+    if (!stats[q]) stats[q] = {criteria: 0, cases_total: 0, cases_passed: 0};
+    stats[q].criteria++;
+    stats[q].cases_total += m.cases_total;
+    stats[q].cases_passed += m.cases_passed;
   });
 
   let cardsHtml = "";
-  ["1", "2", "3"].forEach(z => {
-    const s = zoneStats[z];
+  QUADRANTS_ORDER.forEach(q => {
+    const s = stats[q];
     if (!s) return;
-    const pct = s.total > 0 ? Math.round(s.met / s.total * 100) : 0;
+    const pct = s.cases_total > 0 ? Math.round(s.cases_passed / s.cases_total * 100) : 0;
     cardsHtml +=
-      '<div class="zone-summary-card ' + ZONE_CARD_CSS[z] + '">' +
-      '<div class="zsc-label">' + ZONE_LABELS[z] + '</div>' +
-      '<div class="zsc-stat">' + s.met + '/' + s.total + '</div>' +
-      '<div class="zsc-detail">scenarios met target (' + pct + '%)</div>' +
+      '<div class="quadrant-summary-card ' + Q_CARD_CSS[q] + '">' +
+      '<div class="qsc-label">' + QUADRANT_LABELS[q] + '</div>' +
+      '<div class="qsc-stat">' + pct + '%</div>' +
+      '<div class="qsc-detail">' + s.cases_passed + '/' + s.cases_total + ' cases (' + s.criteria + ' criteria)</div>' +
       '</div>';
   });
   cardContainer.innerHTML = cardsHtml;
 
-  // Metrics table
+  // Metrics table — sorted by quadrant importance, then by lowest pass rate first
+  const QUADRANT_SORT = { critical: 0, guardrails: 1, core: 2, deprioritize: 3 };
+  const sorted = [...metrics].sort((a, b) => {
+    const qd = QUADRANT_SORT[a.quadrant] - QUADRANT_SORT[b.quadrant];
+    if (qd !== 0) return qd;
+    return a.actual_pass_rate - b.actual_pass_rate;
+  });
+
   const tbody = document.getElementById("metrics-tbody");
   tbody.innerHTML = "";
-  const sorted = [...metrics].sort((a, b) => String(a.zone).localeCompare(String(b.zone)) || a.name.localeCompare(b.name));
-  let metCount = 0;
+  let totalCases = 0;
+  let totalPassed = 0;
   sorted.forEach((m, idx) => {
-    const z = String(m.zone || "1");
-    const met = m.actual_pass_rate >= m.target_pass_rate;
-    if (met) metCount++;
-    const barColor = met ? "var(--green)" : "var(--red)";
-    const scenarioCases = evalResults.filter(r => r.scenario_id === m.scenario_id);
-    const hasDetails = scenarioCases.length > 0;
+    totalCases += m.cases_total;
+    totalPassed += m.cases_passed;
+    const barColor = m.actual_pass_rate >= 90 ? "var(--green)" : m.actual_pass_rate >= 70 ? "var(--yellow)" : "var(--red)";
+    const criterionCases = evalResults.filter(r => r.criterion_id === m.criterion_id);
+    const hasDetails = criterionCases.length > 0;
     const rowId = "metric-detail-" + idx;
 
     const tr = document.createElement("tr");
     tr.className = "metric-row";
     if (hasDetails) tr.onclick = function() { toggleDetail(rowId, this); };
     tr.innerHTML =
-      '<td><span class="zone-badge-sm ' + (ZONE_BADGE_CSS[z] || "") + '">' + (ZONE_LABELS[z] || "") + '</span></td>' +
-      '<td class="text-sm" style="font-weight:500;">' + (hasDetails ? '<span class="expand-icon">&#x25B6;</span>' : '<span style="width:1em;display:inline-block;"></span>') + escapeHtml(m.name || "") + '</td>' +
+      '<td><span class="q-badge-sm ' + (Q_BADGE_CSS[m.quadrant] || "") + '">' + (QUADRANT_LABELS[m.quadrant] || "") + '</span></td>' +
+      '<td class="text-sm" style="font-weight:500;">' + (hasDetails ? '<span class="expand-icon">&#x25B6;</span>' : '<span style="width:1em;display:inline-block;"></span>') + escapeHtml(m.statement || "") + '</td>' +
       '<td class="text-sm">' + escapeHtml(m.quality_dimension || "") + '</td>' +
-      '<td class="text-sm" style="text-align:right;font-family:var(--mono);">' + m.target_pass_rate + '%</td>' +
-      '<td class="text-sm" style="text-align:right;font-family:var(--mono);font-weight:600;' + (met ? 'color:var(--green)' : 'color:var(--red)') + ';">' + m.actual_pass_rate + '%</td>' +
+      '<td class="text-sm" style="text-align:right;font-family:var(--mono);"><span class="' + rateClass(m.actual_pass_rate) + '">' + m.actual_pass_rate + '%</span></td>' +
       '<td><span class="metric-bar-bg"><span class="metric-bar-fill" style="width:' + Math.min(100, m.actual_pass_rate) + '%;background:' + barColor + ';"></span></span>' +
-      ' <span class="text-sm text-muted">' + (m.cases_passed || 0) + '/' + (m.cases_total || 0) + '</span></td>' +
-      '<td style="text-align:center;font-size:0.85rem;">' + (met ? '<span class="metric-met">&#x2713;</span>' : '<span class="metric-missed">&#x2717;</span>') + '</td>';
+      ' <span class="text-sm text-muted">' + m.cases_passed + '/' + m.cases_total + '</span></td>';
     tbody.appendChild(tr);
 
-    // Detail row (hidden by default)
     if (hasDetails) {
       const detailTr = document.createElement("tr");
       detailTr.className = "metric-detail-row";
       detailTr.id = rowId;
-      let detailHtml = '<td colspan="7"><table class="detail-table"><thead><tr>' +
+      let detailHtml = '<td colspan="5"><table class="detail-table"><thead><tr>' +
         '<th style="width:22%">Question</th>' +
         '<th style="width:22%">Expected Response</th>' +
         '<th style="width:22%">Actual Response</th>' +
@@ -268,8 +326,8 @@ function renderMetricsStatus(metrics) {
         '<th style="width:40px">Result</th>' +
         '<th style="width:90px">Human Judgement</th>' +
         '</tr></thead><tbody>';
-      scenarioCases.forEach((c, cIdx) => {
-        const caseKey = m.scenario_id + "_" + cIdx;
+      criterionCases.forEach((c, cIdx) => {
+        const caseKey = m.criterion_id + "_" + cIdx;
         detailHtml += '<tr>' +
           '<td>' + escapeHtml(c.question || "") + '</td>' +
           '<td>' + escapeHtml(truncate(c.expected || "", 150)) + '</td>' +
@@ -277,7 +335,7 @@ function renderMetricsStatus(metrics) {
           '<td>' + escapeHtml(c.method || "") + '</td>' +
           '<td class="detail-score">' + (c.score !== undefined ? c.score.toFixed(2) : "—") + '</td>' +
           '<td>' + (c.pass ? '<span class="detail-pass">Pass</span>' : '<span class="detail-fail">Fail</span>') + '</td>' +
-          '<td><select class="judgement-select" data-case-key="' + caseKey + '" data-scenario-id="' + m.scenario_id + '" data-question="' + escapeAttr(c.question || "") + '" data-expected="' + escapeAttr(truncate(c.expected || "", 100)) + '" data-actual="' + escapeAttr(truncate(c.actual || "", 100)) + '" data-zone="' + z + '" data-scenario-name="' + escapeAttr(m.name || "") + '" data-quality-dim="' + escapeAttr(m.quality_dimension || "") + '" onchange="onJudgementChange(this)">' +
+          '<td><select class="judgement-select" data-case-key="' + caseKey + '" data-criterion-id="' + m.criterion_id + '" data-question="' + escapeAttr(c.question || "") + '" data-expected="' + escapeAttr(truncate(c.expected || "", 100)) + '" data-actual="' + escapeAttr(truncate(c.actual || "", 100)) + '" data-quadrant="' + m.quadrant + '" data-criterion-statement="' + escapeAttr(m.statement || "") + '" data-quality-dim="' + escapeAttr(m.quality_dimension || "") + '" onchange="onJudgementChange(this)">' +
             '<option value="">—</option>' +
             '<option value="agree">Agree</option>' +
             '<option value="disagree">Disagree</option>' +
@@ -292,7 +350,8 @@ function renderMetricsStatus(metrics) {
       tbody.appendChild(detailTr);
     }
   });
-  document.getElementById("metrics-status-count").textContent = metCount + '/' + metrics.length + ' targets met';
+  const overallPct = totalCases > 0 ? Math.round(totalPassed / totalCases * 100) : 0;
+  document.getElementById("metrics-status-count").textContent = totalPassed + '/' + totalCases + ' cases passed (' + overallPct + '% overall)';
 }
 
 function toggleDetail(rowId, clickedRow) {
@@ -303,18 +362,17 @@ function toggleDetail(rowId, clickedRow) {
 }
 
 // Human judgement tracking
-let humanDisagrees = {}; // key -> {scenario_name, zone, quality_dimension, question, expected, actual}
+let humanDisagrees = {};
 
 function onJudgementChange(select) {
   const key = select.dataset.caseKey;
-  // Style the select
   select.classList.remove("agree", "disagree");
   if (select.value) select.classList.add(select.value);
 
   if (select.value === "disagree") {
     humanDisagrees[key] = {
-      scenario_name: select.dataset.scenarioName,
-      zone: select.dataset.zone,
+      criterion_statement: select.dataset.criterionStatement,
+      quadrant: select.dataset.quadrant,
       quality_dimension: select.dataset.qualityDim,
       question: select.dataset.question,
       expected: select.dataset.expected,
@@ -324,9 +382,8 @@ function onJudgementChange(select) {
     delete humanDisagrees[key];
   }
 
-  // Re-render failure triage to include disagreements
   const d = EMBEDDED_DATA.data;
-  renderFailures(d.failures || []);
+  renderFailures((d.failures || []).map(normalizeFailure));
   scheduleSave();
   edits["human_disagrees"] = JSON.stringify(humanDisagrees);
 }
@@ -339,12 +396,11 @@ function renderFailures(failures) {
   const tbody = document.getElementById("failure-tbody");
   tbody.innerHTML = "";
 
-  // Build set of questions that human disagrees with (to filter out originals)
   const disagreeQuestions = new Set(Object.values(humanDisagrees).map(d => d.question));
 
   const disagreeEntries = Object.entries(humanDisagrees).map(([key, d]) => ({
-    zone: d.zone,
-    scenario_name: d.scenario_name,
+    quadrant: d.quadrant,
+    criterion_statement: d.criterion_statement,
     quality_dimension: d.quality_dimension,
     question: d.question,
     expected: d.expected,
@@ -353,7 +409,6 @@ function renderFailures(failures) {
     _from_disagree: true,
   }));
 
-  // Remove original failures that have been overridden by human disagree
   const filteredFailures = failures.filter(f => !disagreeQuestions.has(f.question));
   const allFailures = [...filteredFailures, ...disagreeEntries];
   const totalCount = allFailures.length;
@@ -370,7 +425,7 @@ function renderFailures(failures) {
 
   allFailures.forEach((f, i) => {
     const fp = f._from_disagree ? "disagree_" + i : "failures[" + i + "]";
-    const z = String(f.zone || "1");
+    const q = f.quadrant || "core";
     const tr = document.createElement("tr");
     if (f._from_disagree) tr.style.background = "var(--yellow-bg)";
 
@@ -383,8 +438,8 @@ function renderFailures(failures) {
         '</select>';
 
     tr.innerHTML =
-      '<td><span class="zone-badge-sm ' + (ZONE_BADGE_CSS[z] || "") + '">' + (ZONE_LABELS[z] || "") + '</span></td>' +
-      '<td class="text-sm"><div style="font-weight:500;">' + escapeHtml(f.scenario_name || "") + '</div><div class="failure-scenario">' + escapeHtml(f.quality_dimension || "") + '</div></td>' +
+      '<td><span class="q-badge-sm ' + (Q_BADGE_CSS[q] || "") + '">' + (QUADRANT_LABELS[q] || "") + '</span></td>' +
+      '<td class="text-sm"><div style="font-weight:500;">' + escapeHtml(f.criterion_statement || "") + '</div><div class="failure-sub">' + escapeHtml(f.quality_dimension || "") + '</div></td>' +
       '<td class="text-sm">' + escapeHtml(f.question || "") + '</td>' +
       '<td class="text-sm">' + escapeHtml(truncate(f.expected || "", 120)) + '</td>' +
       '<td class="text-sm">' + escapeHtml(truncate(f.actual || "", 120)) + '</td>' +

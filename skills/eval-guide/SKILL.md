@@ -107,6 +107,22 @@ When running the full pipeline, complete each stage, show the output, explain yo
 
 ---
 
+## Eval Maturity Journey
+
+Use the **Per-Agent Eval Maturity Model** (5 pillars × 5 levels, L100 Initial → L500 Optimized) to orient customers on where they are today and where this session takes them. Assume the agent starts at **L100 on all pillars**. This session targets **L300 on Pillars 1, 2, and 5**.
+
+| Pillar | What it measures | L100 (starting point) | L300 (session target) |
+|---|---|---|---|
+| **1 — Define what "good" means** | Acceptance criteria quality | No written criteria. "Good" lives in the builder's head. | Acceptance criteria cover capabilities + quality + reliability, tied to eval metrics with thresholds, human-reviewed. |
+| **2 — Build eval sets** | Coverage and versioning | No established eval set. Informal spot-checks. | Versioned eval set, coverage targeted at quality dimensions, edge cases, and failure modes; mapped to risk and value. |
+| **5 — Improve and iterate** | How improvements are validated | Reactive — driven by complaints, not eval data. | Failure categories analyzed for root cause. Fixes validated with before/after eval runs. Regression-proofing built in. |
+
+**Pillars 3 (Run systematically) and 4 (Handle changes with confidence) are the next chapter.** They require ongoing operating practices — cadence, CI hooks, drift detection, version comparisons — not a single session. Acknowledge them to the customer so they know the full map, but don't try to deliver them today.
+
+Each stage below includes a maturity callout naming which pillar and level it advances.
+
+---
+
 ## How This Maps to Microsoft's Official Evaluation Framework
 
 Microsoft's [evaluation checklist](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/evaluation-checklist) and [iterative framework](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/evaluation-iterative-framework) define a 4-stage lifecycle. Our skill stages map directly to it — share this mapping with customers so they see how the accelerator fits the official guidance:
@@ -209,11 +225,13 @@ Using the Agent Vision, produce a structured eval suite plan. This works whether
 
    **Tell the customer:** "Your agent is [architecture type], which means we need to test [these layers]. A knowledge-grounded agent needs hallucination tests that a simple Q&A bot doesn't. An agentic workflow needs tool-routing tests that a knowledge bot doesn't. This scopes your eval so you're testing what actually matters."
 
-   **Use this to filter scenarios in the next step** — skip capability scenarios that don't apply to the agent's architecture. A prompt-level agent doesn't need Knowledge Grounding tests; a non-agentic agent doesn't need Tool Invocation tests.
+   **Use this to filter criteria families in the next step** — skip capability families that don't apply to the agent's architecture. A prompt-level agent doesn't need Knowledge Grounding criteria; a non-agentic agent doesn't need Tool Invocation criteria.
 
-2. **Match to scenario types:**
+2. **Identify the families of acceptance criteria to write:**
 
-| If the agent... | Business-problem scenarios | Capability scenarios |
+Acceptance criteria come in two families — **functional** (what the agent should do for users) and **capability** (how well it should do it). Use the table to pick the families that apply.
+
+| If the agent... | Functional criteria | Capability criteria |
 |---|---|---|
 | Answers questions from knowledge sources | Information Retrieval | Knowledge Grounding + Compliance |
 | Executes tasks via APIs/connectors | Request Submission | Tool Invocations + Safety |
@@ -223,20 +241,32 @@ Using the Agent Vision, produce a structured eval suite plan. This works whether
 | Handles sensitive data | (add to whichever applies) | Safety + Compliance |
 | All agents (always include) | — | Red-Teaming |
 
-**Explain your picks:** "Based on your Agent Vision, I'm selecting Information Retrieval and Knowledge Grounding because your agent answers from policy documents. I'm also including Red-Teaming because every agent needs adversarial testing — your users will try to break it eventually."
+**Explain your picks:** "Based on your Agent Vision, I'm selecting Information Retrieval and Knowledge Grounding because your agent answers from policy documents. I'm also including Red-Teaming — every agent needs adversarial testing."
 
-3. **Produce the eval plan:**
+3. **Write acceptance criteria:**
 
-**Scenario plan table:**
+Each criterion is a single testable statement starting with **"The agent should…"** (or "The agent should NOT…" for negative tests). Write 10–15 criteria across the families identified above.
 
-| # | Scenario Name | Category | Tag | Evaluation Methods |
-|---|---|---|---|---|
+**Criteria plan table:**
 
-Category distribution: Core business 30-40%, Capability 20-30%, Safety 10-20%, Edge cases 10-20%. Total: 10-15 scenarios.
+| # | Acceptance Criterion | Quality Dimension | Method |
+|---|---|---|---|
 
-**Method mapping:**
+Good criteria are:
+- **Behavior-led** — start with "The agent should…" and describe an observable behavior
+- **Verifiable** — pass or fail can be judged by comparing a response to the criterion
+- **Scoped** — one behavior per criterion; don't stack multiple checks into one row
+- **Grounded** — tied to the Agent Vision (a capability, boundary, knowledge source, or user cohort)
 
-| What you're testing | Primary method | Secondary |
+Examples:
+- "The agent should return the correct PTO days for the employee's office and tenure, with a citation to the source policy."
+- "The agent should refuse salary or compensation queries and direct the user to HR."
+- "The agent should respond empathetically to emotional signals before citing policy."
+- "The agent should NOT answer questions outside its knowledge sources; it should say it doesn't know."
+
+4. **Pick a method per criterion:**
+
+| What you're verifying | Primary method | Secondary |
 |---|---|---|
 | Factual accuracy (specific facts) | Keyword Match | Compare Meaning |
 | Factual accuracy (flexible phrasing) | Compare Meaning | Keyword Match |
@@ -248,73 +278,146 @@ Category distribution: Core business 30-40%, Capability 20-30%, Safety 10-20%, E
 | Phrasing precision (wording matters) | Text Similarity | Compare Meaning |
 | Domain-specific criteria (compliance, tone, policy) | Custom | — |
 
+The method governs what information the test case needs in Stage 2 — Keyword Match needs exact keywords in the expected response; Compare Meaning needs a reference answer; Custom needs rubric labels. Pick the method here so Stage 2's test cases carry the right content.
+
 **Beyond Custom — rubric-based grading:** For customers who need more granular scoring than Custom's pass/fail labels, the [Copilot Studio Kit](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/kit-rubrics-tests) supports rubric-based grading on a 1–5 scale. Rubrics replace the standard validation logic with a custom AI grader aligned to domain-specific criteria. Two modes: **Refinement** (grade + rationale — use first to calibrate the rubric against human judgment) and **Testing** (grade only — use for routine QA after the rubric is trusted). Mention this to customers who are choosing Custom methods for compliance, tone, or brand voice — rubrics are the advanced option for ongoing calibrated quality assurance.
 
-**What General Quality actually measures:** When explaining General Quality to customers, tell them what the LLM judge evaluates. Per MS Learn docs (March 2026), General Quality scores on four criteria — ALL must be met for a high score:
+**What General Quality actually measures:** When explaining General Quality to customers, tell them what the LLM judge evaluates. Per MS Learn docs (March 2026), General Quality scores on four sub-criteria — ALL must be met for a high score:
 
-| Criterion | What it checks | Example question it answers |
+| Sub-criterion | What it checks | Example question it answers |
 |---|---|---|
 | **Relevance** | Does the response address the question directly? | "Did the agent stay on topic or go off on a tangent?" |
 | **Groundedness** | Is the response based on provided context, not invented? | "Did the agent cite its knowledge sources or make things up?" |
 | **Completeness** | Does the response cover all aspects with sufficient detail? | "Did the agent answer the full question or just part of it?" |
 | **Abstention** | Did the agent attempt to answer at all? | "Did the agent refuse to answer a question it should have answered?" |
 
-Tell the customer: "If General Quality scores are low, these four criteria tell you WHERE to look. A response can be relevant but not grounded (it answered the right question but invented the answer), or grounded but incomplete (it used the right source but missed half the information)."
+Tell the customer: "If General Quality scores are low, these four sub-criteria tell you WHERE to look. A response can be relevant but not grounded (it answered the right question but invented the answer), or grounded but incomplete (it used the right source but missed half the information)."
 
-**Explain the methods:** "I'm using Compare meaning for factual questions because the agent doesn't need to use the exact same words — it just needs to convey the same information. For safety tests I'm using Compare meaning too, because we need to check that the refusal matches what we expect."
+**Explain your method picks:** "I'm using Compare meaning for factual criteria because the agent doesn't need to use the exact same words — it just needs to convey the same information. For refusal criteria I'm using Compare meaning too, because we need to check that the refusal matches what we expect."
 
-**Quality signals** — map to the agent's capabilities.
+5. **Prioritize criteria on the Value × Cost-of-Failure matrix:**
 
-**Pass/fail thresholds** — calibrated to risk profile:
+Every acceptance criterion goes in one of four quadrants based on two judgments:
+- **Value** of getting this right — how much does successful behavior drive the product's purpose?
+- **Cost of failure** if the agent gets it wrong — how much harm, embarrassment, or business damage does a failure cause?
 
-| Category | Low risk | Medium risk | High risk |
-|---|---|---|---|
-| Core business | >=80% | >=90% | >=95% |
-| Safety & compliance | >=90% | >=95% | >=99% |
-| Edge cases | >=60% | >=70% | >=80% |
+|  | **Low cost of failure** | **High cost of failure** |
+|---|---|---|
+| **High value** | **Core** — expected capabilities users rely on. Solid coverage; occasional misses tolerable. | **Critical** — product-defining; failure hurts. Invest heaviest: most test cases, strictest review. |
+| **Low value** | **Deprioritize** — exploratory or rare behaviors. Light coverage; revisit when the criterion starts mattering more. | **Guardrails** — rarely triggered but must never fail (safety refusals, compliance boundaries). Invest in negative tests and adversarial cases. |
 
-**Priority order:** Core business → Safety → Capability → Edge cases.
+**Quadrant assignment guidance:**
+- **Critical** — the agent's main capabilities AND high-harm behaviors. Highest investment.
+- **Core** — the agent's expected behaviors where misses are noticed but not catastrophic.
+- **Guardrails** — safety, compliance, refusals. Low traffic; zero tolerance for failure.
+- **Deprioritize** — experimental, low-traffic, or low-stakes. Test lightly; revisit if usage grows.
 
-**Highlight what they'd miss:** "Notice I included hallucination prevention tests — questions about topics NOT in your knowledge sources. Most customers only test what the agent should know. Testing what it should NOT know is just as important — this catches the agent making up answers."
+Pass/fail for each test case is determined by the criterion's pass/fail conditions, not a prescribed percentage target. The quadrant tells you **where to invest effort**, not a threshold to clear.
+
+**Before confirming quadrant assignments:** Align placements with the customer's risk owner or compliance partner — especially for Guardrails criteria. Human expert review of criteria and their placement is what distinguishes L300 Pillar 1 from L200.
+
+**Highlight what they'd miss:** "Notice I included a Guardrails criterion for topics NOT in your knowledge sources. Most customers only test what the agent should know. Testing what it should NOT know — and where it should refuse — is just as important."
 
 ### Output
 
-Display the scenario plan table and thresholds.
+Display the criteria plan table and the Value × Cost matrix with each criterion placed in its quadrant.
+
+**Maturity callout — Pillar 1 (L100 → L300):** Completing Stage 0 + Stage 1 advances Pillar 1 from "no written criteria" to acceptance criteria phrased as "The agent should…", each tied to a method and placed on the Value × Cost matrix, with human-expert review. Pillar 2 advances in Stage 2; Pillar 5 in Stage 4.
 
 ### Interactive Dashboard Checkpoint
 
 Before generating any deliverable documents, launch the plan dashboard for review:
 
-1. Write the plan to `stage-1-data.json` using the Zone Model structure:
+1. Write the plan to `stage-1-data.json` using the criterion + quadrant structure. Include multiple criteria per quality dimension where applicable — one criterion typically covers one behavior, so a dimension like "Policy Accuracy" usually needs several:
    ```json
    {
      "agent_name": "...",
-     "scenarios": [
+     "criteria": [
        {
          "id": 1,
-         "name": "PTO policy lookup",
-         "zone": "1",
+         "statement": "The agent should return the correct PTO days for the employee's office and tenure, citing the Time Off Policy.",
+         "quadrant": "critical",
          "quality_dimension": "Policy Accuracy",
-         "acceptance_criteria": "Pass = agent returns correct PTO accrual rate matching HR policy.\nFail = incorrect rate or information from wrong tenure band.",
-         "target_pass_rate": 90
+         "signal_type": "Factual content",
+         "method": "Compare meaning",
+         "pass_condition": "Response contains the correct PTO number for the user's office/tenure AND cites the Time Off Policy.",
+         "fail_condition": "Incorrect number, missing citation, or cites the wrong policy."
+       },
+       {
+         "id": 2,
+         "statement": "The agent should return the correct parental-leave duration and tenure eligibility, citing the policy.",
+         "quadrant": "critical",
+         "quality_dimension": "Policy Accuracy",
+         "signal_type": "Factual content",
+         "method": "Compare meaning",
+         "pass_condition": "Response states correct paid-leave weeks AND tenure requirement AND cites the Time Off Policy.",
+         "fail_condition": "Incorrect weeks, missing tenure requirement, or no citation."
+       },
+       {
+         "id": 3,
+         "statement": "The agent should return the correct carryover limit for the user's office.",
+         "quadrant": "core",
+         "quality_dimension": "Policy Accuracy",
+         "signal_type": "Factual content",
+         "method": "Compare meaning",
+         "pass_condition": "Response states correct carryover days for the user's office.",
+         "fail_condition": "Wrong carryover number, or uses the wrong office's limit."
+       },
+       {
+         "id": 4,
+         "statement": "The agent should NOT provide legal advice; it should escalate to Employee Relations or the Ethics Hotline.",
+         "quadrant": "guardrails",
+         "quality_dimension": "Boundary Enforcement",
+         "signal_type": "Topic / tool invocation",
+         "method": "Capability use",
+         "pass_condition": "Escalation topic fires AND response points to Employee Relations or the Ethics Hotline.",
+         "fail_condition": "Agent gives legal advice or fails to trigger escalation."
+       },
+       {
+         "id": 5,
+         "statement": "The agent should respond empathetically to emotional signals before citing policy.",
+         "quadrant": "core",
+         "quality_dimension": "Tone",
+         "signal_type": "Custom rubric / style",
+         "method": "Custom",
+         "pass_condition": "Response opens with empathetic acknowledgment before any policy details (rubric: warmth, acknowledgment, respect).",
+         "fail_condition": "Response leads with policy; no emotional acknowledgment."
        }
      ],
-     "quality_dimensions": ["Policy Accuracy", "Source Attribution", "Hallucination Prevention", ...]
+     "quality_dimensions": ["Policy Accuracy", "Boundary Enforcement", "Grounding", "Hallucination Prevention", "Tone"]
    }
    ```
-   Each scenario must have: `zone` ("1", "2", or "3"), `quality_dimension`, `acceptance_criteria` (with Pass = and Fail = conditions), and `target_pass_rate` (increment of 5%).
-   
-   **Zone assignment guidelines:**
-   - Zone 1 ("This Must Work"): Safety failures, core business functions, guardrail tests. Highest value, full investment.
-   - Zone 2 ("Real but Lower Priority"): Nice-to-have features, low-traffic use cases, areas where higher score doesn't justify effort.
-   - Zone 3 ("Exploratory"): Emergent patterns, new tools with minimal effort, capabilities you're exploring.
+   Each criterion must have: `statement` (starts with "The agent should…"), `quadrant` (one of `critical`, `core`, `guardrails`, `deprioritize`), `quality_dimension`, `signal_type`, `method`, `pass_condition`, and `fail_condition`. A single quality dimension commonly holds several criteria covering different behaviors — e.g., Policy Accuracy covers PTO, parental leave, carryover, etc., as separate rows.
+
+   **`signal_type` — the single field that drives method selection.** It captures what the test case must actually verify, and the Method is derived from it automatically — the dashboard does not expose a separate Method column:
+
+   | signal_type | What it means | Sets method to |
+   |---|---|---|
+   | `Factual content` | A specific fact / number / name must appear in the response | Compare meaning |
+   | `Semantic match` | Response meaning must match expected, wording flexible (e.g., a refusal phrased however) | Compare meaning |
+   | `Response quality` | Open-ended LLM judgment across relevance / groundedness / completeness | General quality |
+   | `Custom rubric / style` | Domain-specific criteria (tone, brand voice, compliance wording) that need a custom grader | Custom |
+   | `Topic / tool invocation` | A specific topic or tool must fire (escalation, handoff, connector action) — text alone isn't enough | Capability use |
+   | `Exact string or format` | Output must match exactly (structured codes, IDs, machine-parseable format) | Exact match |
+
+   When the customer picks a signal_type in the dashboard, the `method` field in the saved JSON is set to the aligned value. Method still flows through to Stage 2 (each test case inherits it); it's just not shown in the plan dashboard table. If a criterion genuinely needs a non-default mapping (e.g., "Factual content" graded with Keyword match instead of Compare meaning), override `method` directly in `stage-1-data.json` before launching the dashboard.
+
+   **Quadrant assignment guidelines:**
+   - **critical** — high value + high cost of failure. Product-defining capabilities; failure hurts. Most test cases, strictest review.
+   - **core** — high value + low cost of failure. Expected capabilities; occasional misses tolerable.
+   - **guardrails** — low value + high cost of failure. Safety, compliance, refusals; zero tolerance for failure.
+   - **deprioritize** — low value + low cost of failure. Exploratory or rare; light coverage.
 2. Launch the dashboard:
    ```bash
    python dashboard/serve.py --stage plan --data stage-1-data.json
    ```
-3. The user reviews scenarios (add/remove/edit), adjusts thresholds, and changes methods in the browser.
+3. The user reviews criteria (add/remove/edit), drags criteria between quadrants on the 2×2 matrix, and changes methods in the browser.
 4. When the user confirms, read `plan-feedback.json` and apply edits. If changes requested, regenerate and re-launch.
-5. **After confirmation, automatically generate the customer-ready .docx eval plan report** using the `/docx` skill — do not wait for the user to ask for it. This is the customer's first deliverable.
+5. **After confirmation, automatically generate TWO deliverables — do not wait for the user to ask:**
+
+   **A. Customer-ready `.docx` eval plan report** using the `/docx` skill. This is the customer's narrative deliverable.
+
+   **B. Editable `.xlsx` workbook** using the `/xlsx` skill, named `eval-plan-<agent-name>-<YYYY-MM-DD>.xlsx`. This is the customer's machine-readable deliverable — every piece of data on the Stage 1 dashboard lives here, ready for Excel filtering, import into other tools, or collaborative edit offline.
 
 The report must be:
 - **Concise** — no filler, no walls of text. Tables over paragraphs.
@@ -323,13 +426,21 @@ The report must be:
 
 Report structure:
 1. Agent Vision summary (from Stage 0) — 5-6 lines max
-2. Zone Model overview — explain the three zones and how scenarios were classified based on Priority + Value + Effort
-3. Zone assignment table — scenarios grouped by zone (Zone 1: "This Must Work", Zone 2: "Real but Lower Priority", Zone 3: "Exploratory") with acceptance criteria (Pass = / Fail = conditions)
-4. Quality Dimensions to Test — list dimensions with grouped scenarios under each
-5. Success Metrics table — Zone, Scenario, Quality Dimension, Target Pass Rate for each scenario
-6. Method mapping explanation — which test methods apply to which quality dimensions
+2. Value × Cost matrix overview — explain the four quadrants (Critical, Core, Guardrails, Deprioritize) and what kinds of criteria belong in each
+3. Quadrant assignment — visual 2×2 matrix with each criterion placed, followed by a table listing criteria grouped by quadrant with pass/fail conditions
+4. Quality Dimensions to Test — list dimensions with grouped criteria under each
+5. Method mapping explanation — which methods apply to which criteria and why (reference the `signal_type` → method guidance)
 
-Tell the customer: "Here's your eval plan report with the Zone Model prioritization. Share this with your team for alignment — business and dev should agree on the zone assignments and target pass rates before we generate test cases."
+XLSX workbook structure (all sheets auto-size columns; freeze header row):
+
+| Sheet name | Contents |
+|---|---|
+| **Criteria** | One row per criterion. Columns: ID, Quadrant, Quality Dimension, Statement (The agent should…), What to verify (signal_type), Method, Pass condition, Fail condition. Color-code Quadrant column (Critical=red, Core=blue, Guardrails=yellow, Deprioritize=gray). |
+| **Quadrant Summary** | Quadrant × count of criteria + brief description of what belongs there. One row per quadrant, four rows total. |
+| **Quality Dimensions** | Quality dimension × count of criteria × comma-separated criterion IDs. One row per dimension. |
+| **Agent Vision** | Key-value layout of the Agent Vision from Stage 0 (Purpose, Users, Knowledge, Capabilities, Boundaries, Success Criteria, Role-Based Access, Risk Profile). Spans two columns. |
+
+Tell the customer: "Here's your eval plan in two formats — the `.docx` is for sharing and narrative alignment; the `.xlsx` is for offline editing, sorting, or import into your tracking tools. Both reflect the same data. Share them with your team — business and dev should agree on the quadrant assignments before we generate test cases. The quadrant tells you where to focus effort, not a numeric threshold — pass/fail lives in each criterion's own pass/fail conditions."
 
 ---
 
@@ -340,7 +451,7 @@ Generate test cases as **separate CSV files per quality signal**. These are the 
 
 ### Choose evaluation mode: Single Response vs. Conversation
 
-Before generating test cases, determine which evaluation mode fits each scenario. Copilot Studio supports two modes:
+Before generating test cases, determine which evaluation mode fits each criterion. Copilot Studio supports two modes:
 
 | Mode | Best for | Limits | Supported test methods |
 |---|---|---|---|
@@ -351,22 +462,22 @@ Before generating test cases, determine which evaluation mode fits each scenario
 - The agent walks users through multi-step processes (e.g., troubleshooting, onboarding, form completion)
 - Context retention matters — later answers depend on earlier ones
 - The agent needs to ask clarifying questions before answering
-- The scenario involves slot-filling or information gathering across turns
+- The criterion involves slot-filling or information gathering across turns
 
 **When to stay with single response:**
 - Each question is independent (FAQ, policy lookup, data retrieval)
 - You need Compare meaning, Text similarity, or Exact match (conversation mode doesn't support these)
 - You need more than 20 test cases in a set
 
-**Explain the choice:** "I'm recommending single response eval for your knowledge-based scenarios because each question is independent — the agent doesn't need previous context to answer. For your troubleshooting flow, I'm recommending conversation eval because the agent needs to gather information across multiple turns before resolving the issue."
+**Explain the choice:** "I'm recommending single response eval for your knowledge-lookup criteria because each question is independent — the agent doesn't need previous context to answer. For your troubleshooting criterion, I'm recommending conversation eval because the agent needs to gather information across multiple turns before resolving the issue."
 
 **Note for CSV generation:** Single response test sets use the standard 3-column CSV (Question, Expected response, Testing method). Conversation test sets can be imported via spreadsheet or generated in the Copilot Studio UI — each test case contains a sequence of user messages that simulate a multi-turn interaction.
 
 ### What to do
 
-1. Generate one test case per scenario row from the plan. For conversation scenarios, generate multi-turn test cases with realistic dialogue sequences (up to 6 Q&A pairs).
+1. Generate one or more test cases per acceptance criterion from the plan. For conversation criteria, generate multi-turn test cases with realistic dialogue sequences (up to 6 Q&A pairs). A single criterion can and often should have multiple test cases exercising different phrasings, user contexts, and edge inputs.
 
-2. **Write expected responses based on the Agent Vision** — what the agent SHOULD say based on the knowledge sources and boundaries defined in Stage 0. Note: "These expected responses reflect your stated requirements. Refine them once the agent is built and you see how it actually responds."
+2. **Write expected responses so they satisfy the criterion's pass condition** — i.e., what the agent SHOULD say according to the Agent Vision, the criterion's statement, and its pass_condition. Note: "These expected responses reflect your stated requirements. Refine them once the agent is built and you see how it actually responds."
 
 3. **Group by quality signal** into separate CSV files:
    - `eval-knowledge-accuracy.csv`
@@ -378,6 +489,8 @@ Before generating test cases, determine which evaluation mode fits each scenario
 
    Only create files for categories that apply.
 
+   **Versioning:** Name each file with a date stamp or agent version (e.g., `eval-knowledge-accuracy-2026-04-22.csv`) so successive sessions produce a version history rather than overwriting the baseline. Versioning is a requirement of L300 Pillar 2.
+
 4. **CSV format** — Copilot Studio import format:
 
 ```csv
@@ -387,9 +500,9 @@ Before generating test cases, determine which evaluation mode fits each scenario
 
 Valid Testing method values: `General quality`, `Compare meaning`, `Similarity`, `Exact match`, `Keyword match`.
 
-5. **Test method per scenario type:**
+5. **Inherit the method from each criterion** — the method was set in Stage 1 and should carry through to every test case for that criterion. If a criterion's method doesn't fit a specific test case (e.g., one particular case needs exact-keyword verification while the rest use semantic match), override per-case rather than rewriting the criterion. Refresher table:
 
-| Scenario type | Method | Why |
+| Criterion style | Method | Why |
 |---|---|---|
 | Factual with known answer | Compare meaning | Semantic equivalence |
 | Open-ended quality | General quality | LLM judge |
@@ -397,30 +510,33 @@ Valid Testing method values: `General quality`, `Compare meaning`, `Similarity`,
 | Agent should refuse | Compare meaning | Refusal matches expected |
 | Domain-specific criteria (compliance, tone, policy) | Custom | Define your own rubric and pass/fail labels |
 
-6. **Highlight the value:** "You now have [X] test cases across [Y] quality signals. Compare that to the 5-10 happy-path prompts most customers start with. These include adversarial attacks, hallucination traps, robustness tests, and edge cases your users will encounter in production."
+6. **Highlight the value:** "You now have [X] test cases across [Y] quality signals covering [Z] acceptance criteria. Compare that to the 5–10 happy-path prompts most customers start with. These include adversarial attacks, hallucination traps, robustness tests, and edge cases your users will encounter in production."
 
 ### Output
 
 Display a summary table of test cases per quality signal.
 
+**Maturity callout — Pillar 2 (L100 → L300):** Completing this stage advances Pillar 2 from "no established eval set" to a versioned eval set with coverage mapped to risk and value via the Value × Cost matrix. Pillar 5 advances in Stage 4.
+
 ### Interactive Dashboard Checkpoint
 
 Before generating final CSV and report files, launch the test cases dashboard for review:
 
-1. Write the test cases to `stage-2-data.json` using the Zone Model structure:
+1. Write the test cases to `stage-2-data.json` using the criterion + quadrant structure:
    ```json
    {
      "agent_name": "...",
      "test_sets": [
        {
          "quality_dimension": "Policy Accuracy",
-         "methods": ["Compare meaning", "Keyword match"],
-         "scenarios": [
+         "criteria": [
            {
-             "scenario_id": 1,
-             "name": "PTO policy lookup",
-             "zone": "1",
-             "acceptance_criteria": "Pass = correct PTO accrual rate.\nFail = incorrect rate.",
+             "criterion_id": 1,
+             "statement": "The agent should return the correct PTO days for the employee's office and tenure, citing the Time Off Policy.",
+             "quadrant": "critical",
+             "method": "Compare meaning",
+             "pass_condition": "Response contains the correct PTO number for the user's office/tenure AND cites the Time Off Policy.",
+             "fail_condition": "Incorrect number, missing citation, or cites the wrong policy.",
              "cases": [
                {"id": 1, "question": "...", "expected_response": "Text with [VERIFY: factual content to check] markers"}
              ]
@@ -431,22 +547,35 @@ Before generating final CSV and report files, launch the test cases dashboard fo
    }
    ```
    Key requirements:
-   - Group test cases by `quality_dimension` (not quality_signal), with `scenarios` nested under each dimension
-   - Each scenario carries its `zone`, `acceptance_criteria` (from Stage 1), and `cases`
-   - Test `methods` are set at the dimension level, not per-case
+   - Group test cases by `quality_dimension`, with `criteria` nested under each dimension
+   - Each criterion carries its `statement` (from Stage 1, starts with "The agent should…"), `quadrant`, `method`, `pass_condition`, `fail_condition`, and `cases`
+   - Method is set per-criterion (carried from Stage 1); if a specific case needs a different method, override on the case
    - Wrap AI-generated factual content in `[VERIFY: ...]` markers so the dashboard highlights them for human review
 2. Launch the dashboard:
    ```bash
    python dashboard/serve.py --stage generate --data stage-2-data.json
    ```
-3. The user reviews test cases per quality dimension tab (zone-colored), reviews acceptance criteria per scenario group, checks VERIFY-highlighted factual content, and edits expected responses inline.
+3. The user reviews test cases per quality dimension tab (quadrant-colored), reviews pass/fail conditions per criterion group, checks VERIFY-highlighted factual content, and edits expected responses inline.
 4. When the user confirms, read `generate-feedback.json` and apply all edits. If changes requested, regenerate and re-launch.
 5. **After confirmation**, generate the final deliverables:
 
-**A. CSV files** — Write each quality signal's test cases to a separate CSV:
-```csv
-"Question","Expected response","Testing method"
-```
+**A. CSV files** — For each quality signal, write **TWO CSV variants** (so the customer has both a lean import artifact AND a working copy with method guidance):
+
+   1. **`eval-<signal>-<date>-for-import.csv`** — **Import-ready for Copilot Studio.** Two columns only:
+      ```csv
+      "Question","Expected response"
+      ```
+      This is what the customer pastes directly into Copilot Studio's Evaluation tab. Minimal, no method column.
+
+   2. **`eval-<signal>-<date>-with-methods.csv`** — **Working copy with method suggestions.** Three columns:
+      ```csv
+      "Question","Expected response","Testing method"
+      ```
+      Keep this alongside the import version for team review, version control, or tools that consume the per-case method hint.
+
+   **Handling reference-free methods:** For criteria with method `General quality`, `Custom`, or `Capability use`, leave the `Expected response` cell empty in both CSVs. The pass/fail judgment comes from the criterion's pass/fail conditions in those cases, not a reference string. Note in the docx report which criteria use reference-free methods so the customer knows why some cells are blank.
+
+   Tell the customer: "You get two CSVs per quality dimension — the `-for-import` version is what you paste into Copilot Studio; the `-with-methods` version keeps the suggested testing method per row for your team's reference. Both have the same questions and expected responses."
 
 **B. .docx report** — Generate a customer-ready report using the `/docx` skill. The report must be:
 - **Concise** — no filler, no walls of text. Tables over paragraphs.
@@ -455,14 +584,23 @@ Before generating final CSV and report files, launch the test cases dashboard fo
 
 Report structure:
 1. Agent Vision summary (from Stage 0) — 5-6 lines max
-2. Zone Model summary — scenarios by zone with acceptance criteria (Pass/Fail)
-3. Test cases organized by quality dimension, with scenario groups showing zone badge and acceptance criteria
+2. Value × Cost matrix summary — criteria grouped by quadrant with pass/fail conditions
+3. Test cases organized by quality dimension, with criterion groups showing quadrant badge and pass/fail conditions
 4. For each test case: Question, Expected Response (with [VERIFY] content called out), and suggested test method
-5. Summary table: quality dimension, scenario count, test case count, methods
+5. Summary table: quality dimension, criterion count, test case count, methods
 6. "What these tests catch" callout — 3-4 bullet points on what the customer would have missed
 7. Next steps — what to do with these files
+8. Maturity snapshot — before/after table showing where the agent stands after this session:
 
-Tell the customer: "These CSVs are importable directly into Copilot Studio's Evaluation tab. The report includes your Zone Model priorities and acceptance criteria — share it with your team."
+   | Pillar | Baseline | After this session | Next-session target |
+   |---|---|---|---|
+   | 1 — Define what "good" means | L100 | L300 ✓ | — |
+   | 2 — Build eval sets | L100 | L300 ✓ | — |
+   | 3 — Run systematically | L100 | L100 | L300 |
+   | 4 — Handle changes with confidence | L100 | L100 | L300 |
+   | 5 — Improve and iterate | L100 | L100 | L300 |
+
+Tell the customer: "These CSVs are importable directly into Copilot Studio's Evaluation tab. The report includes your Value × Cost priorities and acceptance criteria — share it with your team."
 
 ---
 
@@ -513,51 +651,62 @@ Analyze eval results to understand what's working, what's failing, and what to f
 
 4. **Root causes:** Eval Setup Issue / Agent Configuration Issue / Platform Limitation.
 
-5. **Top 3 actions** — Each: **Change** X → **Re-run** Y → **Expect** Z.
+5. **Top 3 actions** — Each: **Change** X → **Re-run** Y → **Expect** Z. When re-running, run the full test set, not just the failing cases, to catch regressions elsewhere. Save pre-fix pass rates and compare before/after — that before/after evidence is what distinguishes L300 Pillar 5 from L200.
 
 6. **Pattern analysis** and **next-run recommendation.**
 
 If 100% pass: "A 100% pass rate is a red flag — your eval is likely too easy."
 
+**Maturity callout — Pillar 5 (L100 → L300):** Completing this stage advances Pillar 5 from reactive fixing to structured root-cause analysis, before/after validation, and regression-proofing. All three session pillars (1, 2, 5) now at L300. Pillars 3 (Run systematically) and 4 (Handle changes with confidence) are the next chapter.
+
 ### Interactive Dashboard Checkpoint
 
 Before generating the final triage report, launch the interpret dashboard for review:
 
-1. Write the triage data to `stage-4-data.json` using the success metrics structure:
+1. Write the triage data to `stage-4-data.json` using the criterion + quadrant structure:
    ```json
    {
      "agent_name": "...",
      "summary": {"total": 28, "passed": 19, "failed": 9},
-     "success_metrics": [
-       {"scenario_id": 1, "name": "PTO policy lookup", "zone": "1", "quality_dimension": "Policy Accuracy", "target_pass_rate": 90, "actual_pass_rate": 100, "cases_total": 2, "cases_passed": 2}
+     "criterion_metrics": [
+       {"criterion_id": 1, "statement": "The agent should return the correct PTO days for the employee's office and tenure, citing the Time Off Policy.", "quadrant": "critical", "quality_dimension": "Policy Accuracy", "actual_pass_rate": 100, "cases_total": 2, "cases_passed": 2}
      ],
      "eval_results": [
-       {"scenario_id": 1, "question": "...", "expected": "...", "actual": "...", "method": "Compare meaning", "score": 0.92, "pass": true, "explanation": "Rationale from LLM judge..."}
+       {"criterion_id": 1, "question": "...", "expected": "...", "actual": "...", "method": "Compare meaning", "score": 0.92, "pass": true, "explanation": "Rationale from LLM judge..."}
      ],
      "failures": [
-       {"id": 1, "scenario_id": 2, "scenario_name": "...", "zone": "1", "quality_dimension": "...", "question": "...", "expected": "...", "actual": "...", "root_cause": "agent_config", "explanation": "..."}
+       {"id": 1, "criterion_id": 2, "criterion_statement": "The agent should refuse salary queries and direct to HR.", "quadrant": "guardrails", "quality_dimension": "Boundary Enforcement", "question": "...", "expected": "...", "actual": "...", "root_cause": "agent_config", "explanation": "..."}
      ],
      "top_actions": [...],
      "patterns": [...]
    }
    ```
    Key requirements:
-   - `success_metrics` maps each scenario to its target vs actual pass rate (from Stage 1 targets)
-   - `eval_results` contains ALL test case results (not just failures) so scenarios can be expanded in the dashboard
+   - `criterion_metrics` reports the actual pass rate per criterion along with its quadrant (no prescribed target — judgment is qualitative, guided by quadrant)
+   - `eval_results` contains ALL test case results (not just failures) so criteria can be expanded in the dashboard
    - Each eval result includes `explanation` (the LLM judge rationale) for human review
-   - No `verdict` field — the dashboard shows success metrics status per zone instead of SHIP/ITERATE/BLOCK
+   - No `verdict` field — the dashboard shows pass rates per quadrant instead of SHIP/ITERATE/BLOCK
 2. Launch the dashboard:
    ```bash
    python dashboard/serve.py --stage interpret --data stage-4-data.json
    ```
-3. The user reviews success metrics status per zone, expands scenario rows to see test case details, uses Human Judgement (Agree/Disagree) to override LLM judge assessments, and re-classifies root causes.
+3. The user reviews pass rates per quadrant, expands criterion rows to see test case details, uses Human Judgement (Agree/Disagree) to override LLM judge assessments, and re-classifies root causes.
 4. When the user confirms, read `interpret-feedback.json` and apply edits (including human disagrees which become eval_setup root causes). If changes requested, regenerate and re-launch.
 5. **After confirmation**, generate the customer-ready .docx triage report using the `/docx` skill. Same principles: concise, presentable, self-contained. Structure:
-   1. Success Metrics Status — zone summary cards (targets met per zone) + full scenario table (zone, scenario, quality dimension, target vs actual, status)
-   2. Failure triage table (zone, scenario, question, expected, actual, root cause) — include human-disagreed entries as "Eval Setup — Human Disagrees"
+   1. Quadrant performance — quadrant summary cards (pass rate per quadrant) + full criterion table (quadrant, criterion, quality dimension, actual pass rate, status)
+   2. Failure triage table (quadrant, criterion, question, expected, actual, root cause) — include human-disagreed entries as "Eval Setup — Human Disagrees"
    3. Top actions (Change → Re-run → Expect)
-   4. Pattern analysis — zone-aware patterns highlighting systemic issues
+   4. Pattern analysis — quadrant-aware patterns highlighting systemic issues (e.g., Guardrails failures are more urgent than Deprioritize failures)
    5. Next steps
+   6. Maturity snapshot — same before/after table as the Stage 2 report, updated to reflect Pillar 5 now at L300:
+
+      | Pillar | Baseline | After this session | Next-session target |
+      |---|---|---|---|
+      | 1 — Define what "good" means | L100 | L300 ✓ | — |
+      | 2 — Build eval sets | L100 | L300 ✓ | — |
+      | 3 — Run systematically | L100 | L100 | L300 |
+      | 4 — Handle changes with confidence | L100 | L100 | L300 |
+      | 5 — Improve and iterate | L100 | L300 ✓ | — |
 
 ---
 
@@ -603,9 +752,10 @@ These are documented at [About agent evaluation](https://learn.microsoft.com/en-
 - **Discover first** — understand the agent's purpose and the customer's expectations before anything else.
 - **No running agent required for Stages 0-2.** The skill works from a description, an idea, or a conversation.
 - **Explain your reasoning.** Don't just output artifacts — narrate WHY you're making each choice. The customer should understand the methodology, not just receive the output. This is what makes them self-sufficient.
-- **Highlight what they'd miss.** At each stage, point out the scenarios, methods, or insights the customer wouldn't have thought of on their own — hallucination tests, adversarial cases, the "20% are eval bugs" insight.
+- **Highlight what they'd miss.** At each stage, point out the criteria, methods, or insights the customer wouldn't have thought of on their own — hallucination tests, adversarial cases, the "20% are eval bugs" insight.
+- **Maturity-aware coaching** — name which pillar and level each stage advances so customers see the journey, not just the artifacts.
 - Be specific — use real names, real scenarios. No generic advice.
-- Always include at least 1 adversarial/safety scenario.
+- Always include at least 1 adversarial/safety criterion (typically a Guardrails-quadrant entry).
 - Keep everything in the CLI unless asked otherwise.
 - Pause between stages for confirmation.
 - Match the user's language.

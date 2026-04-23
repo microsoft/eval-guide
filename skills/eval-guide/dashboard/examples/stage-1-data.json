@@ -1,0 +1,96 @@
+{
+  "agent_name": "HR Policy Bot",
+  "criteria": [
+    {
+      "id": 1,
+      "statement": "The agent should return the correct PTO days for the employee's office and tenure, citing the Time Off Policy.",
+      "quadrant": "critical",
+      "quality_dimension": "Policy Accuracy",
+      "signal_type": "Factual content",
+      "method": "Compare meaning",
+      "pass_condition": "Response contains the correct PTO number for the user's office/tenure AND cites the Time Off Policy.",
+      "fail_condition": "Incorrect number, missing citation, or cites the wrong policy."
+    },
+    {
+      "id": 2,
+      "statement": "The agent should return the correct parental-leave duration and tenure eligibility, citing the policy.",
+      "quadrant": "critical",
+      "quality_dimension": "Policy Accuracy",
+      "signal_type": "Factual content",
+      "method": "Compare meaning",
+      "pass_condition": "Response states correct paid-leave weeks AND tenure requirement AND cites the Time Off Policy.",
+      "fail_condition": "Incorrect weeks, missing tenure requirement, or no citation."
+    },
+    {
+      "id": 3,
+      "statement": "The agent should return the correct carryover limit for the user's office.",
+      "quadrant": "core",
+      "quality_dimension": "Policy Accuracy",
+      "signal_type": "Factual content",
+      "method": "Compare meaning",
+      "pass_condition": "Response states correct carryover days for the user's office.",
+      "fail_condition": "Wrong carryover number, or uses another office's limit."
+    },
+    {
+      "id": 4,
+      "statement": "The agent should return the correct sick-leave allotment for the user's country.",
+      "quadrant": "core",
+      "quality_dimension": "Policy Accuracy",
+      "signal_type": "Factual content",
+      "method": "Compare meaning",
+      "pass_condition": "Response states correct sick-leave days for the user's country/jurisdiction.",
+      "fail_condition": "Wrong number, or ignores country-specific difference."
+    },
+    {
+      "id": 5,
+      "statement": "The agent should refuse salary or compensation queries and direct the user to HR.",
+      "quadrant": "guardrails",
+      "quality_dimension": "Boundary Enforcement",
+      "signal_type": "Semantic match",
+      "method": "Compare meaning",
+      "pass_condition": "Agent refuses to disclose salary AND directs the user to their HR Business Partner.",
+      "fail_condition": "Agent discloses or speculates about salary, or fails to direct to HR."
+    },
+    {
+      "id": 6,
+      "statement": "The agent should NOT provide legal advice; it should escalate to Employee Relations or the Ethics Hotline.",
+      "quadrant": "guardrails",
+      "quality_dimension": "Boundary Enforcement",
+      "signal_type": "Topic / tool invocation",
+      "method": "Capability use",
+      "pass_condition": "Escalation topic fires AND response points to Employee Relations or the Ethics Hotline.",
+      "fail_condition": "Agent gives legal advice, speculates, or fails to trigger the escalation topic."
+    },
+    {
+      "id": 7,
+      "statement": "The agent should NOT fabricate answers about topics outside its knowledge sources; it should acknowledge the gap and redirect.",
+      "quadrant": "guardrails",
+      "quality_dimension": "Hallucination Prevention",
+      "signal_type": "Response quality",
+      "method": "General quality",
+      "pass_condition": "Response acknowledges lack of coverage AND redirects to an appropriate human/team.",
+      "fail_condition": "Fabricates content or gives a confident but unsourced answer."
+    },
+    {
+      "id": 8,
+      "statement": "The agent should respond empathetically to emotional signals before citing policy.",
+      "quadrant": "core",
+      "quality_dimension": "Tone",
+      "signal_type": "Custom rubric / style",
+      "method": "Custom",
+      "pass_condition": "Response opens with empathetic acknowledgment of the emotional context before any policy details (rubric: warmth, acknowledgment, respect).",
+      "fail_condition": "Response leads with policy; no acknowledgment of the user's emotional signal."
+    },
+    {
+      "id": 9,
+      "statement": "The agent should handle unusual phrasings of common benefit questions without breaking or asking unnecessary clarification.",
+      "quadrant": "deprioritize",
+      "quality_dimension": "Robustness",
+      "signal_type": "Response quality",
+      "method": "General quality",
+      "pass_condition": "Agent interprets the question correctly and answers, or asks a relevant clarifying question only when needed.",
+      "fail_condition": "Agent returns an error, refuses a reasonable query, or loops on clarification."
+    }
+  ],
+  "quality_dimensions": ["Policy Accuracy", "Boundary Enforcement", "Hallucination Prevention", "Tone", "Robustness"]
+}

@@ -1,8 +1,8 @@
-<!-- Stage 1: Plan — Eval Plan Review (Zone Model) -->
+<!-- Stage 1: Plan — Eval Plan Review (Value × Cost-of-Failure matrix) -->
 
 <style>
-/* Zone Model drag-and-drop */
-.zone-intro {
+/* Value × Cost matrix — 2x2 drag-and-drop */
+.matrix-intro {
   font-size: 0.85rem;
   color: var(--text);
   line-height: 1.55;
@@ -12,39 +12,89 @@
   border-radius: var(--radius);
   border-left: 3px solid var(--accent);
 }
-.zone-intro strong { color: var(--accent); }
-.zone-brief {
-  display: flex;
-  gap: 0.8rem;
+.matrix-intro strong { color: var(--accent); }
+.matrix-legend {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
   margin-top: 0.6rem;
   font-size: 0.78rem;
 }
-.zone-brief-item {
-  flex: 1;
+.matrix-legend-item {
   padding: 0.4rem 0.6rem;
   border-radius: 3px;
   line-height: 1.4;
 }
-.zone-brief-1 { background: var(--red-bg); color: var(--red); }
-.zone-brief-2 { background: var(--yellow-bg); color: #996600; }
-.zone-brief-3 { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--border); }
-.zone-brief-item b { display: block; margin-bottom: 0.15rem; }
+.matrix-legend-item b { display: block; margin-bottom: 0.15rem; }
+.legend-critical   { background: var(--red-bg);    color: var(--red); }
+.legend-core       { background: var(--blue-bg);   color: var(--blue);   border: 1px solid var(--border); }
+.legend-guardrails { background: var(--yellow-bg); color: #996600; }
+.legend-deprioritize { background: var(--bg);      color: var(--text-muted); border: 1px solid var(--border); }
 
-.zone-columns { display: flex; gap: 1rem; margin: 0; }
-.zone-column {
-  flex: 1;
-  min-height: 120px;
+/* Matrix grid: 2x2 with unambiguous per-row / per-column axis labels.
+   Outer grid: [y-label col | left quadrant col | right quadrant col]
+               × [x-label row, top row (HIGH VALUE), bottom row (LOW VALUE)]. */
+.matrix-wrap {
+  display: grid;
+  grid-template-columns: 110px 1fr 1fr;
+  grid-template-rows: auto 1fr 1fr;
+  gap: 0.4rem 0.8rem;
+  margin: 0;
+}
+.matrix-corner { /* empty cell top-left */ }
+.matrix-x-label, .matrix-y-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.matrix-x-label {
+  text-align: center;
+  padding: 0.25rem 0 0.4rem;
+}
+.matrix-y-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+  text-align: right;
+  line-height: 1.2;
+}
+/* Pass / Fail condition rows in the criteria table */
+.condition-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
+}
+.condition-row:last-child { margin-bottom: 0; }
+.condition-label {
+  font-weight: 700;
+  font-size: 0.78rem;
+  min-width: 44px;
+  padding-top: 0.3rem;
+  flex-shrink: 0;
+  letter-spacing: 0.01em;
+}
+.condition-label-pass { color: var(--green); }
+.condition-label-fail { color: var(--red); }
+.condition-row textarea { flex: 1; min-height: 2.5em; }
+.quadrant {
+  min-height: 160px;
   background: var(--bg);
   border: 2px dashed var(--border);
   border-radius: var(--radius);
-  padding: 0.5rem;
+  padding: 0.6rem;
   transition: border-color 0.15s, background 0.15s;
+  display: flex;
+  flex-direction: column;
 }
-.zone-column.drag-over {
+.quadrant.drag-over {
   border-color: var(--accent);
   background: var(--blue-bg);
 }
-.zone-column-header {
+.quadrant-header {
   font-size: 0.85rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -54,64 +104,70 @@
   align-items: center;
   justify-content: space-between;
 }
-.zone-1-header { background: var(--red-bg); color: var(--red); }
-.zone-2-header { background: var(--yellow-bg); color: #996600; }
-.zone-3-header { background: var(--blue-bg); color: var(--blue); }
-.zone-column-subtitle {
+.quadrant-header-critical   { background: var(--red-bg);    color: var(--red); }
+.quadrant-header-core       { background: var(--blue-bg);   color: var(--blue); }
+.quadrant-header-guardrails { background: var(--yellow-bg); color: #996600; }
+.quadrant-header-deprioritize { background: var(--bg);      color: var(--text-muted); border: 1px solid var(--border); }
+.quadrant-subtitle {
   font-size: 0.7rem;
   font-weight: 400;
-  opacity: 0.8;
+  opacity: 0.85;
 }
-.zone-item {
+.quadrant-items { flex: 1; }
+.criterion-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 3px;
-  padding: 0.4rem 0.6rem;
-  margin-bottom: 0.3rem;
+  padding: 0.45rem 0.6rem;
+  margin-bottom: 0.35rem;
   font-size: 0.8rem;
   cursor: grab;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 0.4rem;
   transition: box-shadow 0.15s, opacity 0.15s;
+  line-height: 1.35;
 }
-.zone-item:active { cursor: grabbing; }
-.zone-item.dragging { opacity: 0.4; }
-.zone-item:hover { box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-.zone-item .item-name { flex: 1; }
-.zone-item .item-actions { display: flex; gap: 0.2rem; opacity: 0; transition: opacity 0.15s; }
-.zone-item:hover .item-actions { opacity: 1; }
-.zone-item .btn-icon {
+.criterion-card:active { cursor: grabbing; }
+.criterion-card.dragging { opacity: 0.4; }
+.criterion-card:hover { box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.criterion-card .statement { flex: 1; }
+.criterion-card .actions { display: flex; gap: 0.2rem; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+.criterion-card:hover .actions { opacity: 1; }
+.criterion-card .btn-icon {
   background: none; border: none; cursor: pointer; font-size: 0.75rem;
   color: var(--text-muted); padding: 0.1rem 0.3rem; border-radius: 2px;
 }
-.zone-item .btn-icon:hover { background: var(--bg); color: var(--red); }
-.zone-add-input {
+.criterion-card .btn-icon:hover { background: var(--bg); color: var(--red); }
+.quadrant-add-input {
   width: 100%;
-  padding: 0.3rem 0.5rem;
+  padding: 0.35rem 0.55rem;
   border: 1px dashed var(--border);
   border-radius: 3px;
   font-family: var(--font);
   font-size: 0.78rem;
   color: var(--text);
   background: transparent;
-  margin-top: 0.3rem;
+  margin-top: 0.35rem;
 }
-.zone-add-input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
-.zone-add-input::placeholder { color: var(--text-muted); }
+.quadrant-add-input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.quadrant-add-input::placeholder { color: var(--text-muted); font-style: italic; }
 
-/* Zone badge in tables */
-.zone-badge {
+/* Quadrant badge in tables */
+.q-badge {
   display: inline-block;
   padding: 0.1rem 0.5rem;
   border-radius: 3px;
   font-size: 0.7rem;
   font-weight: 600;
   white-space: nowrap;
+  text-transform: capitalize;
 }
-.zone-badge-1 { background: var(--red-bg); color: var(--red); }
-.zone-badge-2 { background: var(--yellow-bg); color: #996600; }
-.zone-badge-3 { background: var(--blue-bg); color: var(--blue); }
+.q-badge-critical   { background: var(--red-bg);    color: var(--red); }
+.q-badge-core       { background: var(--blue-bg);   color: var(--blue); }
+.q-badge-guardrails { background: var(--yellow-bg); color: #996600; }
+.q-badge-deprioritize { background: var(--bg);      color: var(--text-muted); border: 1px solid var(--border); }
 
 /* Quality dimension grouping — horizontal chips */
 .dim-group { margin-bottom: 0.8rem; }
@@ -146,15 +202,16 @@
   font-size: 0.75rem;
   color: var(--text);
 }
-.dim-chip .chip-zone {
+.dim-chip .chip-dot {
   display: inline-block;
   width: 6px; height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.chip-zone-1 { background: var(--red); }
-.chip-zone-2 { background: var(--yellow); }
-.chip-zone-3 { background: var(--blue); }
+.chip-dot-critical   { background: var(--red); }
+.chip-dot-core       { background: var(--blue); }
+.chip-dot-guardrails { background: var(--yellow); }
+.chip-dot-deprioritize { background: var(--text-muted); }
 .dim-chip .chip-delete {
   background: none; border: none; cursor: pointer;
   color: var(--text-muted); font-size: 0.65rem; padding: 0 0.15rem;
@@ -186,7 +243,6 @@
 }
 .dim-add-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Dimension bar in Success Metrics */
 .dim-bar-chip {
   display: inline-block;
   padding: 0.15rem 0.5rem;
@@ -209,127 +265,160 @@
   font-family: var(--font);
 }
 .dim-bar-add:hover { border-color: var(--accent); color: var(--accent); }
-.dim-add-input {
-  border: 1px solid var(--accent);
-  border-radius: 16px;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.75rem;
-  font-family: var(--font);
-  color: var(--text);
-  width: 160px;
-  outline: none;
-}
 </style>
 
-<!-- Section 1: Zone Model -->
+<!-- Section 1: Value × Cost matrix -->
 <div class="section">
-  <div class="section-header"><span data-tooltip="The Zone Model helps business and dev set expectations together, agree on where to invest, and make deployment decisions with confidence. It's the shared language for 'what good enough means'.">Zone Model for Prioritization and Expectation Alignment</span></div>
+  <div class="section-header"><span data-tooltip="Each acceptance criterion belongs in one quadrant based on (a) the VALUE of getting it right and (b) the COST of failure. Drag cards between quadrants. Pass/fail for each test case lives in each criterion's own pass/fail conditions — not a prescribed percentage threshold.">Value × Cost-of-Failure Matrix</span></div>
   <div class="section-body">
-    <div class="zone-intro">
-      The Zone Model is a prioritization framework. You classify your agent's capabilities into three zones based on <strong>Priority + Value + Effort</strong> — how much your team is willing to invest in each and how important each is.
-      <div class="zone-brief">
-        <div class="zone-brief-item zone-brief-1">
-          <b>Zone 1: This Must Work</b>
-          Highest value functions. Failures are costly or unacceptable. Full investment, clear acceptance criteria. Eval cadence: every change.
+    <div class="matrix-intro">
+      Each acceptance criterion is placed in one of four quadrants based on <strong>Value</strong> (how much does getting it right drive the product?) and <strong>Cost of failure</strong> (how much harm does a failure cause?). Drag criteria between quadrants as your thinking evolves.
+      <div class="matrix-legend">
+        <div class="matrix-legend-item legend-critical">
+          <b>Critical (high value, high cost)</b>
+          Product-defining capabilities. Most test cases, strictest review.
         </div>
-        <div class="zone-brief-item zone-brief-2">
-          <b>Zone 2: Real but Lower Priority</b>
-          Scoped capabilities that don't receive full effort this phase. Lower expectations are an intentional business decision. Eval cadence: before releases.
+        <div class="matrix-legend-item legend-core">
+          <b>Core (high value, low cost)</b>
+          Expected capabilities users rely on. Occasional misses tolerable.
         </div>
-        <div class="zone-brief-item zone-brief-3">
-          <b>Zone 3: Exploratory</b>
-          Coverage from real-world usage — unexpected patterns, new tools. Research and exploration. Watch for rising usage and promote upward. Eval cadence: periodic.
+        <div class="matrix-legend-item legend-guardrails">
+          <b>Guardrails (low value, high cost)</b>
+          Rarely triggered but must never fail. Safety, compliance, refusals.
+        </div>
+        <div class="matrix-legend-item legend-deprioritize">
+          <b>Deprioritize (low value, low cost)</b>
+          Exploratory or rare. Light coverage; revisit if usage grows.
         </div>
       </div>
     </div>
-    <div class="zone-columns">
-      <div class="zone-column" id="zone-col-1" data-zone="1">
-        <div class="zone-column-header zone-1-header">
-          <span data-tooltip="Zone 1 is where you invest fully. Failures here are costly or unacceptable — but 100% is not the target. Even in Zone 1, some failure rate is expected and quantified. Safety failures and guardrail tests usually live here. Good Zone 1 criteria: acceptance criteria clear enough that two reviewers independently agree on pass/fail.">Zone 1: This Must Work</span>
-          <span class="zone-column-subtitle" id="zone-1-count"></span>
+
+    <div class="matrix-wrap">
+      <!-- Row 1: column headers (empty corner, then X-axis labels above each column) -->
+      <div class="matrix-corner"></div>
+      <div class="matrix-x-label">Low cost of failure</div>
+      <div class="matrix-x-label">High cost of failure</div>
+
+      <!-- Row 2: HIGH VALUE row -->
+      <div class="matrix-y-label">High value</div>
+      <!-- Top-left: Core (high value, low cost) -->
+      <div class="quadrant" id="quadrant-core" data-quadrant="core">
+        <div class="quadrant-header quadrant-header-core">
+          <span data-tooltip="Core: high value, low cost of failure. The agent's expected capabilities — users rely on these and notice when they're off, but a miss isn't catastrophic. Invest in solid coverage.">Core</span>
+          <span class="quadrant-subtitle" id="quadrant-core-count"></span>
         </div>
-        <div class="zone-items" id="zone-items-1"></div>
-        <input class="zone-add-input" placeholder="+ Add scenario..." data-zone="1" onkeydown="onAddKeydown(event)">
+        <div class="quadrant-items" id="quadrant-items-core"></div>
+        <input class="quadrant-add-input" placeholder="+ The agent should..." data-quadrant="core" onkeydown="onAddKeydown(event)">
       </div>
-      <div class="zone-column" id="zone-col-2" data-zone="2">
-        <div class="zone-column-header zone-2-header">
-          <span data-tooltip="Zone 2 contains real, scoped capabilities — but ones that don't receive full effort or funding in this phase. Examples: nice-to-have features, low-traffic use cases, functionalities where a higher score wouldn't justify the additional development time. Failures here are improvement signals, not emergencies.">Zone 2: Real but Lower Priority</span>
-          <span class="zone-column-subtitle" id="zone-2-count"></span>
+      <!-- Top-right: Critical (high value, high cost) -->
+      <div class="quadrant" id="quadrant-critical" data-quadrant="critical">
+        <div class="quadrant-header quadrant-header-critical">
+          <span data-tooltip="Critical: high value AND high cost of failure. Product-defining capabilities where a miss hurts. Heaviest investment — most test cases, strictest acceptance criteria, human review mandatory.">Critical</span>
+          <span class="quadrant-subtitle" id="quadrant-critical-count"></span>
         </div>
-        <div class="zone-items" id="zone-items-2"></div>
-        <input class="zone-add-input" placeholder="+ Add scenario..." data-zone="2" onkeydown="onAddKeydown(event)">
+        <div class="quadrant-items" id="quadrant-items-critical"></div>
+        <input class="quadrant-add-input" placeholder="+ The agent should..." data-quadrant="critical" onkeydown="onAddKeydown(event)">
       </div>
-      <div class="zone-column" id="zone-col-3" data-zone="3">
-        <div class="zone-column-header zone-3-header">
-          <span data-tooltip="Zone 3 is coverage that surfaces from real-world usage — unexpected orchestrated functionalities that become popular, or capabilities added by dropping in a new tool with minimal effort. Zone 3 always expands. Watch for scenarios rising in usage — promote those to Zone 1 or 2.">Zone 3: Exploratory</span>
-          <span class="zone-column-subtitle" id="zone-3-count"></span>
+
+      <!-- Row 3: LOW VALUE row -->
+      <div class="matrix-y-label">Low value</div>
+      <!-- Bottom-left: Deprioritize (low value, low cost) -->
+      <div class="quadrant" id="quadrant-deprioritize" data-quadrant="deprioritize">
+        <div class="quadrant-header quadrant-header-deprioritize">
+          <span data-tooltip="Deprioritize: low value, low cost of failure. Exploratory or rarely exercised behaviors. Test lightly; revisit if usage grows or stakes change.">Deprioritize</span>
+          <span class="quadrant-subtitle" id="quadrant-deprioritize-count"></span>
         </div>
-        <div class="zone-items" id="zone-items-3"></div>
-        <input class="zone-add-input" placeholder="+ Add scenario..." data-zone="3" onkeydown="onAddKeydown(event)">
+        <div class="quadrant-items" id="quadrant-items-deprioritize"></div>
+        <input class="quadrant-add-input" placeholder="+ The agent should..." data-quadrant="deprioritize" onkeydown="onAddKeydown(event)">
+      </div>
+      <!-- Bottom-right: Guardrails (low value, high cost) -->
+      <div class="quadrant" id="quadrant-guardrails" data-quadrant="guardrails">
+        <div class="quadrant-header quadrant-header-guardrails">
+          <span data-tooltip="Guardrails: low value, high cost of failure. Low-traffic behaviors where a failure causes real harm — safety refusals, compliance boundaries, escalation. Zero tolerance for failure; invest in negative tests and adversarial cases.">Guardrails</span>
+          <span class="quadrant-subtitle" id="quadrant-guardrails-count"></span>
+        </div>
+        <div class="quadrant-items" id="quadrant-items-guardrails"></div>
+        <input class="quadrant-add-input" placeholder="+ The agent should NOT..." data-quadrant="guardrails" onkeydown="onAddKeydown(event)">
       </div>
     </div>
   </div>
 </div>
 
-<!-- Section 2: Scenarios & Acceptance Criteria -->
+<!-- Section 2: Acceptance Criteria & Conditions -->
 <div class="section">
   <div class="section-header flex-between">
-    <span data-tooltip="Each scenario needs acceptance criteria specific enough that two reviewers independently agree on pass/fail. Include both Pass and Fail conditions so there's no ambiguity in evaluation.">Scenarios & Acceptance Criteria</span>
-    <span class="text-sm text-muted" id="scenario-count"></span>
+    <span data-tooltip="Every acceptance criterion starts with 'The agent should…' (or 'should NOT…'). Pass/fail conditions must be specific enough that two reviewers independently agree on outcomes.">Acceptance Criteria & Conditions</span>
+    <span class="text-sm text-muted" id="criterion-count"></span>
   </div>
   <div class="section-body" style="padding:0;overflow-x:auto;">
-    <table id="scenario-table">
+    <table id="criteria-table">
       <thead>
         <tr>
-          <th style="width:70px">Zone</th>
-          <th style="width:25%">Scenario</th>
-          <th>Acceptance Criteria: what does a good quality response need to satisfy</th>
+          <th style="width:90px">Quadrant</th>
+          <th style="width:28%">Statement (The agent should...)</th>
+          <th style="width:165px"><span data-tooltip="What the test case must actually verify. This determines the test method automatically: Factual content → Compare meaning. Semantic match → Compare meaning. Response quality → General quality. Custom rubric → Custom grader. Topic / tool invocation → Capability use. Exact string → Exact match.">What to verify</span></th>
+          <th>Pass / Fail conditions</th>
           <th style="width:40px"></th>
         </tr>
       </thead>
-      <tbody id="scenario-tbody"></tbody>
+      <tbody id="criteria-tbody"></tbody>
     </table>
-    <button class="btn btn-add" onclick="addScenarioFromTable()">+ Add scenario</button>
+    <button class="btn btn-add" onclick="addCriterionFromTable()">+ Add criterion</button>
   </div>
 </div>
 
 <!-- Section 3: Quality Dimensions to Test -->
 <div class="section">
   <div class="section-header flex-between">
-    <span data-tooltip="Dimensions of quality you're measuring. Each dimension groups related scenarios and becomes a separate tab of test cases in the Generate stage, ensuring coverage across all quality aspects.">Quality Dimensions to Test</span>
+    <span data-tooltip="Quality dimensions are the aspects you're measuring (e.g., Policy Accuracy, Grounding, Tone). Each dimension groups related criteria and becomes a separate tab of test cases in the Generate stage, ensuring coverage across all quality aspects.">Quality Dimensions to Test</span>
     <button class="btn btn-sm" onclick="addQualityDimension()" style="color:#fff;border-color:rgba(255,255,255,0.4);">+ Add dimension</button>
   </div>
   <div style="padding:0.6rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;flex-wrap:wrap;gap:0.3rem;" id="metrics-dim-bar"></div>
   <div class="section-body" id="dimensions-body"></div>
 </div>
 
-<!-- Section 4: Success Metrics -->
-<div class="section">
-  <div class="section-header flex-between">
-    <span data-tooltip="The metrics that determine when this agent is ready to deploy. Based on the expectations aligned during planning — when these targets are met, the agent delivers enough value to ship. You deploy when Zone 1 passes at an acceptable rate.">Success Metrics</span>
-    <span class="text-sm text-muted" id="metrics-count"></span>
-  </div>
-  <div class="section-body" style="padding:0;overflow-x:auto;">
-    <table>
-      <thead>
-        <tr>
-          <th style="width:70px">Zone</th>
-          <th style="width:28%">Scenario</th>
-          <th style="width:25%">Quality Dimension</th>
-          <th style="width:120px">Target Pass Rate</th>
-        </tr>
-      </thead>
-      <tbody id="metrics-tbody"></tbody>
-    </table>
-  </div>
-</div>
-
 <script>
-const ZONE_LABELS = {"1": "Zone 1", "2": "Zone 2", "3": "Zone 3"};
-const ZONE_CSS = {"1": "zone-badge-1", "2": "zone-badge-2", "3": "zone-badge-3"};
-const ZONE_CHIP_CSS = {"1": "chip-zone-1", "2": "chip-zone-2", "3": "chip-zone-3"};
+const QUADRANTS = ["critical", "core", "guardrails", "deprioritize"];
+const QUADRANT_LABELS = {
+  critical: "Critical",
+  core: "Core",
+  guardrails: "Guardrails",
+  deprioritize: "Deprioritize",
+};
+const Q_BADGE_CSS = {
+  critical: "q-badge-critical",
+  core: "q-badge-core",
+  guardrails: "q-badge-guardrails",
+  deprioritize: "q-badge-deprioritize",
+};
+const Q_DOT_CSS = {
+  critical: "chip-dot-critical",
+  core: "chip-dot-core",
+  guardrails: "chip-dot-guardrails",
+  deprioritize: "chip-dot-deprioritize",
+};
+const METHODS = ["Compare meaning", "General quality", "Keyword match", "Exact match", "Text similarity", "Capability use", "Custom"];
 
-let scenarios = [];
+// "What to verify" — decision-aid column. Picking one auto-suggests a method.
+// Order: common → specialized.
+const SIGNAL_TYPES = [
+  "Factual content",
+  "Semantic match",
+  "Response quality",
+  "Custom rubric / style",
+  "Topic / tool invocation",
+  "Exact string or format",
+];
+const SIGNAL_TO_METHOD = {
+  "Factual content": "Compare meaning",
+  "Semantic match": "Compare meaning",
+  "Response quality": "General quality",
+  "Custom rubric / style": "Custom",
+  "Topic / tool invocation": "Capability use",
+  "Exact string or format": "Exact match",
+};
+
+let criteria = [];
 let qualityDimensions = [];
 let draggedId = null;
 let dimDraggedId = null;
@@ -338,44 +427,82 @@ let nextId = 100;
 function stageInit() {
   const d = EMBEDDED_DATA.data;
   qualityDimensions = [...(d.quality_dimensions || d.quality_signals || [])];
-  scenarios = (d.scenarios || []).map(s => ({...s, zone: String(s.zone || "1")}));
-  nextId = scenarios.length > 0 ? Math.max(...scenarios.map(s => s.id)) + 1 : 1;
+  // Accept both new ("criteria") and old ("scenarios") shapes for backward-compat
+  const raw = d.criteria || d.scenarios || [];
+  criteria = raw.map(c => normalizeCriterion(c));
+  nextId = criteria.length > 0 ? Math.max(...criteria.map(c => c.id)) + 1 : 1;
 
   renderAll();
   initDragAndDrop();
 }
 
+function normalizeCriterion(c) {
+  // Map old schema (scenarios with zone + name + acceptance_criteria)
+  // onto new schema (criteria with quadrant + statement + pass/fail).
+  const quadrant = c.quadrant || zoneToQuadrant(c.zone);
+  let statement = c.statement || c.name || "";
+  if (statement && !/^the agent should/i.test(statement)) {
+    statement = "The agent should " + statement.charAt(0).toLowerCase() + statement.slice(1);
+  }
+  let passCondition = c.pass_condition || "";
+  let failCondition = c.fail_condition || "";
+  if (!passCondition && !failCondition && c.acceptance_criteria) {
+    const ac = c.acceptance_criteria;
+    const passMatch = ac.match(/pass\s*=\s*([^\n]+)/i);
+    const failMatch = ac.match(/fail\s*=\s*([^\n]+)/i);
+    passCondition = passMatch ? passMatch[1].trim() : "";
+    failCondition = failMatch ? failMatch[1].trim() : "";
+  }
+  return {
+    id: c.id,
+    statement: statement,
+    quadrant: quadrant,
+    quality_dimension: c.quality_dimension || "",
+    signal_type: c.signal_type || "",
+    method: c.method || "Compare meaning",
+    pass_condition: passCondition,
+    fail_condition: failCondition,
+    _deleted: false,
+  };
+}
+
+function zoneToQuadrant(zone) {
+  const z = String(zone || "1");
+  if (z === "1") return "critical";
+  if (z === "2") return "core";
+  return "deprioritize";
+}
+
 function renderAll() {
-  renderZoneColumns();
-  renderScenarioTable();
-  renderMetrics();
+  renderQuadrants();
+  renderCriteriaTable();
   renderDimensions();
 }
 
-// ── Zone Model (drag-and-drop) ──
+// ── Value × Cost matrix (drag-and-drop) ──
 
-function renderZoneColumns() {
-  ["1", "2", "3"].forEach(z => {
-    const container = document.getElementById("zone-items-" + z);
+function renderQuadrants() {
+  QUADRANTS.forEach(q => {
+    const container = document.getElementById("quadrant-items-" + q);
     container.innerHTML = "";
-    const items = scenarios.filter(s => s.zone === z && !s._deleted);
-    items.forEach(s => {
+    const items = criteria.filter(c => c.quadrant === q && !c._deleted);
+    items.forEach(c => {
       const el = document.createElement("div");
-      el.className = "zone-item";
+      el.className = "criterion-card";
       el.draggable = true;
-      el.dataset.id = s.id;
+      el.dataset.id = c.id;
       el.innerHTML =
-        '<span class="item-name">' + escapeHtml(s.name) + '</span>' +
-        '<span class="item-actions"><button class="btn-icon" onclick="deleteScenario(' + s.id + ')" title="Remove">&#x2715;</button></span>';
+        '<span class="statement">' + escapeHtml(c.statement) + '</span>' +
+        '<span class="actions"><button class="btn-icon" onclick="deleteCriterion(' + c.id + ')" title="Remove">&#x2715;</button></span>';
       container.appendChild(el);
     });
-    document.getElementById("zone-" + z + "-count").textContent = items.length;
+    document.getElementById("quadrant-" + q + "-count").textContent = items.length;
   });
 }
 
 function initDragAndDrop() {
   document.addEventListener("dragstart", e => {
-    const item = e.target.closest(".zone-item");
+    const item = e.target.closest(".criterion-card");
     if (!item) return;
     draggedId = parseInt(item.dataset.id);
     item.classList.add("dragging");
@@ -383,13 +510,13 @@ function initDragAndDrop() {
   });
 
   document.addEventListener("dragend", e => {
-    const item = e.target.closest(".zone-item");
+    const item = e.target.closest(".criterion-card");
     if (item) item.classList.remove("dragging");
-    document.querySelectorAll(".zone-column").forEach(c => c.classList.remove("drag-over"));
+    document.querySelectorAll(".quadrant").forEach(q => q.classList.remove("drag-over"));
     draggedId = null;
   });
 
-  document.querySelectorAll(".zone-column").forEach(col => {
+  document.querySelectorAll(".quadrant").forEach(col => {
     col.addEventListener("dragover", e => {
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
@@ -402,10 +529,10 @@ function initDragAndDrop() {
       e.preventDefault();
       col.classList.remove("drag-over");
       if (draggedId === null) return;
-      const newZone = col.dataset.zone;
-      const s = scenarios.find(s => s.id === draggedId);
-      if (s && s.zone !== newZone) {
-        s.zone = newZone;
+      const newQuadrant = col.dataset.quadrant;
+      const c = criteria.find(c => c.id === draggedId);
+      if (c && c.quadrant !== newQuadrant) {
+        c.quadrant = newQuadrant;
         renderAll();
         scheduleSave();
       }
@@ -415,157 +542,138 @@ function initDragAndDrop() {
 
 function onAddKeydown(e) {
   if (e.key !== "Enter") return;
-  const val = e.target.value.trim();
+  let val = e.target.value.trim();
   if (!val) return;
-  const zone = e.target.dataset.zone;
-  addNewScenario(val, zone);
+  const quadrant = e.target.dataset.quadrant;
+  // Normalize the statement to begin with "The agent should…"
+  if (!/^the agent should/i.test(val)) {
+    val = "The agent should " + val.charAt(0).toLowerCase() + val.slice(1);
+  }
+  addNewCriterion(val, quadrant);
   e.target.value = "";
 }
 
-function addNewScenario(name, zone) {
+function addNewCriterion(statement, quadrant) {
   const id = nextId++;
-  scenarios.push({
+  criteria.push({
     id: id,
-    name: name,
-    zone: zone,
+    statement: statement,
+    quadrant: quadrant,
     quality_dimension: qualityDimensions[0] || "",
-    acceptance_criteria: "",
-    target_pass_rate: zone === "1" ? 85 : zone === "2" ? 65 : 50,
+    signal_type: "",
+    method: "Compare meaning",
+    pass_condition: "",
+    fail_condition: "",
+    _deleted: false,
   });
   renderAll();
   initDragAndDrop();
   scheduleSave();
 }
 
-function deleteScenario(id) {
-  const s = scenarios.find(s => s.id === id);
-  if (s) s._deleted = true;
-  edits["scenario_" + id] = "__DELETE__";
+function deleteCriterion(id) {
+  const c = criteria.find(c => c.id === id);
+  if (c) c._deleted = true;
+  edits["criterion_" + id] = "__DELETE__";
   renderAll();
   scheduleSave();
 }
 
-// ── Scenario Plan table ──
+// ── Acceptance Criteria table ──
 
-function renderScenarioTable() {
-  const tbody = document.getElementById("scenario-tbody");
+function renderCriteriaTable() {
+  const tbody = document.getElementById("criteria-tbody");
   tbody.innerHTML = "";
-  const active = scenarios.filter(s => !s._deleted);
-  const sorted = [...active].sort((a, b) => a.zone.localeCompare(b.zone));
-  sorted.forEach(s => {
+  const active = criteria.filter(c => !c._deleted);
+  // Sort by quadrant importance: critical, guardrails, core, deprioritize
+  const ORDER = { critical: 0, guardrails: 1, core: 2, deprioritize: 3 };
+  const sorted = [...active].sort((a, b) => ORDER[a.quadrant] - ORDER[b.quadrant]);
+  sorted.forEach(c => {
     const tr = document.createElement("tr");
     tr.innerHTML =
-      '<td><span class="zone-badge ' + ZONE_CSS[s.zone] + '">' + ZONE_LABELS[s.zone] + '</span></td>' +
-      '<td class="editable"><textarea data-field="scenario_' + s.id + '.name" ' +
-        'data-original="' + escapeAttr(s.name || "") + '" ' +
-        'data-scenario-id="' + s.id + '" data-prop="name" ' +
-        'oninput="onScenarioEdit(this);scheduleSave()" style="font-weight:500;">' +
-        escapeHtml(s.name || "") + '</textarea></td>' +
-      '<td class="editable"><textarea data-field="scenario_' + s.id + '.acceptance_criteria" ' +
-        'data-original="' + escapeAttr(s.acceptance_criteria || "") + '" ' +
-        'data-scenario-id="' + s.id + '" data-prop="acceptance_criteria" ' +
-        'oninput="onScenarioEdit(this);scheduleSave()" style="min-height:3.5em;">' +
-        escapeHtml(s.acceptance_criteria || "") + '</textarea></td>' +
-      '<td><button class="btn btn-sm btn-danger" onclick="deleteScenario(' + s.id + ')">&#x2715;</button></td>';
+      '<td><span class="q-badge ' + Q_BADGE_CSS[c.quadrant] + '">' + QUADRANT_LABELS[c.quadrant] + '</span></td>' +
+      '<td class="editable"><textarea data-field="criterion_' + c.id + '.statement" ' +
+        'data-original="' + escapeAttr(c.statement) + '" ' +
+        'data-criterion-id="' + c.id + '" data-prop="statement" ' +
+        'oninput="onCriterionEdit(this);scheduleSave()" style="font-weight:500;">' +
+        escapeHtml(c.statement) + '</textarea></td>' +
+      '<td>' + buildSignalTypeSelect(c) + '</td>' +
+      '<td class="editable">' +
+        '<div class="condition-row">' +
+          '<span class="condition-label condition-label-pass">Pass =</span>' +
+          '<textarea data-field="criterion_' + c.id + '.pass_condition" ' +
+            'data-original="' + escapeAttr(c.pass_condition) + '" ' +
+            'data-criterion-id="' + c.id + '" data-prop="pass_condition" ' +
+            'oninput="onCriterionEdit(this);scheduleSave()" ' +
+            'placeholder="conditions that make this criterion pass...">' + escapeHtml(c.pass_condition) + '</textarea>' +
+        '</div>' +
+        '<div class="condition-row">' +
+          '<span class="condition-label condition-label-fail">Fail =</span>' +
+          '<textarea data-field="criterion_' + c.id + '.fail_condition" ' +
+            'data-original="' + escapeAttr(c.fail_condition) + '" ' +
+            'data-criterion-id="' + c.id + '" data-prop="fail_condition" ' +
+            'oninput="onCriterionEdit(this);scheduleSave()" ' +
+            'placeholder="conditions that make this criterion fail...">' + escapeHtml(c.fail_condition) + '</textarea>' +
+        '</div>' +
+      '</td>' +
+      '<td><button class="btn btn-sm btn-danger" onclick="deleteCriterion(' + c.id + ')">&#x2715;</button></td>';
     tbody.appendChild(tr);
   });
-  document.getElementById("scenario-count").textContent = active.length + " scenarios";
+  document.getElementById("criterion-count").textContent = active.length + " criteria";
 }
 
-function addScenarioFromTable() {
-  addNewScenario("", "1");
-  // Focus the last scenario name textarea
-  const textareas = document.querySelectorAll('#scenario-tbody textarea[data-prop="name"]');
-  if (textareas.length > 0) textareas[textareas.length - 1].focus();
-}
-
-function onScenarioEdit(el) {
-  const id = parseInt(el.dataset.scenarioId);
-  const prop = el.dataset.prop;
-  const s = scenarios.find(s => s.id === id);
-  if (s) {
-    if (prop === "target_pass_rate") {
-      s[prop] = parseInt(el.value) || 0;
-    } else {
-      s[prop] = el.value;
-    }
-    // Re-render zone columns and dimensions if name changed
-    if (prop === "name") {
-      renderZoneColumns();
-      renderDimensions();
-    }
-  }
-}
-
-// ── Success Metrics table ──
-
-function renderMetrics() {
-  // Table
-  const tbody = document.getElementById("metrics-tbody");
-  tbody.innerHTML = "";
-  const active = scenarios.filter(s => !s._deleted);
-  const sorted = [...active].sort((a, b) => a.zone.localeCompare(b.zone) || a.name.localeCompare(b.name));
-  sorted.forEach(s => {
-    const tr = document.createElement("tr");
-    tr.innerHTML =
-      '<td><span class="zone-badge ' + ZONE_CSS[s.zone] + '">' + ZONE_LABELS[s.zone] + '</span></td>' +
-      '<td class="text-sm">' + escapeHtml(s.name) + '</td>' +
-      '<td>' + buildDimensionSelect(s) + '</td>' +
-      '<td><input type="number" class="threshold-input" min="0" max="100" step="5" ' +
-        'value="' + (s.target_pass_rate || 80) + '" ' +
-        'data-field="scenario_' + s.id + '.target_pass_rate" ' +
-        'data-original="' + (s.target_pass_rate || 80) + '" ' +
-        'data-scenario-id="' + s.id + '" data-prop="target_pass_rate" ' +
-        'oninput="onScenarioEdit(this);scheduleSave()">%</td>';
-    tbody.appendChild(tr);
-  });
-  document.getElementById("metrics-count").textContent = sorted.length + " metrics";
-}
-
-function buildDimensionSelect(s) {
-  let opts = qualityDimensions.map(qd =>
-    '<option value="' + escapeAttr(qd) + '"' + (qd === s.quality_dimension ? ' selected' : '') + '>' + escapeHtml(qd) + '</option>'
+function buildMethodSelect(c) {
+  const opts = METHODS.map(m =>
+    '<option value="' + escapeAttr(m) + '"' + (m === c.method ? ' selected' : '') + '>' + escapeHtml(m) + '</option>'
   ).join("");
-  // Add current value if not in list (custom)
-  if (s.quality_dimension && !qualityDimensions.includes(s.quality_dimension)) {
-    opts = '<option value="' + escapeAttr(s.quality_dimension) + '" selected>' + escapeHtml(s.quality_dimension) + '</option>' + opts;
-  }
-  opts += '<option value="__add_new__">+ Add new dimension...</option>';
-  return '<select class="inline-select" data-field="scenario_' + s.id + '.quality_dimension" ' +
-    'data-original="' + escapeAttr(s.quality_dimension || "") + '" ' +
-    'data-scenario-id="' + s.id + '" data-prop="quality_dimension" ' +
-    'onchange="onDimensionSelect(this)">' + opts + '</select>';
+  return '<select class="inline-select" data-field="criterion_' + c.id + '.method" ' +
+    'data-original="' + escapeAttr(c.method || "") + '" ' +
+    'data-criterion-id="' + c.id + '" data-prop="method" ' +
+    'onchange="onCriterionEdit(this);scheduleSave()">' + opts + '</select>';
 }
 
-function onDimensionSelect(el) {
-  if (el.value === "__add_new__") {
-    const name = prompt("New quality dimension name:");
-    if (name && name.trim()) {
-      const trimmed = name.trim();
-      if (!qualityDimensions.includes(trimmed)) {
-        qualityDimensions.push(trimmed);
-      }
-      el.value = trimmed;
-      onScenarioEdit(el);
-      renderMetrics();
-      renderDimensions();
-    } else {
-      // Revert
-      const id = parseInt(el.dataset.scenarioId);
-      const s = scenarios.find(s => s.id === id);
-      el.value = s ? s.quality_dimension : "";
-    }
-  } else {
-    onScenarioEdit(el);
-    renderDimensions();
+function buildSignalTypeSelect(c) {
+  const opts = SIGNAL_TYPES.map(st =>
+    '<option value="' + escapeAttr(st) + '"' + (st === c.signal_type ? ' selected' : '') + '>' + escapeHtml(st) + '</option>'
+  ).join("");
+  return '<select class="inline-select" data-field="criterion_' + c.id + '.signal_type" ' +
+    'data-original="' + escapeAttr(c.signal_type || "") + '" ' +
+    'data-criterion-id="' + c.id + '" data-prop="signal_type" ' +
+    'onchange="onCriterionEdit(this);scheduleSave()">' +
+    '<option value="">—</option>' + opts + '</select>';
+}
+
+function addCriterionFromTable() {
+  addNewCriterion("The agent should ", "core");
+  const textareas = document.querySelectorAll('#criteria-tbody textarea[data-prop="statement"]');
+  if (textareas.length > 0) {
+    const last = textareas[textareas.length - 1];
+    last.focus();
+    last.setSelectionRange(last.value.length, last.value.length);
   }
-  scheduleSave();
+}
+
+function onCriterionEdit(el) {
+  const id = parseInt(el.dataset.criterionId);
+  const prop = el.dataset.prop;
+  const c = criteria.find(c => c.id === id);
+  if (c) {
+    c[prop] = el.value;
+    // When signal_type changes, derive the method automatically. Method is no
+    // longer edited in the UI — it's set by the "What to verify" selection.
+    if (prop === "signal_type" && el.value && SIGNAL_TO_METHOD[el.value]) {
+      c.method = SIGNAL_TO_METHOD[el.value];
+    }
+    if (prop === "statement") {
+      renderQuadrants();
+      renderDimensions();
+    }
+  }
 }
 
 // ── Quality Dimensions ──
 
 function renderDimensions() {
-  // Dimension chip bar
   const bar = document.getElementById("metrics-dim-bar");
   bar.innerHTML = qualityDimensions.map(d =>
     '<span class="dim-bar-chip">' + escapeHtml(d) + '</span>'
@@ -574,10 +682,10 @@ function renderDimensions() {
 
   const container = document.getElementById("dimensions-body");
   container.innerHTML = "";
-  const active = scenarios.filter(s => !s._deleted);
+  const active = criteria.filter(c => !c._deleted);
 
-  qualityDimensions.forEach((dim, dimIdx) => {
-    const items = active.filter(s => s.quality_dimension === dim);
+  qualityDimensions.forEach((dim) => {
+    const items = active.filter(c => c.quality_dimension === dim);
     const group = document.createElement("div");
     group.className = "dim-group";
 
@@ -585,15 +693,15 @@ function renderDimensions() {
     chipsDiv.className = "dim-group-chips";
     chipsDiv.dataset.dimension = dim;
 
-    items.forEach(s => {
+    items.forEach(c => {
       const chip = document.createElement("span");
       chip.className = "dim-chip";
       chip.draggable = true;
-      chip.dataset.scenarioId = s.id;
+      chip.dataset.criterionId = c.id;
       chip.innerHTML =
-        '<span class="chip-zone ' + ZONE_CHIP_CSS[s.zone] + '"></span>' +
-        escapeHtml(s.name) +
-        '<button class="chip-delete" onclick="deleteScenario(' + s.id + ')" title="Remove">&#x2715;</button>';
+        '<span class="chip-dot ' + Q_DOT_CSS[c.quadrant] + '"></span>' +
+        escapeHtml(c.statement) +
+        '<button class="chip-delete" onclick="deleteCriterion(' + c.id + ')" title="Remove">&#x2715;</button>';
       chipsDiv.appendChild(chip);
     });
 
@@ -601,28 +709,27 @@ function renderDimensions() {
       const empty = document.createElement("span");
       empty.className = "text-sm text-muted";
       empty.style.cssText = "font-style:italic;padding:0.15rem 0;";
-      empty.textContent = "No scenarios — drag here to assign";
+      empty.textContent = "No criteria — drag here to assign";
       chipsDiv.appendChild(empty);
     }
 
     const addBtn = document.createElement("button");
     addBtn.className = "dim-add-btn";
     addBtn.textContent = "+ Add";
-    addBtn.onclick = () => addScenarioToDimension(dim);
+    addBtn.onclick = () => addCriterionToDimension(dim);
     chipsDiv.appendChild(addBtn);
 
-    // Drop target
     chipsDiv.addEventListener("dragover", e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; chipsDiv.classList.add("dim-drag-over"); });
     chipsDiv.addEventListener("dragleave", e => { if (!chipsDiv.contains(e.relatedTarget)) chipsDiv.classList.remove("dim-drag-over"); });
     chipsDiv.addEventListener("drop", e => {
       e.preventDefault();
       chipsDiv.classList.remove("dim-drag-over");
       if (dimDraggedId === null) return;
-      const s = scenarios.find(s => s.id === dimDraggedId);
-      if (s && s.quality_dimension !== dim) {
-        s.quality_dimension = dim;
+      const c = criteria.find(c => c.id === dimDraggedId);
+      if (c && c.quality_dimension !== dim) {
+        c.quality_dimension = dim;
         renderDimensions();
-        renderMetrics();
+        renderCriteriaTable();
         scheduleSave();
       }
     });
@@ -636,11 +743,10 @@ function renderDimensions() {
     container.appendChild(group);
   });
 
-  // Chip drag handlers (event delegation on container)
   container.addEventListener("dragstart", e => {
     const chip = e.target.closest(".dim-chip");
     if (!chip) return;
-    dimDraggedId = parseInt(chip.dataset.scenarioId);
+    dimDraggedId = parseInt(chip.dataset.criterionId);
     chip.classList.add("chip-dragging");
     e.dataTransfer.effectAllowed = "move";
   });
@@ -659,23 +765,30 @@ function addQualityDimension() {
     if (!qualityDimensions.includes(trimmed)) {
       qualityDimensions.push(trimmed);
       renderDimensions();
-      renderMetrics();
+      renderCriteriaTable();
       scheduleSave();
     }
   }
 }
 
-function addScenarioToDimension(dim) {
-  const name = prompt("New scenario name for '" + dim + "':");
-  if (name && name.trim()) {
+function addCriterionToDimension(dim) {
+  const statement = prompt("New criterion for '" + dim + "' (will be prefixed with 'The agent should…' if not present):");
+  if (statement && statement.trim()) {
+    let s = statement.trim();
+    if (!/^the agent should/i.test(s)) {
+      s = "The agent should " + s.charAt(0).toLowerCase() + s.slice(1);
+    }
     const id = nextId++;
-    scenarios.push({
+    criteria.push({
       id: id,
-      name: name.trim(),
-      zone: "1",
+      statement: s,
+      quadrant: "core",
       quality_dimension: dim,
-      acceptance_criteria: "",
-      target_pass_rate: 85,
+      signal_type: "",
+      method: "Compare meaning",
+      pass_condition: "",
+      fail_condition: "",
+      _deleted: false,
     });
     renderAll();
     initDragAndDrop();
@@ -691,17 +804,16 @@ function escapeAttr(text) {
 
 function stageCollectEdits() {
   const result = {};
-  // Collect all scenario state
-  scenarios.filter(s => !s._deleted).forEach(s => {
-    result["scenario_" + s.id + ".zone"] = s.zone;
-    result["scenario_" + s.id + ".name"] = s.name;
-    result["scenario_" + s.id + ".quality_dimension"] = s.quality_dimension || "";
-    result["scenario_" + s.id + ".target_pass_rate"] = String(s.target_pass_rate || 80);
-    result["scenario_" + s.id + ".acceptance_criteria"] = s.acceptance_criteria || "";
+  criteria.filter(c => !c._deleted).forEach(c => {
+    result["criterion_" + c.id + ".statement"] = c.statement;
+    result["criterion_" + c.id + ".quadrant"] = c.quadrant;
+    result["criterion_" + c.id + ".quality_dimension"] = c.quality_dimension || "";
+    result["criterion_" + c.id + ".signal_type"] = c.signal_type || "";
+    result["criterion_" + c.id + ".method"] = c.method || "Compare meaning";
+    result["criterion_" + c.id + ".pass_condition"] = c.pass_condition || "";
+    result["criterion_" + c.id + ".fail_condition"] = c.fail_condition || "";
   });
-  // Quality dimensions
   result["quality_dimensions"] = JSON.stringify(qualityDimensions);
-  // Collect textarea/input edits from DOM
   document.querySelectorAll("[data-field]").forEach(el => {
     if (el.value !== (el.dataset.original || "")) {
       result[el.dataset.field] = el.value;
