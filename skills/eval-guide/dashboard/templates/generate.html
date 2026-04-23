@@ -1,21 +1,23 @@
-<!-- Stage 2: Generate — Test Cases Review (Editable, Zone Model) -->
+<!-- Stage 2: Generate — Test Cases Review (Editable, Value × Cost matrix) -->
 
 <style>
-/* Zone-colored tabs */
-.tab.zone-1 { border-left: 3px solid var(--red); }
-.tab.zone-2 { border-left: 3px solid var(--yellow); }
-.tab.zone-3 { border-left: 3px solid var(--blue); }
-.tab.zone-mixed { border-left: 3px solid var(--text-muted); }
-.tab .tab-zone-dot {
+/* Quadrant-colored tabs */
+.tab.q-critical   { border-left: 3px solid var(--red); }
+.tab.q-core       { border-left: 3px solid var(--blue); }
+.tab.q-guardrails { border-left: 3px solid var(--yellow); }
+.tab.q-deprioritize { border-left: 3px solid var(--text-muted); }
+.tab.q-mixed      { border-left: 3px solid var(--text-muted); }
+.tab .tab-q-dot {
   display: inline-block;
   width: 7px; height: 7px;
   border-radius: 50%;
   margin-right: 0.3rem;
   vertical-align: middle;
 }
-.tab-zone-dot.dot-1 { background: var(--red); }
-.tab-zone-dot.dot-2 { background: var(--yellow); }
-.tab-zone-dot.dot-3 { background: var(--blue); }
+.tab-q-dot.dot-critical   { background: var(--red); }
+.tab-q-dot.dot-core       { background: var(--blue); }
+.tab-q-dot.dot-guardrails { background: var(--yellow); }
+.tab-q-dot.dot-deprioritize { background: var(--text-muted); }
 
 /* Dimension-level method bar */
 .dim-methods-bar {
@@ -24,22 +26,49 @@
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  flex-wrap: wrap;
   font-size: 0.8rem;
 }
 .dim-methods-bar label { font-weight: 600; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
 .method-chip {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.3rem 0.15rem 0.5rem;
   border-radius: 12px;
   font-size: 0.72rem;
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
 }
+.method-chip .chip-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 0.2rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+.method-chip:hover .chip-remove { opacity: 1; }
+.method-chip .chip-remove:hover { color: var(--red); }
+.add-method-select {
+  font-family: var(--font);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.4rem;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.add-method-select:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Scenario group header */
-.scenario-group-header {
+/* Criterion group header */
+.criterion-group-header {
   background: var(--bg);
   padding: 0.5rem 0.7rem;
   border-bottom: 1px solid var(--border);
@@ -47,25 +76,27 @@
   align-items: center;
   gap: 0.5rem;
 }
-.scenario-group-header .scenario-name {
+.criterion-group-header .criterion-statement {
   font-weight: 600;
   font-size: 0.82rem;
   color: var(--text);
 }
-.zone-badge-sm {
+.q-badge-sm {
   display: inline-block;
   padding: 0.05rem 0.4rem;
   border-radius: 3px;
   font-size: 0.65rem;
   font-weight: 600;
   white-space: nowrap;
+  text-transform: capitalize;
 }
-.zone-badge-sm-1 { background: var(--red-bg); color: var(--red); }
-.zone-badge-sm-2 { background: var(--yellow-bg); color: #996600; }
-.zone-badge-sm-3 { background: var(--blue-bg); color: var(--blue); }
+.q-badge-sm-critical   { background: var(--red-bg); color: var(--red); }
+.q-badge-sm-core       { background: var(--blue-bg); color: var(--blue); }
+.q-badge-sm-guardrails { background: var(--yellow-bg); color: #996600; }
+.q-badge-sm-deprioritize { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
 
-/* Acceptance criteria row */
-.acceptance-row {
+/* Pass/Fail conditions row */
+.conditions-row {
   background: var(--blue-bg);
   border-bottom: 1px solid var(--border);
   padding: 0.4rem 0.7rem;
@@ -73,7 +104,7 @@
   color: var(--text);
   line-height: 1.45;
 }
-.acceptance-row .ac-label {
+.conditions-row .c-label {
   font-weight: 600;
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -81,8 +112,8 @@
   color: var(--accent);
   margin-bottom: 0.15rem;
 }
-.acceptance-row .ac-pass { color: var(--green); }
-.acceptance-row .ac-fail { color: var(--red); }
+.conditions-row .c-pass { color: var(--green); }
+.conditions-row .c-fail { color: var(--red); }
 
 /* VERIFY highlight */
 .verify-highlight {
@@ -94,6 +125,18 @@
   color: #856404;
   cursor: help;
 }
+
+/* "No expected response needed" note — for methods like General quality / Custom / Capability use */
+.reference-note {
+  padding: 0.5rem 0.7rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.77rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.reference-note strong { color: var(--accent); }
+.reference-note em { font-style: italic; font-weight: 500; }
 </style>
 
 <div class="tabs" id="signal-tabs"></div>
@@ -102,34 +145,89 @@
 
 <div class="section mt-2">
   <div class="section-header flex-between">
-    <span data-tooltip="Overview of test case distribution across quality dimensions and zones. Use this to verify balanced coverage — if one dimension has far fewer cases, consider adding more before running evals.">Summary</span>
+    <span data-tooltip="Overview of test case distribution across quality dimensions and quadrants. Use this to verify balanced coverage — if Critical or Guardrails have few cases, consider adding more before running evals.">Summary</span>
     <span class="text-sm text-muted" id="total-count"></span>
   </div>
   <div class="section-body">
     <table>
-      <thead><tr><th>Quality Dimension</th><th>Scenarios</th><th>Test Cases</th><th>Methods</th></tr></thead>
+      <thead><tr><th>Quality Dimension</th><th>Criteria</th><th>Test Cases</th><th>Methods</th></tr></thead>
       <tbody id="summary-tbody"></tbody>
     </table>
   </div>
 </div>
 
 <script>
-const ZONE_LABELS = {"1": "Zone 1", "2": "Zone 2", "3": "Zone 3"};
-const ZONE_BADGE_CSS = {"1": "zone-badge-sm-1", "2": "zone-badge-sm-2", "3": "zone-badge-sm-3"};
-const ZONE_DOT_CSS = {"1": "dot-1", "2": "dot-2", "3": "dot-3"};
-const ZONE_TAB_CSS = {"1": "zone-1", "2": "zone-2", "3": "zone-3"};
+const QUADRANT_LABELS = {
+  critical: "Critical",
+  core: "Core",
+  guardrails: "Guardrails",
+  deprioritize: "Deprioritize",
+};
+const Q_BADGE_CSS = {
+  critical: "q-badge-sm-critical",
+  core: "q-badge-sm-core",
+  guardrails: "q-badge-sm-guardrails",
+  deprioritize: "q-badge-sm-deprioritize",
+};
+const Q_DOT_CSS = {
+  critical: "dot-critical",
+  core: "dot-core",
+  guardrails: "dot-guardrails",
+  deprioritize: "dot-deprioritize",
+};
+const Q_TAB_CSS = {
+  critical: "q-critical",
+  core: "q-core",
+  guardrails: "q-guardrails",
+  deprioritize: "q-deprioritize",
+};
+
+// Quadrant importance for "dominant quadrant" logic on tabs: critical > guardrails > core > deprioritize
+const QUADRANT_WEIGHT = { critical: 4, guardrails: 3, core: 2, deprioritize: 1 };
+const METHODS = ["Compare meaning", "General quality", "Keyword match", "Exact match", "Text similarity", "Capability use", "Custom"];
 
 let testSets = [];
 let activeTab = 0;
 
+function zoneToQuadrant(zone) {
+  const z = String(zone || "");
+  if (z === "1") return "critical";
+  if (z === "2") return "core";
+  if (z === "3") return "deprioritize";
+  return "core";
+}
+
+function normalizeCriterion(raw) {
+  // Accept both old (scenarios: {name, zone, acceptance_criteria}) and new schemas.
+  const quadrant = raw.quadrant || zoneToQuadrant(raw.zone);
+  let statement = raw.statement || raw.name || "";
+  if (statement && !/^the agent should/i.test(statement)) {
+    statement = "The agent should " + statement.charAt(0).toLowerCase() + statement.slice(1);
+  }
+  let passCondition = raw.pass_condition || "";
+  let failCondition = raw.fail_condition || "";
+  if (!passCondition && !failCondition && raw.acceptance_criteria) {
+    const ac = raw.acceptance_criteria;
+    const passMatch = ac.match(/pass\s*=\s*([^\n]+)/i);
+    const failMatch = ac.match(/fail\s*=\s*([^\n]+)/i);
+    passCondition = passMatch ? passMatch[1].trim() : "";
+    failCondition = failMatch ? failMatch[1].trim() : "";
+  }
+  return {
+    criterion_id: raw.criterion_id || raw.scenario_id || raw.id,
+    statement: statement,
+    quadrant: quadrant,
+    method: raw.method || "Compare meaning",
+    pass_condition: passCondition,
+    fail_condition: failCondition,
+    cases: (raw.cases || []).map((c, i) => ({...c, _idx: i, _deleted: false})),
+  };
+}
+
 function stageInit() {
   testSets = (EMBEDDED_DATA.data.test_sets || []).map(ts => ({
     ...ts,
-    scenarios: (ts.scenarios || []).map(sc => ({
-      ...sc,
-      zone: String(sc.zone || "1"),
-      cases: (sc.cases || []).map((c, i) => ({...c, _idx: i, _deleted: false})),
-    })),
+    criteria: (ts.criteria || ts.scenarios || []).map(normalizeCriterion),
   }));
 
   renderTabs();
@@ -149,19 +247,21 @@ function stageInit() {
 
 // ── Tabs ──
 
-function getDominantZone(ts) {
-  const zones = {};
-  ts.scenarios.forEach(sc => {
-    const z = sc.zone;
-    const count = sc.cases.filter(c => !c._deleted).length;
-    zones[z] = (zones[z] || 0) + count;
+function getDominantQuadrant(ts) {
+  // Weighted count by (cases in that quadrant) × (quadrant weight)
+  const weighted = {};
+  ts.criteria.forEach(c => {
+    const q = c.quadrant;
+    const count = c.cases.filter(cs => !cs._deleted).length;
+    weighted[q] = (weighted[q] || 0) + count;
   });
-  const entries = Object.entries(zones);
-  if (entries.length === 0) return "1";
+  const entries = Object.entries(weighted);
+  if (entries.length === 0) return "core";
   if (entries.length === 1) return entries[0][0];
-  entries.sort((a, b) => b[1] - a[1]);
-  // If top zone has >60% of cases, use it; otherwise mixed
+  // Sort by (case count * quadrant weight) so Critical wins ties over Core when counts are similar
+  entries.sort((a, b) => (b[1] * QUADRANT_WEIGHT[b[0]]) - (a[1] * QUADRANT_WEIGHT[a[0]]));
   const total = entries.reduce((s, e) => s + e[1], 0);
+  // If top quadrant has >60% of cases, name it; otherwise "mixed"
   return entries[0][1] / total > 0.6 ? entries[0][0] : "mixed";
 }
 
@@ -169,11 +269,11 @@ function renderTabs() {
   const container = document.getElementById("signal-tabs");
   container.innerHTML = "";
   testSets.forEach((ts, i) => {
-    const zone = getDominantZone(ts);
+    const quadrant = getDominantQuadrant(ts);
     const tab = document.createElement("div");
-    tab.className = "tab" + (i === 0 ? " active" : "") + " " + (zone === "mixed" ? "zone-mixed" : ZONE_TAB_CSS[zone] || "");
-    const dotClass = zone === "mixed" ? "" : ZONE_DOT_CSS[zone] || "";
-    tab.innerHTML = (dotClass ? '<span class="tab-zone-dot ' + dotClass + '"></span>' : '') +
+    tab.className = "tab" + (i === 0 ? " active" : "") + " " + (quadrant === "mixed" ? "q-mixed" : Q_TAB_CSS[quadrant] || "");
+    const dotClass = quadrant === "mixed" ? "" : Q_DOT_CSS[quadrant] || "";
+    tab.innerHTML = (dotClass ? '<span class="tab-q-dot ' + dotClass + '"></span>' : '') +
       escapeHtml(ts.quality_dimension || ts.quality_signal || "");
     tab.dataset.index = i;
     tab.onclick = () => switchTab(i);
@@ -203,81 +303,98 @@ function renderAllPanels() {
 
 function buildPanelHTML(ts, tsIdx) {
   const prefix = "test_sets[" + tsIdx + "]";
-  const totalCases = ts.scenarios.reduce((s, sc) => s + sc.cases.filter(c => !c._deleted).length, 0);
+  const totalCases = ts.criteria.reduce((s, c) => s + c.cases.filter(cs => !cs._deleted).length, 0);
 
   let html = '<div class="section"><div class="section-header flex-between">' +
     '<span>' + escapeHtml(ts.quality_dimension || ts.quality_signal || "") + '</span>' +
-    '<span class="text-sm text-muted">' + totalCases + ' test cases across ' + ts.scenarios.length + ' scenarios</span>' +
+    '<span class="text-sm text-muted">' + totalCases + ' test cases across ' + ts.criteria.length + ' criteria</span>' +
     '</div>';
 
-  // Method bar at dimension level
-  html += '<div class="dim-methods-bar"><label>Suggested Test Methods:</label>';
-  (ts.methods || []).forEach(m => {
-    html += '<span class="method-chip">' + escapeHtml(m) + '</span>';
+  // Method bar at dimension level — editable list. On first render, inherit from criteria;
+  // subsequent add/remove operations persist on the testSet itself.
+  if (!ts.methods || !ts.methods.length) {
+    const methodSet = new Set();
+    ts.criteria.forEach(c => { if (c.method) methodSet.add(c.method); });
+    ts.methods = Array.from(methodSet);
+  }
+  html += '<div class="dim-methods-bar" id="dim-methods-bar-' + tsIdx + '"><label>Test Methods to Use:</label>';
+  ts.methods.forEach(m => {
+    html += '<span class="method-chip">' + escapeHtml(m) +
+      '<button class="chip-remove" onclick="removeMethod(' + tsIdx + ',' + JSON.stringify(m) + ')" title="Remove">&#x2715;</button>' +
+      '</span>';
   });
+  // "+ Add" select — show only methods not already in the list.
+  const remaining = METHODS.filter(m => !ts.methods.includes(m));
+  if (remaining.length > 0) {
+    html += '<select class="add-method-select" onchange="addMethod(' + tsIdx + ', this)">' +
+      '<option value="">+ Add method</option>' +
+      remaining.map(m => '<option value="' + escapeAttr(m) + '">' + escapeHtml(m) + '</option>').join("") +
+      '</select>';
+  }
   html += '</div>';
 
-  // Scenarios
-  ts.scenarios.forEach((sc, scIdx) => {
-    const scPrefix = prefix + ".scenarios[" + scIdx + "]";
-    const activeCases = sc.cases.filter(c => !c._deleted);
+  // Criteria
+  ts.criteria.forEach((c, cIdx) => {
+    const cPrefix = prefix + ".criteria[" + cIdx + "]";
+    const activeCases = c.cases.filter(cs => !cs._deleted);
 
-    // Scenario group header
-    html += '<div class="scenario-group-header">' +
-      '<span class="zone-badge-sm ' + (ZONE_BADGE_CSS[sc.zone] || "") + '">' + (ZONE_LABELS[sc.zone] || "") + '</span>' +
-      '<span class="scenario-name">Scenario: ' + escapeHtml(sc.name || "") + '</span>' +
-      '<span class="text-sm text-muted">(' + activeCases.length + ' cases)</span>' +
+    // Criterion group header
+    html += '<div class="criterion-group-header">' +
+      '<span class="q-badge-sm ' + (Q_BADGE_CSS[c.quadrant] || "") + '">' + (QUADRANT_LABELS[c.quadrant] || "") + '</span>' +
+      '<span class="criterion-statement">' + escapeHtml(c.statement || "") + '</span>' +
+      '<span class="text-sm text-muted">(' + activeCases.length + ' cases • ' + escapeHtml(c.method || "") + ')</span>' +
       '</div>';
 
-    // Acceptance criteria
-    if (sc.acceptance_criteria) {
-      html += '<div class="acceptance-row"><div class="ac-label">Acceptance Criteria</div>';
-      const lines = sc.acceptance_criteria.split('\n');
-      lines.forEach(line => {
-        const trimmed = line.trim();
-        if (trimmed.toLowerCase().startsWith('pass')) {
-          const match = trimmed.match(/^(Pass\s*=\s*)(.*)/i);
-          if (match) {
-            html += '<div class="ac-pass"><strong>' + escapeHtml(match[1]) + '</strong>' + escapeHtml(match[2]) + '</div>';
-          } else {
-            html += '<div class="ac-pass">' + escapeHtml(trimmed) + '</div>';
-          }
-        } else if (trimmed.toLowerCase().startsWith('fail')) {
-          const match = trimmed.match(/^(Fail\s*=\s*)(.*)/i);
-          if (match) {
-            html += '<div class="ac-fail"><strong>' + escapeHtml(match[1]) + '</strong>' + escapeHtml(match[2]) + '</div>';
-          } else {
-            html += '<div class="ac-fail">' + escapeHtml(trimmed) + '</div>';
-          }
-        } else {
-          html += '<div>' + escapeHtml(trimmed) + '</div>';
-        }
-      });
+    // Pass/Fail conditions
+    if (c.pass_condition || c.fail_condition) {
+      html += '<div class="conditions-row"><div class="c-label">Pass / Fail conditions</div>';
+      if (c.pass_condition) {
+        html += '<div class="c-pass"><strong>Pass = </strong>' + escapeHtml(c.pass_condition) + '</div>';
+      }
+      if (c.fail_condition) {
+        html += '<div class="c-fail"><strong>Fail = </strong>' + escapeHtml(c.fail_condition) + '</div>';
+      }
       html += '</div>';
     }
 
-    // Test cases table
+    // Methods that don't compare against a reference — expected_response is not needed.
+    // These are graded against the criterion's pass/fail conditions directly.
+    const REFERENCE_FREE_METHODS = ["General quality", "Custom", "Capability use"];
+    const needsReference = !REFERENCE_FREE_METHODS.includes(c.method);
+
+    // If the criterion uses a reference-free method, show a note instead of the Expected Response column.
+    if (!needsReference) {
+      html += '<div class="reference-note">' +
+        '<strong>No expected response needed</strong> — <em>' + escapeHtml(c.method) + '</em> grades each response directly against the criterion\'s pass/fail conditions above, not against a reference answer.' +
+        '</div>';
+    }
+
+    // Test cases table — columns depend on whether method needs a reference.
     html += '<div style="overflow-x:auto;"><table><thead><tr>' +
       '<th style="width:30px">#</th>' +
-      '<th style="width:40%">Question</th>' +
-      '<th style="width:50%">Expected Response</th>' +
+      (needsReference ? '<th style="width:40%">Question</th><th style="width:50%">Expected Response</th>' : '<th>Question</th>') +
       '<th style="width:40px"></th>' +
       '</tr></thead><tbody>';
 
-    sc.cases.forEach((c, cIdx) => {
-      if (c._deleted) return;
-      const fp = scPrefix + ".cases[" + cIdx + "]";
+    c.cases.forEach((cs, csIdx) => {
+      if (cs._deleted) return;
+      const fp = cPrefix + ".cases[" + csIdx + "]";
+      const questionCell =
+        '<td class="editable"><textarea data-field="' + fp + '.question" data-original="' + escapeAttr(cs.question || "") + '" oninput="scheduleSave()">' + escapeHtml(cs.question || "") + '</textarea></td>';
+      const expectedCell = needsReference
+        ? '<td class="editable"><div class="verify-container" data-field-target="' + fp + '.expected_response">' + renderVerifyText(cs.expected_response || "") + '</div>' +
+          '<textarea data-field="' + fp + '.expected_response" data-original="' + escapeAttr(cs.expected_response || "") + '" oninput="onExpectedEdit(this);scheduleSave()" style="display:none;">' + escapeHtml(cs.expected_response || "") + '</textarea></td>'
+        : '';
       html += '<tr>' +
-        '<td class="text-muted">' + (cIdx + 1) + '</td>' +
-        '<td class="editable"><textarea data-field="' + fp + '.question" data-original="' + escapeAttr(c.question || "") + '" oninput="scheduleSave()">' + escapeHtml(c.question || "") + '</textarea></td>' +
-        '<td class="editable"><div class="verify-container" data-field-target="' + fp + '.expected_response">' + renderVerifyText(c.expected_response || "") + '</div>' +
-        '<textarea data-field="' + fp + '.expected_response" data-original="' + escapeAttr(c.expected_response || "") + '" oninput="onExpectedEdit(this);scheduleSave()" style="display:none;">' + escapeHtml(c.expected_response || "") + '</textarea></td>' +
-        '<td><button class="btn btn-sm btn-danger" onclick="deleteCase(' + tsIdx + ',' + scIdx + ',' + cIdx + ')">&#x2715;</button></td>' +
+        '<td class="text-muted">' + (csIdx + 1) + '</td>' +
+        questionCell +
+        expectedCell +
+        '<td><button class="btn btn-sm btn-danger" onclick="deleteCase(' + tsIdx + ',' + cIdx + ',' + csIdx + ')">&#x2715;</button></td>' +
         '</tr>';
     });
 
     html += '</tbody></table></div>';
-    html += '<button class="btn btn-add" onclick="addCase(' + tsIdx + ',' + scIdx + ')" style="margin:0;">+ Add test case</button>';
+    html += '<button class="btn btn-add" onclick="addCase(' + tsIdx + ',' + cIdx + ')" style="margin:0;">+ Add test case</button>';
   });
 
   html += '</div>';
@@ -285,20 +402,17 @@ function buildPanelHTML(ts, tsIdx) {
 }
 
 function renderVerifyText(text) {
-  // Replace [VERIFY: ...] with highlighted spans
   const escaped = escapeHtml(text);
   return escaped.replace(/\[VERIFY:\s*(.*?)\]/g, '<span class="verify-highlight" title="AI-generated — please verify this information">$1</span>');
 }
 
 function onExpectedEdit(textarea) {
-  // Update the rendered verify container
   const container = textarea.previousElementSibling;
   if (container && container.classList.contains("verify-container")) {
     container.innerHTML = renderVerifyText(textarea.value);
   }
 }
 
-// Click verify container to edit raw textarea
 document.addEventListener("click", function(e) {
   const container = e.target.closest(".verify-container");
   if (!container) return;
@@ -320,18 +434,36 @@ document.addEventListener("focusout", function(e) {
 
 // ── CRUD ──
 
-function deleteCase(tsIdx, scIdx, cIdx) {
-  testSets[tsIdx].scenarios[scIdx].cases[cIdx]._deleted = true;
-  edits["test_sets[" + tsIdx + "].scenarios[" + scIdx + "].cases[" + cIdx + "]"] = "__DELETE__";
+function addMethod(tsIdx, select) {
+  const method = select.value;
+  if (!method) return;
+  if (!testSets[tsIdx].methods.includes(method)) {
+    testSets[tsIdx].methods.push(method);
+  }
+  edits["test_sets[" + tsIdx + "].methods"] = JSON.stringify(testSets[tsIdx].methods);
+  rerenderPanel(tsIdx);
+  scheduleSave();
+}
+
+function removeMethod(tsIdx, method) {
+  testSets[tsIdx].methods = testSets[tsIdx].methods.filter(m => m !== method);
+  edits["test_sets[" + tsIdx + "].methods"] = JSON.stringify(testSets[tsIdx].methods);
+  rerenderPanel(tsIdx);
+  scheduleSave();
+}
+
+function deleteCase(tsIdx, cIdx, csIdx) {
+  testSets[tsIdx].criteria[cIdx].cases[csIdx]._deleted = true;
+  edits["test_sets[" + tsIdx + "].criteria[" + cIdx + "].cases[" + csIdx + "]"] = "__DELETE__";
   rerenderPanel(tsIdx);
   updateSummary();
   scheduleSave();
 }
 
-function addCase(tsIdx, scIdx) {
-  const sc = testSets[tsIdx].scenarios[scIdx];
-  const newIdx = sc.cases.length;
-  sc.cases.push({
+function addCase(tsIdx, cIdx) {
+  const criterion = testSets[tsIdx].criteria[cIdx];
+  const newIdx = criterion.cases.length;
+  criterion.cases.push({
     _idx: newIdx,
     _deleted: false,
     question: "",
@@ -360,15 +492,17 @@ function updateSummary() {
   tbody.innerHTML = "";
   testSets.forEach(ts => {
     let dimCases = 0;
-    let scenarioCount = ts.scenarios.length;
-    ts.scenarios.forEach(sc => {
-      dimCases += sc.cases.filter(c => !c._deleted).length;
+    const criterionCount = ts.criteria.length;
+    ts.criteria.forEach(c => {
+      dimCases += c.cases.filter(cs => !cs._deleted).length;
     });
     total += dimCases;
-    const methods = (ts.methods || []).join(", ");
+    const methodSet = new Set();
+    ts.criteria.forEach(c => { if (c.method) methodSet.add(c.method); });
+    const methods = (ts.methods && ts.methods.length ? ts.methods : Array.from(methodSet)).join(", ");
     tbody.innerHTML +=
       '<tr><td>' + escapeHtml(ts.quality_dimension || ts.quality_signal || "") + '</td>' +
-      '<td>' + scenarioCount + '</td>' +
+      '<td>' + criterionCount + '</td>' +
       '<td>' + dimCases + '</td>' +
       '<td class="text-sm">' + methods + '</td></tr>';
   });
