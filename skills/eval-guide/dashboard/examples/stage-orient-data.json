@@ -1,0 +1,101 @@
+{
+  "agent_name": "HR Policy Bot",
+  "session_date": "2026-05-04",
+  "levels": [
+    { "code": "L100", "name": "Initial",   "label": "L100 Initial" },
+    { "code": "L200", "name": "Defined",   "label": "L200 Defined" },
+    { "code": "L300", "name": "Systematic","label": "L300 Systematic" },
+    { "code": "L400", "name": "Managed",   "label": "L400 Managed" },
+    { "code": "L500", "name": "Optimized", "label": "L500 Optimized" }
+  ],
+  "pillars": [
+    {
+      "id": 1,
+      "name": "Define what \"good\" means",
+      "baseline": "L100",
+      "session_target": "L300",
+      "next_session_target": null,
+      "delivered_in_session": true,
+      "mechanism": "Stage 0 (Discover) + Stage 1 (Plan)",
+      "definitions": {
+        "L100": "No written criteria. \"Good\" lives in the builder's head or stakeholder opinion.",
+        "L200": "Initial criteria drafted, typically cover basic capabilities, not tied to eval metrics.",
+        "L300": "Written acceptance criteria covered capabilities and output quality, tied to eval metrics with thresholds. Reviewed by human experts.",
+        "L400": "Criteria embedded in the release workflow — ship decisions can't proceed without referencing them. Used consistently across versions.",
+        "L500": "Criteria evolve based on production signals — user complaints, new failure modes, shifting context feed back into updates."
+      }
+    },
+    {
+      "id": 2,
+      "name": "Build your eval sets",
+      "baseline": "L100",
+      "session_target": "L300",
+      "next_session_target": null,
+      "delivered_in_session": true,
+      "mechanism": "Stage 2 (Generate)",
+      "definitions": {
+        "L100": "No established eval set. Quality checks are informal — demos, spot-checks, occasional manual review.",
+        "L200": "A handful of test cases, written once based on key scenarios and what came to mind. Used occasionally.",
+        "L300": "Versioned eval set, coverage purposefully targeted at what matters — quality dimensions, edge cases, failure modes. Mapped to risk and value.",
+        "L400": "Eval set maintained as an artifact — new cases added when production issues surface, scope expands, or new failure modes emerge.",
+        "L500": "Eval set's coverage itself is measured — gaps hunted, production data mined for missing cases, false pass/fail rates tracked."
+      }
+    },
+    {
+      "id": 3,
+      "name": "Run evals across the lifecycle",
+      "baseline": "L100",
+      "session_target": "L200",
+      "next_session_target": "L300",
+      "delivered_in_session": false,
+      "mechanism": "rerun-protocol-<agent>-<date>.docx (starter artifact)",
+      "definitions": {
+        "L100": "No routine evals. Quality is assessed through demos or occasional manual checks when something seems off.",
+        "L200": "Evals run on changes. Results are logged.",
+        "L300": "Offline evals run at defined trigger points (pre-deploy, post-change, regular cadence). Production quality tracked across multiple eval dimensions on a defined cadence.",
+        "L400": "Evals embedded in deployment workflow — triggered by change events. Results block deploys or surface clear signals for review.",
+        "L500": "Offline and production eval form a single closed loop. Production traces continuously sample into the offline eval set; offline regressions trigger production investigation."
+      }
+    },
+    {
+      "id": 4,
+      "name": "Improve and iterate",
+      "baseline": "L100",
+      "session_target": "L300",
+      "next_session_target": null,
+      "delivered_in_session": true,
+      "mechanism": "Stage 4 (Interpret) — only if eval results are available",
+      "definitions": {
+        "L100": "Improvements are reactive — driven by noticed issues. Fixes are intuition-based; nothing confirms they worked or whether they introduced new problems.",
+        "L200": "Failing cases are logged, triaged, and prioritized. Fixes tracked to closure.",
+        "L300": "Failure categories analyzed for root cause. Fixes validated with before/after eval runs. Regression-proofing built in.",
+        "L400": "Improvement prioritization is eval-driven — weakest dimensions addressed first. Fix velocity and fix quality both tracked.",
+        "L500": "Improvements prioritized, validated, and measured entirely through eval evidence. When alternatives exist, better scores win. Gut feel no longer drives decisions."
+      }
+    },
+    {
+      "id": 5,
+      "name": "Handle changes with confidence",
+      "baseline": "L100",
+      "session_target": "L200",
+      "next_session_target": "L300",
+      "delivered_in_session": false,
+      "mechanism": "baseline-comparison-<agent>-<date>.xlsx (starter artifact)",
+      "definitions": {
+        "L100": "Changes ship on spot-checks and intuition. Regressions surface via user complaints. All changes — prompts, tools, models, architecture — feel risky. Team delays or pushes through blindly.",
+        "L200": "Before any change ships, eval set is rerun and compared to the prior baseline. Evidence, not intuition, decides whether to proceed.",
+        "L300": "Each change type — prompt tweaks, tool swaps, model upgrades, architecture changes — triggers the right eval subset. Baseline comparison required — both to validate improvements and to catch regressions.",
+        "L400": "Change workflows are eval-driven: proposed changes trigger the right eval protocol, and evidence decides — block regressions, accept improvements. No change ships unvalidated; good changes aren't held back by caution.",
+        "L500": "Eval is used not just to validate changes, but to actively scan for them. Team runs new explorations through the eval set to find improvement opportunities."
+      }
+    }
+  ],
+  "deliverables": [
+    "Agent Vision (confirmed in conversation)",
+    "Eval plan with acceptance criteria and Value × Cost matrix (.docx + .xlsx)",
+    "Test case CSVs importable into Copilot Studio (.csv per quality signal)",
+    "Triage report with root-cause analysis (if eval results are available)",
+    "rerun-protocol-<agent>-<date>.docx — Pillar 3 L200 reference doc: when to re-run evals when the agent changes",
+    "baseline-comparison-<agent>-<date>.xlsx — Pillar 5 L200 fill-in workbook: comparing two eval runs"
+  ]
+}

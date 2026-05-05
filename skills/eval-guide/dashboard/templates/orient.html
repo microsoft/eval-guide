@@ -1,0 +1,299 @@
+<!-- Orient: Per-Agent Eval Maturity Snapshot — read-only session orientation -->
+
+<style>
+  /* Read-only stage: hide the comments section and nav buttons inherited from base.html */
+  .comments-section,
+  .nav { display: none !important; }
+
+  .orient-intro {
+    margin-bottom: 1.4rem;
+  }
+  .orient-intro p {
+    margin-bottom: 0.6rem;
+  }
+  .orient-intro .lede {
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  .orient-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-top: 1rem;
+  }
+  .orient-grid th,
+  .orient-grid td {
+    border: 1px solid var(--rule);
+    padding: 0.55rem 0.7rem;
+    vertical-align: top;
+    text-align: left;
+  }
+  .orient-grid thead th {
+    background: var(--surface-warm);
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .orient-grid thead th .level-name {
+    display: block;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--ink);
+    margin-top: 0.15rem;
+  }
+  .orient-grid .pillar-label {
+    width: 14%;
+    background: var(--surface-warm);
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .orient-grid .pillar-label .pillar-num {
+    display: inline-block;
+    width: 1.3rem;
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+  }
+  .orient-grid td.level-cell {
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+  .orient-grid td.is-baseline {
+    background: var(--rule-fine);
+    border-left: 3px solid var(--ink-muted);
+    color: var(--ink);
+  }
+  .orient-grid td.is-target {
+    background: var(--accent-wash);
+    border-left: 3px solid var(--accent);
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .orient-grid td.is-next {
+    background: transparent;
+    border-left: 3px dashed var(--ink-faint);
+    color: var(--ink-soft);
+  }
+  .orient-grid td.is-target::after {
+    content: " ✓";
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .orient-legend {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: var(--ink-muted);
+    margin-top: 0.8rem;
+  }
+  .orient-legend .swatch {
+    display: inline-block;
+    width: 14px; height: 14px;
+    margin-right: 0.4rem;
+    vertical-align: middle;
+    border: 1px solid var(--rule);
+  }
+  .orient-legend .swatch-baseline { background: var(--rule-fine); border-left: 3px solid var(--ink-muted); }
+  .orient-legend .swatch-target   { background: var(--accent-wash); border-left: 3px solid var(--accent); }
+  .orient-legend .swatch-next     { background: transparent; border-left: 3px dashed var(--ink-faint); }
+
+  .orient-summary {
+    margin-top: 1.6rem;
+    padding: 1rem 1.2rem;
+    background: var(--accent-wash);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+  }
+  .orient-summary h3 {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 1.05rem;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+  }
+  .orient-summary ul {
+    list-style: none;
+    padding: 0;
+  }
+  .orient-summary li {
+    padding: 0.35rem 0;
+    border-bottom: 1px dashed var(--rule-fine);
+    color: var(--ink);
+    font-size: 0.9rem;
+  }
+  .orient-summary li:last-child { border-bottom: none; }
+  .orient-summary li .pillar-name { font-weight: 600; }
+  .orient-summary li .arrow { color: var(--ink-faint); margin: 0 0.4rem; }
+  .orient-summary li .delivered { color: var(--accent); font-weight: 600; }
+  .orient-summary li .starter { color: var(--guardrails); font-weight: 600; }
+  .orient-summary li .mechanism {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--ink-muted);
+    margin-top: 0.15rem;
+    padding-left: 0.8rem;
+  }
+
+  .orient-deliverables {
+    margin-top: 1.4rem;
+  }
+  .orient-deliverables ol {
+    margin-left: 1.4rem;
+    color: var(--ink);
+  }
+  .orient-deliverables li {
+    padding: 0.25rem 0;
+  }
+
+  .orient-close {
+    margin-top: 1.6rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--surface-warm);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    color: var(--ink-soft);
+    font-style: italic;
+    font-family: var(--serif);
+    font-size: 0.95rem;
+    text-align: center;
+  }
+</style>
+
+<div class="section">
+  <div class="section-header">Where this agent stands today — and where this session takes it</div>
+  <div class="section-body">
+    <div class="orient-intro">
+      <p class="lede">
+        This is the Per-Agent Eval Maturity Model: <strong>five pillars of eval practice, five levels each</strong>.
+        Your starting baseline is highlighted in grey; this session's target is highlighted in teal.
+        Pillars 1, 2, and 4 advance to <strong>L300 Systematic</strong> through the Stage 0–4 deliverables.
+        Pillars 3 and 5 advance to <strong>L200 Defined</strong> through reference protocols you can run after the session.
+      </p>
+    </div>
+
+    <table class="orient-grid">
+      <thead>
+        <tr>
+          <th class="pillar-label">Pillar</th>
+          <th><span>L100</span><span class="level-name">Initial</span></th>
+          <th><span>L200</span><span class="level-name">Defined</span></th>
+          <th><span>L300</span><span class="level-name">Systematic</span></th>
+          <th><span>L400</span><span class="level-name">Managed</span></th>
+          <th><span>L500</span><span class="level-name">Optimized</span></th>
+        </tr>
+      </thead>
+      <tbody id="orient-tbody"></tbody>
+    </table>
+
+    <div class="orient-legend">
+      <span><span class="swatch swatch-baseline"></span>Where you start (L100 Initial on every pillar)</span>
+      <span><span class="swatch swatch-target"></span>Where this session takes you</span>
+      <span><span class="swatch swatch-next"></span>Next-session target (after this session)</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">What this session moves</div>
+  <div class="section-body">
+    <div class="orient-summary">
+      <ul id="orient-summary-list"></ul>
+    </div>
+  </div>
+</div>
+
+<div class="section orient-deliverables">
+  <div class="section-header">What you'll walk away with</div>
+  <div class="section-body">
+    <ol id="orient-deliverables-list"></ol>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-body">
+    <div class="orient-close">
+      Close this tab when you've reviewed the snapshot. The conversation continues in the terminal.
+    </div>
+  </div>
+</div>
+
+<script>
+function stageInit() {
+  const data = EMBEDDED_DATA.data || {};
+  const pillars = data.pillars || [];
+  const levels = data.levels || [];
+  const deliverables = data.deliverables || [];
+
+  // Hide the stage badge for orient — it's an orientation, not a numbered stage
+  const badge = document.getElementById("stage-badge");
+  if (badge) badge.textContent = "Orient";
+
+  // Override the instructions banner to match the read-only nature of this stage
+  const instr = document.getElementById("instructions");
+  if (instr) instr.textContent =
+    "Read the snapshot below. No editing or confirmation needed — this is an orientation. " +
+    "When you've reviewed it, close this tab and continue in the terminal.";
+
+  // Build the 5x5 grid
+  const tbody = document.getElementById("orient-tbody");
+  tbody.innerHTML = "";
+  pillars.forEach(p => {
+    const tr = document.createElement("tr");
+    const labelTd = document.createElement("td");
+    labelTd.className = "pillar-label";
+    labelTd.innerHTML = '<span class="pillar-num">' + p.id + '.</span> ' + escapeHtml(p.name);
+    tr.appendChild(labelTd);
+
+    levels.forEach(lv => {
+      const td = document.createElement("td");
+      td.className = "level-cell";
+      const def = (p.definitions && p.definitions[lv.code]) || "";
+      td.textContent = def;
+      if (lv.code === p.baseline) td.classList.add("is-baseline");
+      if (lv.code === p.session_target) td.classList.add("is-target");
+      if (lv.code === p.next_session_target) td.classList.add("is-next");
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  // Build the "what this session moves" summary list
+  const sumList = document.getElementById("orient-summary-list");
+  sumList.innerHTML = "";
+  pillars.forEach(p => {
+    const target = (levels.find(lv => lv.code === p.session_target) || {}).label || p.session_target;
+    const tagClass = p.delivered_in_session ? "delivered" : "starter";
+    const tagText = p.delivered_in_session ? "delivered in-session" : "starter artifact";
+    const li = document.createElement("li");
+    li.innerHTML =
+      '<span class="pillar-name">' + p.id + '. ' + escapeHtml(p.name) + '</span>' +
+      '<span class="arrow">→</span>' +
+      '<span>' + escapeHtml(target) + '</span> ' +
+      '<span class="' + tagClass + '">(' + tagText + ')</span>' +
+      '<span class="mechanism">via ' + escapeHtml(p.mechanism || "") + '</span>';
+    sumList.appendChild(li);
+  });
+
+  // Build the deliverables list
+  const delList = document.getElementById("orient-deliverables-list");
+  delList.innerHTML = "";
+  deliverables.forEach(d => {
+    const li = document.createElement("li");
+    li.textContent = d;
+    delList.appendChild(li);
+  });
+}
+</script>
