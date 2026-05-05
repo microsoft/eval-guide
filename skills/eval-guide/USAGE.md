@@ -159,9 +159,11 @@ Eval maturity has five pillars and five levels each — from `L100 Initial` (no 
 
 - **What happens:** The AI launches the generate dashboard from the eval-guide plugin install. Your browser opens `generate-dashboard.html`.
 - **What you do in the browser:**
-  - **Quality-dimension tabs** at the top (each colored by the most severe quadrant present in that dimension — Critical red, Guardrails yellow, Valuable blue, Deprioritize gray).
-  - **"Test Methods to Use:"** bar under each tab lists the methods in play. Hover a chip to reveal its **×** (remove). Use the **+ Add method** dropdown at the end of the bar to add another method. Edits are saved automatically.
-  - **Criterion groups** under each tab show the quadrant badge, the statement, and the **Pass = / Fail =** conditions in green/red.
+  - **Eval Sets Overview at the top** — a 3-column table (Quality Signal · Test Methods · Priority Level) listing every signal the AI proposes. Edits below update this table in real time. Click a signal name to jump to its section.
+  - **Stacked signal sections, ordered by priority** — Critical first, then Guardrails, then Valuable, then Deprioritize. Each section has a colored top border matching its priority level. No tabs.
+  - **"Test Methods to Use:"** bar at the top of each signal section lists the methods in play. Hover a chip to reveal its **×** (remove). Use the **+ Add method** dropdown to add another method.
+  - **Criterion groups** show the quadrant badge, the statement, the case count, and a **per-criterion method dropdown** — change the test method directly per criterion. Changes propagate to the overview and to whether the Expected Response column is shown.
+  - **Pass = / Fail = conditions** are shown in green/red under each criterion header.
   - **Test cases per criterion** — edit **Question** and **Expected response** inline. `[VERIFY: …]` spans are highlighted yellow — these are AI-generated factual claims you need to confirm against your knowledge source.
   - **When method is `General quality`, `Custom`, or `Capability use`:** the **Expected Response** column is hidden — those methods don't compare against a reference answer. They grade each response directly against the criterion's pass/fail conditions. A small note appears in the criterion group explaining why.
   - Add or delete test cases with the per-row buttons.

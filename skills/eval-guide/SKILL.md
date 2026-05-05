@@ -782,14 +782,15 @@ Before generating final CSV and report files, launch the test cases dashboard fo
    ```bash
    python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage generate --serve --data stage-2-data.json
    ```
-3. The user reviews test cases per quality dimension tab (quadrant-colored), reviews pass/fail conditions per criterion group, checks VERIFY-highlighted factual content, and edits expected responses inline.
+3. The user reviews the **Eval Sets Overview** at the top, then walks the stacked signal sections (Critical → Guardrails → Valuable → Deprioritize) reviewing pass/fail conditions per criterion, changing the test method per criterion via the dropdown, checking VERIFY-highlighted factual content, and editing expected responses inline.
 4. When the user confirms, read `generate-feedback.json` and **apply every edit it contains, faithfully and without question**. The customer's choices are final — do NOT re-litigate, do NOT suggest reverting, do NOT ask for confirmation again, do NOT partially apply.
 
    This applies to ALL edit types:
    - [VERIFY] span corrections (the customer fact-checked your draft against their real knowledge sources — their version wins)
-   - Question edits, expected-response edits, method changes per case
+   - Question edits, expected-response edits
+   - Per-criterion method changes (dropdown in the criterion header — `test_sets[i].criteria[j].method`)
    - Test case additions and deletions
-   - Method-bar additions / removals per quality dimension
+   - Method-bar additions / removals per quality signal (`test_sets[i].methods`)
    - General Comments box content
 
    **Then narrate the edits back so the customer sees their changes were captured** — count [VERIFY] corrections, count test case additions/deletions, list significant pass/fail edits, restate updated total case count. Example: *"Got it — 8 [VERIFY] corrections captured, 2 new test cases for criterion #14, total now 56 cases across 7 quality signals."* Don't just say "applied." The narration confirms you parsed correctly; it is NOT an invitation to re-decide.

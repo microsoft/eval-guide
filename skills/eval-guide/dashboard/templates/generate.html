@@ -1,29 +1,63 @@
-<!-- Stage 2: Generate — Test Cases Review (Editable, Value × Cost matrix) -->
+<!-- Stage 2: Generate — Test Cases Review (Editable, linear-by-quadrant) -->
 
 <style>
-/* Quadrant-colored tabs */
-.tab.q-critical   { border-left: 3px solid var(--red); }
-.tab.q-valuable       { border-left: 3px solid var(--blue); }
-.tab.q-guardrails { border-left: 3px solid var(--yellow); }
-.tab.q-deprioritize { border-left: 3px solid var(--text-muted); }
-.tab.q-mixed      { border-left: 3px solid var(--text-muted); }
-.tab .tab-q-dot {
-  display: inline-block;
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  margin-right: 0.3rem;
-  vertical-align: middle;
+/* ── Eval Sets Overview (top of page) ── */
+.eval-overview .priority-cell { white-space: nowrap; }
+.eval-overview .signal-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
 }
-.tab-q-dot.dot-critical   { background: var(--red); }
-.tab-q-dot.dot-valuable       { background: var(--blue); }
-.tab-q-dot.dot-guardrails { background: var(--yellow); }
-.tab-q-dot.dot-deprioritize { background: var(--text-muted); }
+.eval-overview .signal-link:hover { text-decoration: underline; }
+.eval-overview .method-pill {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  margin: 0.1rem 0.2rem 0.1rem 0;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.eval-overview .signal-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+.eval-overview td { vertical-align: top; }
 
-/* Dimension-level method bar */
+/* ── Per-signal section heading (linear layout, no tabs) ── */
+.signal-section {
+  margin-top: 1.4rem;
+  border-top: 3px solid var(--rule);
+  padding-top: 0.4rem;
+}
+.signal-section.q-section-critical { border-top-color: var(--red); }
+.signal-section.q-section-valuable { border-top-color: var(--blue); }
+.signal-section.q-section-guardrails { border-top-color: var(--yellow); }
+.signal-section.q-section-deprioritize { border-top-color: var(--text-muted); }
+.signal-section.q-section-mixed { border-top-color: var(--text-muted); }
+.signal-title {
+  font-family: var(--serif, var(--font));
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+  color: var(--text);
+}
+.signal-title .q-badge-sm { margin-left: 0.5rem; vertical-align: middle; }
+.signal-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+/* ── Dimension-level method bar (still editable) ── */
 .dim-methods-bar {
   padding: 0.5rem 1rem;
   background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 0.6rem;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -67,7 +101,7 @@
 }
 .add-method-select:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Criterion group header */
+/* ── Criterion group header ── */
 .criterion-group-header {
   background: var(--bg);
   padding: 0.5rem 0.7rem;
@@ -75,11 +109,36 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 .criterion-group-header .criterion-statement {
   font-weight: 600;
   font-size: 0.82rem;
   color: var(--text);
+  flex: 1 1 60%;
+}
+.criterion-group-header .case-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.criterion-method-select {
+  font-family: var(--font);
+  font-size: 0.72rem;
+  padding: 0.1rem 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.criterion-method-select:hover,
+.criterion-method-select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.criterion-method-select.edited {
+  background: var(--blue-bg);
+  border-color: var(--blue);
 }
 .q-badge-sm {
   display: inline-block;
@@ -94,8 +153,9 @@
 .q-badge-sm-valuable       { background: var(--blue-bg); color: var(--blue); }
 .q-badge-sm-guardrails { background: var(--yellow-bg); color: #996600; }
 .q-badge-sm-deprioritize { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+.q-badge-sm-mixed { background: var(--bg); color: var(--text-muted); border: 1px dashed var(--border); }
 
-/* Pass/Fail conditions row */
+/* ── Pass/Fail conditions row ── */
 .conditions-row {
   background: var(--blue-bg);
   border-bottom: 1px solid var(--border);
@@ -115,7 +175,7 @@
 .conditions-row .c-pass { color: var(--green); }
 .conditions-row .c-fail { color: var(--red); }
 
-/* VERIFY highlight */
+/* ── VERIFY highlight ── */
 .verify-highlight {
   background: #fff3cd;
   border: 1px solid #ffc107;
@@ -126,7 +186,7 @@
   cursor: help;
 }
 
-/* "No expected response needed" note — for methods like General quality / Custom / Capability use */
+/* ── Reference-free note ── */
 .reference-note {
   padding: 0.5rem 0.7rem;
   background: var(--bg);
@@ -139,22 +199,28 @@
 .reference-note em { font-style: italic; font-weight: 500; }
 </style>
 
-<div class="tabs" id="signal-tabs"></div>
-
-<div id="tab-panels"></div>
-
-<div class="section mt-2">
+<!-- ── Eval Sets Overview (top, live-updated) ── -->
+<div class="section eval-overview">
   <div class="section-header flex-between">
-    <span data-tooltip="Overview of test case distribution across quality dimensions and quadrants. Use this to verify balanced coverage — if Critical or Guardrails have few cases, consider adding more before running evals.">Summary</span>
+    <span data-tooltip="Live overview of every quality signal you'll generate test cases for. Edits below (adding cases, changing methods) update this table in real time. Use it to verify coverage before approving.">Eval Sets Overview</span>
     <span class="text-sm text-muted" id="total-count"></span>
   </div>
   <div class="section-body">
     <table>
-      <thead><tr><th>Quality Dimension</th><th>Criteria</th><th>Test Cases</th><th>Methods</th></tr></thead>
-      <tbody id="summary-tbody"></tbody>
+      <thead>
+        <tr>
+          <th>Quality Signal</th>
+          <th>Test Methods</th>
+          <th>Priority Level</th>
+        </tr>
+      </thead>
+      <tbody id="overview-tbody"></tbody>
     </table>
   </div>
 </div>
+
+<!-- ── Stacked per-signal sections (sorted Critical → Guardrails → Valuable → Deprioritize) ── -->
+<div id="signal-sections"></div>
 
 <script>
 const QUADRANT_LABELS = {
@@ -162,32 +228,34 @@ const QUADRANT_LABELS = {
   valuable: "Valuable",
   guardrails: "Guardrails",
   deprioritize: "Deprioritize",
+  mixed: "Mixed",
 };
 const Q_BADGE_CSS = {
   critical: "q-badge-sm-critical",
   valuable: "q-badge-sm-valuable",
   guardrails: "q-badge-sm-guardrails",
   deprioritize: "q-badge-sm-deprioritize",
+  mixed: "q-badge-sm-mixed",
 };
-const Q_DOT_CSS = {
-  critical: "dot-critical",
-  valuable: "dot-valuable",
-  guardrails: "dot-guardrails",
-  deprioritize: "dot-deprioritize",
-};
-const Q_TAB_CSS = {
-  critical: "q-critical",
-  valuable: "q-valuable",
-  guardrails: "q-guardrails",
-  deprioritize: "q-deprioritize",
+const Q_SECTION_CSS = {
+  critical: "q-section-critical",
+  valuable: "q-section-valuable",
+  guardrails: "q-section-guardrails",
+  deprioritize: "q-section-deprioritize",
+  mixed: "q-section-mixed",
 };
 
-// Quadrant importance for "dominant quadrant" logic on tabs: critical > guardrails > valuable > deprioritize
+// Section ordering: Critical first, Guardrails, Valuable (high-value/low-risk),
+// Deprioritize (low-value/low-risk), and any mixed at the end.
+const QUADRANT_DISPLAY_ORDER = { critical: 0, guardrails: 1, valuable: 2, deprioritize: 3, mixed: 4 };
+// "Dominant quadrant" weighting when a signal has criteria across multiple quadrants
+// — Critical wins ties over Guardrails > Valuable > Deprioritize.
 const QUADRANT_WEIGHT = { critical: 4, guardrails: 3, valuable: 2, deprioritize: 1 };
+
 const METHODS = ["Compare meaning", "General quality", "Keyword match", "Exact match", "Text similarity", "Capability use", "Custom"];
+const REFERENCE_FREE_METHODS = ["General quality", "Custom", "Capability use"];
 
 let testSets = [];
-let activeTab = 0;
 
 function zoneToQuadrant(zone) {
   const z = String(zone || "");
@@ -198,7 +266,6 @@ function zoneToQuadrant(zone) {
 }
 
 function normalizeCriterion(raw) {
-  // Accept both old (scenarios: {name, zone, acceptance_criteria}) and new schemas.
   const quadrant = raw.quadrant || zoneToQuadrant(raw.zone);
   let statement = raw.statement || raw.name || "";
   if (statement && !/^the agent should/i.test(statement)) {
@@ -218,6 +285,7 @@ function normalizeCriterion(raw) {
     statement: statement,
     quadrant: quadrant,
     method: raw.method || "Compare meaning",
+    _originalMethod: raw.method || "Compare meaning",
     pass_condition: passCondition,
     fail_condition: failCondition,
     cases: (raw.cases || []).map((c, i) => ({...c, _idx: i, _deleted: false})),
@@ -230,11 +298,22 @@ function stageInit() {
     criteria: (ts.criteria || ts.scenarios || []).map(normalizeCriterion),
   }));
 
-  renderTabs();
-  renderAllPanels();
-  switchTab(0);
-  updateSummary();
+  // Initialize each test set's `methods` array from the union of criterion methods
+  // if not already present. Stays editable at the dimension level afterwards.
+  testSets.forEach(ts => {
+    if (!ts.methods || !ts.methods.length) {
+      const methodSet = new Set();
+      ts.criteria.forEach(c => { if (c.method) methodSet.add(c.method); });
+      ts.methods = Array.from(methodSet);
+    }
+  });
 
+  renderAllSections();
+  updateOverview();
+
+  // Replay any persisted edits onto inputs (data-field elements). Method-select
+  // re-application happens in buildSignalSectionHTML via the `c.method` value
+  // and the .edited class set when method !== _originalMethod.
   if (edits && Object.keys(edits).length > 0) {
     document.querySelectorAll("[data-field]").forEach(el => {
       if (edits[el.dataset.field] !== undefined && edits[el.dataset.field] !== "__DELETE__") {
@@ -245,10 +324,9 @@ function stageInit() {
   }
 }
 
-// ── Tabs ──
+// ── Dominant quadrant + display order ──
 
 function getDominantQuadrant(ts) {
-  // Weighted count by (cases in that quadrant) × (quadrant weight)
   const weighted = {};
   ts.criteria.forEach(c => {
     const q = c.quadrant;
@@ -258,72 +336,66 @@ function getDominantQuadrant(ts) {
   const entries = Object.entries(weighted);
   if (entries.length === 0) return "valuable";
   if (entries.length === 1) return entries[0][0];
-  // Sort by (case count * quadrant weight) so Critical wins ties over Core when counts are similar
+  // Sort by (case count × quadrant weight) so Critical wins ties when counts are similar
   entries.sort((a, b) => (b[1] * QUADRANT_WEIGHT[b[0]]) - (a[1] * QUADRANT_WEIGHT[a[0]]));
   const total = entries.reduce((s, e) => s + e[1], 0);
-  // If top quadrant has >60% of cases, name it; otherwise "mixed"
+  // > 60% of cases → name the quadrant; otherwise "mixed"
   return entries[0][1] / total > 0.6 ? entries[0][0] : "mixed";
 }
 
-function renderTabs() {
-  const container = document.getElementById("signal-tabs");
+function getDisplayOrder() {
+  // Returns array of original testSet indices sorted by dominant quadrant.
+  // Index identity is preserved so field paths (`test_sets[i]…`) remain stable.
+  return testSets
+    .map((ts, i) => ({ i, q: getDominantQuadrant(ts) }))
+    .sort((a, b) => {
+      const oa = QUADRANT_DISPLAY_ORDER[a.q] ?? 99;
+      const ob = QUADRANT_DISPLAY_ORDER[b.q] ?? 99;
+      if (oa !== ob) return oa - ob;
+      return a.i - b.i;
+    })
+    .map(o => o.i);
+}
+
+// ── Render: stacked signal sections ──
+
+function renderAllSections() {
+  const container = document.getElementById("signal-sections");
   container.innerHTML = "";
-  testSets.forEach((ts, i) => {
+  getDisplayOrder().forEach(tsIdx => {
+    const ts = testSets[tsIdx];
+    const section = document.createElement("div");
     const quadrant = getDominantQuadrant(ts);
-    const tab = document.createElement("div");
-    tab.className = "tab" + (i === 0 ? " active" : "") + " " + (quadrant === "mixed" ? "q-mixed" : Q_TAB_CSS[quadrant] || "");
-    const dotClass = quadrant === "mixed" ? "" : Q_DOT_CSS[quadrant] || "";
-    tab.innerHTML = (dotClass ? '<span class="tab-q-dot ' + dotClass + '"></span>' : '') +
-      escapeHtml(ts.quality_dimension || ts.quality_signal || "");
-    tab.dataset.index = i;
-    tab.onclick = () => switchTab(i);
-    container.appendChild(tab);
+    section.className = "signal-section " + (Q_SECTION_CSS[quadrant] || "");
+    section.id = "signal-section-" + tsIdx;
+    section.innerHTML = buildSignalSectionHTML(ts, tsIdx, quadrant);
+    container.appendChild(section);
   });
 }
 
-function switchTab(idx) {
-  activeTab = idx;
-  document.querySelectorAll(".tab").forEach((t, i) => t.classList.toggle("active", i === idx));
-  document.querySelectorAll(".tab-panel").forEach((p, i) => p.classList.toggle("active", i === idx));
-}
-
-// ── Panels ──
-
-function renderAllPanels() {
-  const container = document.getElementById("tab-panels");
-  container.innerHTML = "";
-  testSets.forEach((ts, tsIdx) => {
-    const panel = document.createElement("div");
-    panel.className = "tab-panel" + (tsIdx === 0 ? " active" : "");
-    panel.id = "panel-" + tsIdx;
-    panel.innerHTML = buildPanelHTML(ts, tsIdx);
-    container.appendChild(panel);
-  });
-}
-
-function buildPanelHTML(ts, tsIdx) {
+function buildSignalSectionHTML(ts, tsIdx, quadrant) {
   const prefix = "test_sets[" + tsIdx + "]";
   const totalCases = ts.criteria.reduce((s, c) => s + c.cases.filter(cs => !cs._deleted).length, 0);
+  const dimensionName = ts.quality_dimension || ts.quality_signal || "";
+  const sectionId = "signal-anchor-" + tsIdx;
 
-  let html = '<div class="section"><div class="section-header flex-between">' +
-    '<span>' + escapeHtml(ts.quality_dimension || ts.quality_signal || "") + '</span>' +
-    '<span class="text-sm text-muted">' + totalCases + ' test cases across ' + ts.criteria.length + ' criteria</span>' +
+  let html = '<div id="' + sectionId + '" class="signal-title">' +
+    escapeHtml(dimensionName) +
+    '<span class="q-badge-sm ' + (Q_BADGE_CSS[quadrant] || "") + '">' +
+    (QUADRANT_LABELS[quadrant] || quadrant) + '</span>' +
     '</div>';
 
-  // Method bar at dimension level — editable list. On first render, inherit from criteria;
-  // subsequent add/remove operations persist on the testSet itself.
-  if (!ts.methods || !ts.methods.length) {
-    const methodSet = new Set();
-    ts.criteria.forEach(c => { if (c.method) methodSet.add(c.method); });
-    ts.methods = Array.from(methodSet);
-  }
+  html += '<div class="signal-subtitle">' +
+    totalCases + ' test cases across ' + ts.criteria.length + ' criteria' +
+    '</div>';
+
+  // Dimension-level method bar (editable union — covers methods not tied to a single criterion)
   html += '<div class="dim-methods-bar" id="dim-methods-bar-' + tsIdx + '"><label>Test Methods to Use:</label>';
   ts.methods.forEach(m => {
     html += '<span class="method-chip">' + escapeHtml(m) +
       '<button class="chip-remove" onclick="removeMethod(' + tsIdx + ',' + JSON.stringify(m) + ')" title="Remove">&#x2715;</button>' +
       '</span>';
   });
-  // "+ Add" select — show only methods not already in the list.
   const remaining = METHODS.filter(m => !ts.methods.includes(m));
   if (remaining.length > 0) {
     html += '<select class="add-method-select" onchange="addMethod(' + tsIdx + ', this)">' +
@@ -337,12 +409,21 @@ function buildPanelHTML(ts, tsIdx) {
   ts.criteria.forEach((c, cIdx) => {
     const cPrefix = prefix + ".criteria[" + cIdx + "]";
     const activeCases = c.cases.filter(cs => !cs._deleted);
+    const methodEdited = c.method !== c._originalMethod;
 
-    // Criterion group header
+    // Criterion header — quadrant badge, statement, case count, EDITABLE method dropdown
     html += '<div class="criterion-group-header">' +
       '<span class="q-badge-sm ' + (Q_BADGE_CSS[c.quadrant] || "") + '">' + (QUADRANT_LABELS[c.quadrant] || "") + '</span>' +
       '<span class="criterion-statement">' + escapeHtml(c.statement || "") + '</span>' +
-      '<span class="text-sm text-muted">(' + activeCases.length + ' cases • ' + escapeHtml(c.method || "") + ')</span>' +
+      '<span class="case-count">' + activeCases.length + ' cases</span>' +
+      '<select class="criterion-method-select' + (methodEdited ? " edited" : "") + '" ' +
+        'data-field="' + cPrefix + '.method" data-original="' + escapeAttr(c._originalMethod) + '" ' +
+        'onchange="changeCriterionMethod(' + tsIdx + ',' + cIdx + ',this.value)">' +
+      METHODS.map(m =>
+        '<option value="' + escapeAttr(m) + '"' + (m === c.method ? " selected" : "") + '>' +
+        escapeHtml(m) + '</option>'
+      ).join("") +
+      '</select>' +
       '</div>';
 
     // Pass/Fail conditions
@@ -357,19 +438,14 @@ function buildPanelHTML(ts, tsIdx) {
       html += '</div>';
     }
 
-    // Methods that don't compare against a reference — expected_response is not needed.
-    // These are graded against the criterion's pass/fail conditions directly.
-    const REFERENCE_FREE_METHODS = ["General quality", "Custom", "Capability use"];
     const needsReference = !REFERENCE_FREE_METHODS.includes(c.method);
 
-    // If the criterion uses a reference-free method, show a note instead of the Expected Response column.
     if (!needsReference) {
       html += '<div class="reference-note">' +
         '<strong>No expected response needed</strong> — <em>' + escapeHtml(c.method) + '</em> grades each response directly against the criterion\'s pass/fail conditions above, not against a reference answer.' +
         '</div>';
     }
 
-    // Test cases table — columns depend on whether method needs a reference.
     html += '<div style="overflow-x:auto;"><table><thead><tr>' +
       '<th style="width:30px">#</th>' +
       (needsReference ? '<th style="width:40%">Question</th><th style="width:50%">Expected Response</th>' : '<th>Question</th>') +
@@ -397,7 +473,6 @@ function buildPanelHTML(ts, tsIdx) {
     html += '<button class="btn btn-add" onclick="addCase(' + tsIdx + ',' + cIdx + ')" style="margin:0;">+ Add test case</button>';
   });
 
-  html += '</div>';
   return html;
 }
 
@@ -441,22 +516,38 @@ function addMethod(tsIdx, select) {
     testSets[tsIdx].methods.push(method);
   }
   edits["test_sets[" + tsIdx + "].methods"] = JSON.stringify(testSets[tsIdx].methods);
-  rerenderPanel(tsIdx);
+  rerenderSection(tsIdx);
+  updateOverview();
   scheduleSave();
 }
 
 function removeMethod(tsIdx, method) {
   testSets[tsIdx].methods = testSets[tsIdx].methods.filter(m => m !== method);
   edits["test_sets[" + tsIdx + "].methods"] = JSON.stringify(testSets[tsIdx].methods);
-  rerenderPanel(tsIdx);
+  rerenderSection(tsIdx);
+  updateOverview();
+  scheduleSave();
+}
+
+function changeCriterionMethod(tsIdx, cIdx, newMethod) {
+  const criterion = testSets[tsIdx].criteria[cIdx];
+  criterion.method = newMethod;
+  // Auto-include the criterion's method in the dimension-level method list so
+  // overview + CSV stay in sync. Removal stays manual via the chip × button.
+  if (!testSets[tsIdx].methods.includes(newMethod)) {
+    testSets[tsIdx].methods.push(newMethod);
+    edits["test_sets[" + tsIdx + "].methods"] = JSON.stringify(testSets[tsIdx].methods);
+  }
+  rerenderSection(tsIdx);
+  updateOverview();
   scheduleSave();
 }
 
 function deleteCase(tsIdx, cIdx, csIdx) {
   testSets[tsIdx].criteria[cIdx].cases[csIdx]._deleted = true;
   edits["test_sets[" + tsIdx + "].criteria[" + cIdx + "].cases[" + csIdx + "]"] = "__DELETE__";
-  rerenderPanel(tsIdx);
-  updateSummary();
+  rerenderSection(tsIdx);
+  updateOverview();
   scheduleSave();
 }
 
@@ -469,42 +560,57 @@ function addCase(tsIdx, cIdx) {
     question: "",
     expected_response: "",
   });
-  rerenderPanel(tsIdx);
-  updateSummary();
-  const panel = document.getElementById("panel-" + tsIdx);
-  const textareas = panel.querySelectorAll('textarea[data-field$=".question"]');
+  rerenderSection(tsIdx);
+  updateOverview();
+  const section = document.getElementById("signal-section-" + tsIdx);
+  const textareas = section.querySelectorAll('textarea[data-field$=".question"]');
   if (textareas.length > 0) textareas[textareas.length - 1].focus();
   scheduleSave();
 }
 
-function rerenderPanel(tsIdx) {
-  const panel = document.getElementById("panel-" + tsIdx);
-  const wasActive = panel.classList.contains("active");
-  panel.innerHTML = buildPanelHTML(testSets[tsIdx], tsIdx);
-  if (wasActive) panel.classList.add("active");
+function rerenderSection(tsIdx) {
+  // Re-render in place so the user's scroll position stays put.
+  const section = document.getElementById("signal-section-" + tsIdx);
+  if (!section) return;
+  const ts = testSets[tsIdx];
+  const quadrant = getDominantQuadrant(ts);
+  section.className = "signal-section " + (Q_SECTION_CSS[quadrant] || "");
+  section.innerHTML = buildSignalSectionHTML(ts, tsIdx, quadrant);
 }
 
-// ── Summary ──
+// ── Overview (live-updated) ──
 
-function updateSummary() {
-  const tbody = document.getElementById("summary-tbody");
+function updateOverview() {
+  const tbody = document.getElementById("overview-tbody");
   let total = 0;
   tbody.innerHTML = "";
-  testSets.forEach(ts => {
+  getDisplayOrder().forEach(tsIdx => {
+    const ts = testSets[tsIdx];
     let dimCases = 0;
-    const criterionCount = ts.criteria.length;
-    ts.criteria.forEach(c => {
-      dimCases += c.cases.filter(cs => !cs._deleted).length;
-    });
+    ts.criteria.forEach(c => { dimCases += c.cases.filter(cs => !cs._deleted).length; });
     total += dimCases;
-    const methodSet = new Set();
+
+    const quadrant = getDominantQuadrant(ts);
+    const dimensionName = ts.quality_dimension || ts.quality_signal || "";
+
+    // Methods column = union of (a) explicit dimension-level methods set and
+    // (b) per-criterion methods, so per-criterion edits show up immediately.
+    const methodSet = new Set(ts.methods || []);
     ts.criteria.forEach(c => { if (c.method) methodSet.add(c.method); });
-    const methods = (ts.methods && ts.methods.length ? ts.methods : Array.from(methodSet)).join(", ");
-    tbody.innerHTML +=
-      '<tr><td>' + escapeHtml(ts.quality_dimension || ts.quality_signal || "") + '</td>' +
-      '<td>' + criterionCount + '</td>' +
-      '<td>' + dimCases + '</td>' +
-      '<td class="text-sm">' + methods + '</td></tr>';
+    const methodsHtml = Array.from(methodSet).map(m =>
+      '<span class="method-pill">' + escapeHtml(m) + '</span>'
+    ).join("");
+
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td>' +
+        '<a class="signal-link" href="#signal-anchor-' + tsIdx + '">' + escapeHtml(dimensionName) + '</a>' +
+        '<div class="signal-meta">' + dimCases + ' test cases · ' + ts.criteria.length + ' criteria</div>' +
+      '</td>' +
+      '<td>' + methodsHtml + '</td>' +
+      '<td class="priority-cell"><span class="q-badge-sm ' + (Q_BADGE_CSS[quadrant] || "") + '">' +
+        (QUADRANT_LABELS[quadrant] || quadrant) + '</span></td>';
+    tbody.appendChild(tr);
   });
   document.getElementById("total-count").textContent = total + " total test cases";
 }
