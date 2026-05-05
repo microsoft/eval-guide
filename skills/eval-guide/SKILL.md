@@ -58,21 +58,20 @@ This skill is grounded in Microsoft's **Eval Scenario Library**, **Triage & Impr
 
 ## Interactive Dashboard Workflow
 
-Each stage produces an **interactive HTML dashboard** that opens directly in the browser. No server required — `dashboard/serve.py` generates a standalone HTML file and opens it (Python, zero dependencies).
+Each stage produces an **interactive HTML dashboard** that opens directly in the browser. The dashboard runs against a tiny localhost HTTP server (`serve.py --serve`) so the customer never has to download or move files manually — the browser POSTs feedback directly back to disk and the AI reads it.
 
-**Flow at each dashboard stage:**
+**Flow at each review-stage dashboard (Plan, Generate, Interpret):**
 1. Complete the stage's analysis
 2. Write stage data to a JSON file (e.g., `stage-1-data.json`)
-3. Launch: `python dashboard/serve.py --stage <name> --data <file>.json`
-   - This generates `<stage>-dashboard.html` next to the data file and opens it in the browser
-   - The script then waits for the user to confirm or request changes
-4. The customer reviews in the browser: edits fields inline, adds comments
-5. When the customer clicks **Confirm** or **Request Changes**, the feedback JSON downloads automatically
-   - The customer saves it next to the data file (same directory)
-   - The script detects the feedback file and exits
+3. Launch with `--serve` mode (the AI's bash will block until the customer confirms in the browser):
+   `python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage <name> --serve --data <file>.json`
+4. The customer reviews in the browser at `http://localhost:3118`: edits fields inline, drags between quadrants, adds comments
+5. When the customer clicks **Confirm** or **Request Changes**, the browser POSTs the feedback to `/api/feedback`. `serve.py` writes `<stage>-feedback.json` next to the data file and auto-shuts the server down. The AI's bash command returns.
 6. Read the feedback JSON file (`<stage>-feedback.json`)
 7. If confirmed → generate final deliverables (docx, CSV) and proceed to next stage
 8. If changes requested → apply feedback, regenerate, re-launch dashboard
+
+The **orient stage is read-only** (no `--serve`, no feedback file) — it opens the matrix snapshot and exits immediately.
 
 **Stages with dashboards:** Discover (0), Plan (1), Generate (2), Interpret (4). Stage 3 (Run) executes tests directly.
 
@@ -89,6 +88,43 @@ Ask: **"Tell me about the agent you're building or planning to build. It could b
 - **If they already have eval results:** Route directly to Stage 4 (Interpret).
 
 **The key message:** Writing evals early makes the agent better. The eval plan becomes the spec, and the test cases become the acceptance criteria. Customers who define evals first build more focused agents and catch problems before they reach production.
+
+---
+
+## Session Start: Orient
+
+Once the customer has described their agent in one or two sentences, give them a visual snapshot of the Per-Agent Eval Maturity Model — where their agent stands today and where this session takes it. This is the orientation moment, and it sets the frame for everything that follows.
+
+### What to do
+
+1. **Get the agent name.** Look at what the customer just told you. If they named the agent ("Contoso HR Bot," "Workplace Assistant"), use it. If they only described it categorically ("an HR bot," "an ESS agent," "a customer support bot"), ask one short question:
+
+   > *"Quick — what should I call it in the deliverables? The name shows up in your file outputs (e.g., `eval-plan-<name>-<date>.docx`, `rerun-protocol-<name>-<date>.docx`). If you don't have a preferred name, I'll default to something tidy from what you just told me — for example, "ESS Agent" or "HR Policy Bot.""*
+
+   Don't make this question feel heavy — it's a 5-second exchange. If the customer says "use the default" or doesn't engage, pick a sensible Title-Case version of their description and move on. Don't block the session on this.
+
+   Then write `stage-orient-data.json` next to the working directory using `dashboard/examples/stage-orient-data.json` as the template. Update `agent_name` and `session_date`. The pillar/level data is canonical — copy it as-is from the example.
+
+2. Launch the orient dashboard:
+   ```bash
+   python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage orient --data stage-orient-data.json
+   ```
+   The `ls ... | head -1` pattern resolves the dashboard script regardless of install location — user-global skills first (`~/.claude/skills/eval-guide/`), plugin-cache second (`~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/`). The `--data` JSON lives in the customer's current working directory; the dashboard HTML and any feedback file are written next to it.
+
+   **All `dashboard/serve.py` invocations in this skill use the same install-resolving pattern.** Never write the path as a bare relative `dashboard/serve.py` — the customer is almost never sitting inside the plugin folder.
+
+   **For dev installs** (skill checked out at an arbitrary path, not in `~/.claude/`), the AI should know the absolute path of the SKILL.md it's reading and substitute `<SKILL.md-dir>/dashboard/serve.py`.
+
+   This is a **read-only stage** — `serve.py` opens the browser and exits immediately. There is no feedback file and no confirmation gate. The customer reviews the snapshot in the browser while the conversation continues in chat.
+
+3. While the dashboard is open, narrate one sentence in chat: *"This is the eval maturity model — five pillars of eval practice, five levels each. Today's session takes Pillars 1, 2, and 4 to L300 Systematic; Pillars 3 and 5 reach L200 Defined via the reference protocols you'll get at the end."*
+
+4. Proceed to Stage 0 (Discover) without waiting. The dashboard is informational.
+
+**Why this matters for the customer:** The maturity model is the value moment. Without it, the customer sees a series of stages with no map. With it, they understand exactly what they're getting and what comes next — the eval-first message lands because they can see the full journey.
+
+**Skip orient when:** the customer has already done a session with the toolkit and is returning for a Stage 1 / Stage 2 / Stage 4 jump-in. Don't re-orient someone who already has the map.
+
 ---
 
 ## How to Route
@@ -109,15 +145,19 @@ When running the full pipeline, complete each stage, show the output, explain yo
 
 ## Eval Maturity Journey
 
-Use the **Per-Agent Eval Maturity Model** (5 pillars × 5 levels, L100 Initial → L500 Optimized) to orient customers on where they are today and where this session takes them. Assume the agent starts at **L100 on all pillars**. This session targets **L300 on Pillars 1, 2, and 5**.
+Use the **Per-Agent Eval Maturity Model** to orient customers on where they are today and where this session takes them. Five pillars of eval practice, five levels each — from `L100 Initial` (no practice in place) to `L500 Optimized` (continuous improvement built into operations). Assume the agent starts at **L100 Initial on all pillars**. This session targets **L300 Systematic on Pillars 1, 2, and 4** (in-session deliverables) and **L200 Defined on Pillars 3 and 5** (via reference protocols delivered alongside the session).
 
-| Pillar | What it measures | L100 (starting point) | L300 (session target) |
+The full 5×5 definitions live in `maturity-model.md` — that file is the canonical reference. Update it first when level definitions change.
+
+| Pillar | What it measures | After this session | Mechanism |
 |---|---|---|---|
-| **1 — Define what "good" means** | Acceptance criteria quality | No written criteria. "Good" lives in the builder's head. | Acceptance criteria cover capabilities + quality + reliability, tied to eval metrics with thresholds, human-reviewed. |
-| **2 — Build eval sets** | Coverage and versioning | No established eval set. Informal spot-checks. | Versioned eval set, coverage targeted at quality dimensions, edge cases, and failure modes; mapped to risk and value. |
-| **5 — Improve and iterate** | How improvements are validated | Reactive — driven by complaints, not eval data. | Failure categories analyzed for root cause. Fixes validated with before/after eval runs. Regression-proofing built in. |
+| **1 — Define what "good" means** | Acceptance criteria quality | L300 Systematic ✓ | Stage 0 (Discover) + Stage 1 (Plan) |
+| **2 — Build your eval sets** | Coverage and versioning | L300 Systematic ✓ | Stage 2 (Generate) |
+| **3 — Run evals across the lifecycle** | Where and when evals execute (offline, pre-deploy, production) | L200 Defined ✓ | `rerun-protocol-<agent>-<date>.docx` (starter artifact) |
+| **4 — Improve and iterate** | How improvements are validated | L300 Systematic ✓ | Stage 4 (Interpret) — only if eval results are available |
+| **5 — Handle changes with confidence** | How changes (prompts, tools, models, architecture) get tested before shipping | L200 Defined ✓ | `baseline-comparison-<agent>-<date>.xlsx` (starter artifact) |
 
-**Pillars 3 (Run systematically) and 4 (Handle changes with confidence) are the next chapter.** They require ongoing operating practices — cadence, CI hooks, drift detection, version comparisons — not a single session. Acknowledge them to the customer so they know the full map, but don't try to deliver them today.
+**Pillars 3 and 5 stop at L200 Defined this session.** L300 Systematic on those pillars requires operating practice — a release cadence with codified triggers (Pillar 3) and version-tagged baselines accumulated over multiple changes (Pillar 5). The starter artifacts get the customer to L200 in one session: a documented protocol and a fill-in workbook they can execute when triggered. Generate `rerun-protocol-<agent>-<date>.docx` and `baseline-comparison-<agent>-<date>.xlsx` at the end of Stage 2 (see deliverables C and D in Stage 2's "After confirmation" block).
 
 Each stage below includes a maturity callout naming which pillar and level it advances.
 
@@ -131,7 +171,7 @@ Microsoft's [evaluation checklist](https://learn.microsoft.com/en-us/microsoft-c
 |---|---|---|---|
 | **Stage 1: Define** — Create foundational test cases with clear acceptance criteria | Translate agent scenarios into testable components before you even have a working agent | **Stage 0 (Discover)** + **Stage 1 (Plan)** + **Stage 2 (Generate)** | eval-suite-planner, eval-generator |
 | **Stage 2: Baseline** — Run tests, measure, enter the evaluate→analyze→improve loop | Establish quantitative baseline, categorize failures by quality signal, iterate | **Stage 3 (Run)** + **Stage 4 (Interpret)** | eval-result-interpreter |
-| **Stage 3: Expand** — Add variation, architecture, and edge-case test categories | Build comprehensive suite: Core (regression), Variations (generalization), Architecture (diagnostic), Edge cases (robustness) | Repeat **Stage 1–2** with broader categories | eval-suite-planner (expansion sets) |
+| **Stage 3: Expand** — Add variation, architecture, and edge-case test categories | Build comprehensive suite: Valuable (regression), Variations (generalization), Architecture (diagnostic), Edge cases (robustness) | Repeat **Stage 1–2** with broader categories | eval-suite-planner (expansion sets) |
 | **Stage 4: Operationalize** — Establish cadence, triggers, continuous monitoring | Run core on every change, full suite weekly + before releases, track quality signals over time | **Stage 4 (Interpret)** ongoing | eval-triage-and-improvement |
 
 **When to share this:** After completing Stage 0, show the customer this mapping and say: *"What we're doing today covers Microsoft's Stage 1 — defining your foundational test cases. Once you have a running agent, you'll move into Stage 2 (baseline), then expand and operationalize. The checklist template helps you track progress."*
@@ -144,72 +184,116 @@ Microsoft's [evaluation checklist](https://learn.microsoft.com/en-us/microsoft-c
 
 Help the customer articulate what their agent is supposed to do and what "good" looks like. This is the most important stage — it shapes everything downstream.
 
-### What to do
+### What you walk away with
 
-**Have a conversation.** Ask questions one at a time. Adapt based on what they tell you.
+- **A 1-page Agent Vision** — purpose, users, knowledge sources, core capabilities, boundaries (what the agent must NOT do), success criteria, role-based access, risk profile. Written down, not assumed.
+- **Stakeholder alignment** — or, more often, a *surfaced disagreement* between builder and PM about scope. 10 minutes of structured questions catches what would otherwise cost weeks of rework.
+- **The spec every later stage depends on.** Stage 1's eval plan, Stage 2's test cases, and Stage 4's pass/fail judgment all trace back to what gets named here.
 
-1. **What problem does the agent solve?**
-   - "Tell me about the agent you're building (or planning to build). What's the core problem it solves for your users?"
+### When this stage is wrong for you
 
-2. **Who are the users?**
-   - "Who will talk to this agent? What's their context — internal employees, external customers, technical, non-technical?"
+- You already have a written PRD, agent spec, or design doc that covers all 7 questions below. Bring it and skip to Stage 1.
+- You have eval results in hand and need triage now — go straight to Stage 4.
+- Your agent is a 50-topic monster. One Stage 0 pass won't fit; run Stage 0 per top-level capability.
 
-3. **What will the agent know?**
-   - "What information sources will the agent use? Policy docs, FAQs, databases, APIs?"
-   - If they're not sure: "That's fine — we'll plan around what you expect to have."
+### What to do — extract Vision, apply safe defaults, proceed to Stage 1
 
-4. **What should the agent DO vs NOT DO?**
-   - "What are the boundaries? What should the agent never attempt to answer or do?"
+**Don't ask Q1–Q7 in chat.** This was the old flow; it tested as an interrogation and customers tuned out. The new flow: extract everything you can from the customer's kickoff description, fill the gaps with **domain-keyed safe defaults**, summarize in 5–6 lines, and proceed straight to the Plan dashboard. The customer corrects in chat ("actually, peer comp comparison isn't a boundary for us") or via the dashboard's General Comments box. Nothing is locked until they confirm in the dashboard.
 
-5. **What does success look like?**
-   - "If the agent is working perfectly, what does that look like? How would you know?"
+#### Step 1 — Pre-extract from the kickoff
 
-6. **What happens if the agent gets it wrong?**
-   - "What's the worst case if it gives a bad answer? Is this internal low-risk, or customer-facing high-risk?"
+From the customer's 1–4 sentence description, extract:
+- **Purpose** — usually the first clause ("Personalized HR support…")
+- **Users** — usually implied ("employees," "customers," "internal teams")
+- **Capabilities** — usually a list ("benefits, training, policies")
+- **Knowledge sources** — sometimes named, often categorized ("official company resources" → SharePoint TBD)
+- **Tone hints** — sometimes explicit ("trusted HR colleague," "efficient")
+- **Personalization hints** — words like "personalized," "your," "based on your role"
 
-7. **Does the agent behave differently per user?**
-   - "Does the agent return different results depending on who's asking? For example, different roles seeing different data, or personalized responses based on user profile?"
-   - If yes: note this — the eval plan will need separate test sets per user role using Copilot Studio's user profile feature.
+If the kickoff is too thin (one sentence with no domain hint), ask **one** clarifying question — *"Two more sentences on what it does and who uses it would help me draft a Vision faster"* — then resume.
 
-### Build the Agent Vision
+#### Step 2 — Apply safe defaults by domain
 
-After the conversation, summarize:
+Domain detection runs on keywords in the kickoff description. Pick the matching default set:
+
+| Domain trigger keywords | Default boundaries (what NOT to do) | Default risk profile |
+|---|---|---|
+| **HR / ESS / employee / benefits / policy / leave / payroll** | Legal advice; medical advice; salary negotiation; performance review interpretation; HR investigation details; peer compensation comparison; PII about other employees | **HIGH** (privacy + regulated content) |
+| **Customer support / refunds / billing / accounts** | Refunds beyond policy; account-specific data outside this user's scope; legal-binding promises; competitor product recommendations | **HIGH** (customer trust + financial) |
+| **Knowledge / documentation / FAQ / wiki** | Content beyond the named knowledge sources; opinions framed as facts; regulated advice (legal/medical/financial) | **MEDIUM** (defaults higher if regulated content domain) |
+| **IT / helpdesk / troubleshooting** | Remote-execute actions on user systems; reset credentials without verification; security advice that bypasses policy | **MEDIUM** (HIGH if security/privacy adjacent) |
+| **Agentic / tool-using / "submits" / "schedules" / "books"** | Irreversible actions without confirmation; actions outside user's authorization scope; anything requiring approval the agent can't get | **HIGH** (writes to systems) |
+| **No domain detected** | "Outside the named knowledge sources" + "anything the user-cohort isn't authorized for" + 1 generic safety guardrail | **MEDIUM** (default cautious) |
+
+**Default success criteria** (always include unless customer overrides):
+- Most user questions answered directly (deflection / self-service rate)
+- Out-of-scope questions routed clearly to the right human or resource (graceful handoff)
+- Zero privacy / boundary breaches
+
+**Default knowledge sources** when only categorized:
+- *"some SharePoint sites"* / *"internal docs"* → flag as `Multiple SharePoint sites (TBD — name in Plan dashboard)` so the customer can fill names without us blocking on it.
+
+**Auto-detect role-based access:** if the customer's description contains "your," "personalized," "based on your," "role-specific," "tailored to," set `role_based_access: true` and infer 2–3 likely personalization axes from the agent's domain (HR/ESS → location, tenure, plan; customer support → account tier, region; etc.). Customer corrects if wrong.
+
+#### Step 3 — Drop aspirational-language capabilities silently
+
+Marketing-language capabilities like *"empower employees," "explore opportunities," "streamline X"* don't survive the concreteness check. Drop them from Core Capabilities and add a one-line note in the Vision summary: *"Note: dropped 'explore opportunities' as aspirational — not a testable feature. Tell me if it's actually a concrete capability and I'll add it back."*
+
+This is silent removal with a flagged note, not a question. Customer can flag if they disagree.
+
+#### Step 4 — Show the Vision summary in chat (5–6 lines, no questions)
+
+Display the pre-extracted Vision compactly:
 
 ```
 Agent Vision: [Name]
 
-Purpose: [one sentence]
-Users: [who, in what context]
-Knowledge & Data: [planned or actual sources]
-Core Capabilities: [3-5 things the agent should do]
-Boundaries: [what it must NOT do]
-Success Criteria: [measurable outcomes]
-Role-Based Access: [yes/no — if yes, list roles and what differs]
-Risk Profile: [low / medium / high]
+Purpose:        [one sentence from kickoff]
+Users:          [extracted or default]
+Knowledge:      [named sources, or "TBD — confirm in Plan dashboard"]
+Capabilities:   [3–5 from kickoff, aspirational dropped]
+Boundaries:     [domain default set, listed]
+Success:        [default 3 criteria]
+Role-based:     [auto-detected: yes/no, with axes]
+Risk profile:   [domain default: HIGH/MEDIUM/LOW]
 ```
 
-Display this and ask: **"Does this capture what you're building? Anything to add?"**
+Then: *"This is what I extracted from your description, with safe defaults for [HR/ESS/etc.] domain agents filling the gaps. **Speak up now if any of this is wrong** — boundaries, risk profile, or capabilities especially. I'm proceeding to draft the eval plan; you'll review the full criteria + matrix in the Plan dashboard."*
 
-**Why this matters for the customer:** Most customers have never written down what "good" looks like for their agent. This document becomes the foundation for everything — the eval plan, the test cases, and eventually the agent's system prompt. Tell them: "This Agent Vision is your eval spec. Everything we test from here ties back to what you just defined."
+**Don't gate on customer confirmation.** Write `stage-0-data.json` and proceed to Stage 1 immediately. The customer either replies with corrections (which you incorporate before launching the dashboard) or stays silent (proceed). The Plan dashboard is the real review surface.
 
-### Confirm and Proceed
+#### Why this works
 
-After building the Agent Vision, display it to the customer and ask: **"Does this capture what you're building? Anything to add or change?"**
+- **Pre-extraction + defaults** covers ~80% of what the chat questions extracted, with zero customer chat input beyond the kickoff.
+- **Defaults are domain-keyed**, so they're rarely wrong for common agent types (HR, customer support, IT, knowledge).
+- **The Plan dashboard is the correction surface** — visual, all-at-once, lets the customer fix Vision-level issues alongside criteria-level edits in one pass.
+- **Customer can always correct in chat** before the dashboard launches, but isn't forced to.
 
-Iterate on the Agent Vision based on their feedback until they confirm. Write the confirmed Agent Vision to `stage-0-data.json` for use by downstream stages:
-```json
-{"agent_name": "...", "vision": {"purpose": "...", "users": "...", "knowledge": [...], "capabilities": [...], "boundaries": [...], "success_criteria": "...", "role_based_access": false, "risk_profile": "medium"}}
-```
+#### When this approach is wrong (revert to gap-question batch)
 
-Once confirmed, proceed directly to Stage 1. No dashboard or document generation at this stage — the value is the conversation itself and the clarity it produces.
-
-**Reinforce the eval-first message:** "Now that we've defined what your agent should do, we'll turn this into a structured eval plan. These evals will serve as your acceptance criteria — build the agent to pass these tests."
+- The kickoff description is genuinely too thin — one sentence with no domain keywords. Ask one clarifying question to get enough material for safe defaults.
+- The customer is in a regulated-but-uncommon domain (medical devices, financial services, government) where the default boundaries don't fit. After step 2, ask: *"Domain looks like [X] — your boundaries are usually [Y]. Anything specific I should add for your context?"*
+- The customer has explicitly said the agent is novel / experimental and they want to talk through it. Default to conversation mode for these — but they're a small minority.
 
 ---
 
 ## Stage 1: Plan
 
 Using the Agent Vision, produce a structured eval suite plan. This works whether the agent exists or not — the plan defines what the agent SHOULD do.
+
+### What you walk away with
+
+- **10–15 acceptance criteria** phrased as *"The agent should…"* (or *"should NOT…"* for negative tests). Testable, prioritizable, reviewable.
+- **Each criterion placed on a Value × Cost matrix** — Critical (highest investment), Valuable (expected behavior, occasional misses tolerable), Guardrails (low traffic, zero tolerance for failure), Deprioritize (light coverage). The matrix is what keeps the plan tractable.
+- **Each criterion has explicit pass/fail conditions and a test method** — so a human or LLM judge can decide outcomes from the criterion alone.
+- **A `.docx` eval plan** for stakeholder review (PM, security, business owner). The artifact for sign-off.
+- **An `.xlsx` workbook** for offline editing, sorting, or import into your tracker. The artifact for iteration.
+
+### When this stage is wrong for you
+
+- You already have written acceptance criteria covering Critical / Valuable / Guardrails coverage. Bring them and skip to Stage 2.
+- You're testing a single new feature on an existing agent. Run a mini Stage 1 on just that feature; don't redo the whole plan.
+- Your agent has 50+ topics. Run Stage 1 per top-level capability; one pass won't fit.
 
 ### What to do
 
@@ -224,6 +308,18 @@ Using the Agent Vision, produce a structured eval suite plan. This works whether
    | **Agentic** (multi-step, tool use, orchestration) | Agent calls APIs, uses connectors, makes decisions, chains actions | Everything above PLUS: tool selection accuracy, action correctness, error recovery, multi-turn context retention, task completion rate | Expense submission agent, incident triage bot, booking agent |
 
    **Tell the customer:** "Your agent is [architecture type], which means we need to test [these layers]. A knowledge-grounded agent needs hallucination tests that a simple Q&A bot doesn't. An agentic workflow needs tool-routing tests that a knowledge bot doesn't. This scopes your eval so you're testing what actually matters."
+
+   **Disambiguate borderline capabilities before locking the architecture call.** Some Agent Vision capabilities can go either way — RAG (read-only routing) or Agentic (write actions). When the Vision contains any of these phrasings, **ask the customer explicitly before classifying:**
+
+   | Ambiguous Vision phrasing | The disambiguation question |
+   |---|---|
+   | "Help update personal info" / "Update settings" / "Edit profile" | Does the agent take the action (calls an API/connector to write), or just tell the user where to do it themselves? |
+   | "Submit request" / "File ticket" / "Create record" | Does the agent submit on the user's behalf, or draft for the user to submit? |
+   | "Schedule meeting" / "Book resource" | Direct booking action, or routing to a booking tool? |
+   | "Approve" / "Authorize" / "Sign off" | Agent has approval authority, or surfaces the decision to a human? |
+   | "Send email" / "Notify" / "Message" | Agent writes/sends, or drafts for user review? |
+
+   If write → **Agentic** (add Tool Invocation + action-correctness criteria). If route-only → **RAG** (no Tool Invocation criteria needed). Don't guess; ask in one sentence: *"Does the agent take this action itself, or surface where to do it?"*
 
    **Use this to filter criteria families in the next step** — skip capability families that don't apply to the agent's architecture. A prompt-level agent doesn't need Knowledge Grounding criteria; a non-agentic agent doesn't need Tool Invocation criteria.
 
@@ -241,7 +337,12 @@ Acceptance criteria come in two families — **functional** (what the agent shou
 | Handles sensitive data | (add to whichever applies) | Safety + Compliance |
 | All agents (always include) | — | Red-Teaming |
 
-**Explain your picks:** "Based on your Agent Vision, I'm selecting Information Retrieval and Knowledge Grounding because your agent answers from policy documents. I'm also including Red-Teaming — every agent needs adversarial testing."
+**Explain your picks AND your skips.** This is a pedagogy moment, not a checklist. Customers learn the methodology by hearing what's rejected as much as what's selected.
+
+- *Picks:* "Based on your Agent Vision, I'm selecting Information Retrieval and Knowledge Grounding because your agent answers from policy documents. I'm also including Red-Teaming — every agent needs adversarial testing."
+- *Skips:* "I'm **skipping** Tool Invocations (no tool use in this version), Process Navigation (not multi-step), and Trigger Routing (no tool routing). If any of these change in v2, we add the families then — for now they'd be wasted test cases."
+
+The `Skipping: ... because ...` narration is mandatory when any family is excluded. It signals the customer that the eval scope is *fitted* to their agent, not a generic kitchen sink. It also gives them a forward marker for when to revisit ("when v2 adds tool use, come back for Tool Invocation criteria").
 
 3. **Write acceptance criteria:**
 
@@ -251,6 +352,27 @@ Each criterion is a single testable statement starting with **"The agent should�
 
 | # | Acceptance Criterion | Quality Dimension | Method |
 |---|---|---|---|
+
+**Quality dimension naming — keep it broad. Aim for 4–6 dimensions, not 8–12.**
+
+Customers fragment dimensions when the AI does. *"Policy Accuracy / Benefits Accuracy / Training Accuracy"* should usually be **one** dimension called *"Accuracy"* (or *"Knowledge Accuracy"*). The criterion's *statement* already specifies what knowledge it tests — the dimension shouldn't repeat that. Consolidate aggressively.
+
+Default dimension set for most agents:
+
+| Dimension | What it groups |
+|---|---|
+| **Accuracy** | All factual correctness criteria, regardless of which knowledge source they hit (policy, benefits, training, FAQs, etc.) |
+| **Grounding** | Citation enforcement; agent references the source it used |
+| **Hallucination Prevention** | "The agent should NOT invent facts not in sources" criteria |
+| **Routing** | Out-of-scope handling, escalation, handoff to right resource |
+| **Tone** | Tone, empathy, brand voice, persona criteria |
+| **Boundaries / Safety** | Refusals on legal / medical / privacy / regulated topics — pair with Guardrails quadrant |
+| **Adversarial / Red-Teaming** | Jailbreak resistance, boundary probing |
+| **Personalization** *(if role-based access)* | Role/cohort-specific behavior |
+
+Most agents need 4–6 of these, not all 8. **Don't create per-source or per-topic dimensions** (e.g., "PTO Accuracy," "Benefits Lookup Accuracy") — that's what the criterion statement is for. The dimension is a coarse bucket for grouping criteria when reviewing the plan.
+
+The dashboard supports renaming dimensions inline (click a dimension name to edit) and merging by renaming to an existing name. If the AI's first draft has too many dimensions, the customer can collapse them in the dashboard, but it's better to default to consolidated names from the start.
 
 Good criteria are:
 - **Behavior-led** — start with "The agent should…" and describe an observable behavior
@@ -264,6 +386,17 @@ Examples:
 - "The agent should respond empathetically to emotional signals before citing policy."
 - "The agent should NOT answer questions outside its knowledge sources; it should say it doesn't know."
 
+**Coverage-against-Vision check (mandatory before locking criteria).** After drafting the list, walk back through the Agent Vision and verify every named element has at least one criterion testing it:
+
+| Vision element | What you need at least one criterion for |
+|---|---|
+| Each **Core Capability** | One criterion testing the capability works correctly. If the Vision lists 5 capabilities and only 3 have criteria, name the missing 2 to the customer and ask if they're truly out of scope or were just missed. |
+| Each **Boundary** | One refusal criterion testing the agent rejects the bounded behavior. Boundaries without refusal tests are theatrical — they look like guardrails but the agent has never been asked to enforce them. |
+| Each **Knowledge Source** | At least one criterion that requires citing or grounding in that source. If a source isn't tested, you can't tell whether the agent is using it correctly or ignoring it. |
+| **Each user cohort** (if role-based access = yes) | At least one criterion that surfaces the personalization. If the Vision says employees see different content by office/tenure/plan, you need criteria like *"The agent should return the correct PTO days for the employee's office and tenure"* — not just *"The agent should return correct PTO days."* |
+
+When you find a gap, tell the customer explicitly: *"I noticed Capability X / Boundary Y / Source Z isn't covered by any criterion. Want to add one, or is it intentionally out of scope?"* Don't quietly skip — the customer needs to choose.
+
 4. **Pick a method per criterion:**
 
 | What you're verifying | Primary method | Secondary |
@@ -274,6 +407,8 @@ Examples:
 | Hallucination prevention | Compare Meaning | General Quality |
 | Negative tests (must NOT do X) | Keyword Match — negative | — |
 | Tool/topic routing correctness | Capability Use | — |
+| **Citation enforcement** (response must reference a source by name) | **Keyword Match** (substring of source name) | Compare Meaning |
+| **Source-attribution accuracy** (response must cite the *correct* source for the claim) | **Compare Meaning** (judge against expected source mapping) | Custom |
 | Exact codes, labels, structured output | Exact Match | — |
 | Phrasing precision (wording matters) | Text Similarity | Compare Meaning |
 | Domain-specific criteria (compliance, tone, policy) | Custom | — |
@@ -297,38 +432,70 @@ Tell the customer: "If General Quality scores are low, these four sub-criteria t
 
 5. **Prioritize criteria on the Value × Cost-of-Failure matrix:**
 
+**The matrix tells you where to invest test-writing effort, not what your eval plan must include.** Critical gets the most cases, Deprioritize the fewest, Guardrails the strictest review — the *quantity* of test cases per criterion differs by quadrant. Every criterion still gets at least one test case in Stage 2.
+
 Every acceptance criterion goes in one of four quadrants based on two judgments:
 - **Value** of getting this right — how much does successful behavior drive the product's purpose?
 - **Cost of failure** if the agent gets it wrong — how much harm, embarrassment, or business damage does a failure cause?
 
 |  | **Low cost of failure** | **High cost of failure** |
 |---|---|---|
-| **High value** | **Core** — expected capabilities users rely on. Solid coverage; occasional misses tolerable. | **Critical** — product-defining; failure hurts. Invest heaviest: most test cases, strictest review. |
+| **High value** | **Valuable** — expected capabilities users rely on. Solid coverage; occasional misses tolerable. | **Critical** — product-defining; failure hurts. Invest heaviest: most test cases, strictest review. |
 | **Low value** | **Deprioritize** — exploratory or rare behaviors. Light coverage; revisit when the criterion starts mattering more. | **Guardrails** — rarely triggered but must never fail (safety refusals, compliance boundaries). Invest in negative tests and adversarial cases. |
 
 **Quadrant assignment guidance:**
 - **Critical** — the agent's main capabilities AND high-harm behaviors. Highest investment.
-- **Core** — the agent's expected behaviors where misses are noticed but not catastrophic.
+- **Valuable** — the agent's expected behaviors where misses are noticed but not catastrophic.
 - **Guardrails** — safety, compliance, refusals. Low traffic; zero tolerance for failure.
 - **Deprioritize** — experimental, low-traffic, or low-stakes. Test lightly; revisit if usage grows.
 
 Pass/fail for each test case is determined by the criterion's pass/fail conditions, not a prescribed percentage target. The quadrant tells you **where to invest effort**, not a threshold to clear.
 
-**Before confirming quadrant assignments:** Align placements with the customer's risk owner or compliance partner — especially for Guardrails criteria. Human expert review of criteria and their placement is what distinguishes L300 Pillar 1 from L200.
+**Distribution sanity-check (apply before locking the matrix).** Healthy plans roughly hit these distribution patterns. If your plan is far from them, either you're missing criteria or you've miscategorized — push back, don't lock.
+
+| Risk profile | Critical | Valuable | Guardrails | Deprioritize | Sanity-check rule |
+|---|---|---|---|---|---|
+| **`low`** | 30–50% | 30–50% | 10–20% | 0–20% | At least 1 Guardrails (always). |
+| **`medium`** | 25–40% | 25–40% | 20–30% | 0–15% | At least 1 Guardrails. |
+| **`high`** *(ESS Agent)* | 25–40% | 15–30% | **30–50%** | 0–10% | **At least 2 Guardrails (auto-doubled trigger)**. |
+| **`critical`** | 20–35% | 10–20% | **40–60%** | 0–5% | At least 3 Guardrails. Compliance / Safety domains required. |
+
+**Red flags that mean push back:**
+- **0 Guardrails on any plan** — the agent has no enforced boundaries.
+- **0 Critical** — the plan has no product-defining tests; you're testing edge cases of a capability you haven't validated.
+- **>70% Critical** — every criterion is "the most important." This is anchoring bias; force re-evaluation. In production, not everything is Critical.
+- **0 Deprioritize when the customer has 5+ Core Capabilities** — you probably under-scoped exploratory testing.
+- **HIGH risk + <30% Guardrails** — under-investment in the failure modes that cause real damage.
+
+When the plan trips a red flag, tell the customer: *"This distribution looks off — [specific issue]. Want me to suggest a rebalance?"* Don't lock a broken plan because the customer was tired of writing criteria.
+
+**Before confirming quadrant assignments:** Align placements with the customer's risk owner or compliance partner — especially for Guardrails criteria. Human expert review of criteria and their placement is what distinguishes L300 Systematic Pillar 1 from L200 Defined.
 
 **Highlight what they'd miss:** "Notice I included a Guardrails criterion for topics NOT in your knowledge sources. Most customers only test what the agent should know. Testing what it should NOT know — and where it should refuse — is just as important."
+
+**Adversarial coverage minimums — auto-applied based on the Agent Vision.** Every plan needs at least one Guardrails / Red-Teaming criterion. The mandate doubles to **two minimum** automatically when any of these triggers fire (don't wait for the customer to ask):
+
+- **`risk_profile` is `high` or `critical`** in the Agent Vision (set in Stage 0 Q6)
+- **Domain keywords in Vision purpose / boundaries / users:** PII, payments, financial, HR, employee data, health, medical, legal, regulated, compliance, GDPR, HIPAA, SOX, customer-facing, external traffic, public-facing
+- **Capability includes any data egress:** "share with," "send to," "export," "publish"
+
+When triggered, tell the customer: *"Your agent matches the sensitive-data trigger (risk profile is HIGH / it touches HR data / etc.) — doubling the Guardrails mandate from 1 to 2 minimum. We'll write at least two adversarial / red-team criteria targeting your specific boundary risks."*
+
+Adversarial gaps are the failure mode that bites in production: the agent passes every Critical test and then leaks data on a question no one thought to write a test for. Auto-applying the trigger means the customer doesn't have to know to ask for it.
 
 ### Output
 
 Display the criteria plan table and the Value × Cost matrix with each criterion placed in its quadrant.
 
-**Maturity callout — Pillar 1 (L100 → L300):** Completing Stage 0 + Stage 1 advances Pillar 1 from "no written criteria" to acceptance criteria phrased as "The agent should…", each tied to a method and placed on the Value × Cost matrix, with human-expert review. Pillar 2 advances in Stage 2; Pillar 5 in Stage 4.
+**The customer payoff:** *"You now have a plan your PM and your security reviewer can sign off on. Every criterion is phrased as a behavior the agent must (or must not) exhibit, prioritized by where it matters most, with explicit pass/fail conditions a judge can apply. This is the document you'd want before approving an agent for production."*
+
+**Maturity callout — Pillar 1 (L100 Initial → L300 Systematic):** Stage 0 + Stage 1 advance Pillar 1 from "no written criteria" to acceptance criteria phrased as "The agent should…", each tied to a method and placed on the Value × Cost matrix, with human-expert review. Pillar 2 advances in Stage 2; Pillar 4 in Stage 4. Pillars 3 and 5 reach L200 Defined via the reference protocols delivered at session close.
 
 ### Interactive Dashboard Checkpoint
 
 Before generating any deliverable documents, launch the plan dashboard for review:
 
-1. Write the plan to `stage-1-data.json` using the criterion + quadrant structure. Include multiple criteria per quality dimension where applicable — one criterion typically covers one behavior, so a dimension like "Policy Accuracy" usually needs several:
+1. Write the plan to `stage-1-data.json` using the criterion + quadrant structure. Include multiple criteria per quality dimension where applicable — one criterion typically covers one behavior, so a broad dimension like "Accuracy" usually holds 3–5 criteria covering different topics (PTO, benefits, training, etc.):
    ```json
    {
      "agent_name": "...",
@@ -337,7 +504,7 @@ Before generating any deliverable documents, launch the plan dashboard for revie
          "id": 1,
          "statement": "The agent should return the correct PTO days for the employee's office and tenure, citing the Time Off Policy.",
          "quadrant": "critical",
-         "quality_dimension": "Policy Accuracy",
+         "quality_dimension": "Accuracy",
          "signal_type": "Factual content",
          "method": "Compare meaning",
          "pass_condition": "Response contains the correct PTO number for the user's office/tenure AND cites the Time Off Policy.",
@@ -347,7 +514,7 @@ Before generating any deliverable documents, launch the plan dashboard for revie
          "id": 2,
          "statement": "The agent should return the correct parental-leave duration and tenure eligibility, citing the policy.",
          "quadrant": "critical",
-         "quality_dimension": "Policy Accuracy",
+         "quality_dimension": "Accuracy",
          "signal_type": "Factual content",
          "method": "Compare meaning",
          "pass_condition": "Response states correct paid-leave weeks AND tenure requirement AND cites the Time Off Policy.",
@@ -356,8 +523,8 @@ Before generating any deliverable documents, launch the plan dashboard for revie
        {
          "id": 3,
          "statement": "The agent should return the correct carryover limit for the user's office.",
-         "quadrant": "core",
-         "quality_dimension": "Policy Accuracy",
+         "quadrant": "valuable",
+         "quality_dimension": "Accuracy",
          "signal_type": "Factual content",
          "method": "Compare meaning",
          "pass_condition": "Response states correct carryover days for the user's office.",
@@ -367,7 +534,7 @@ Before generating any deliverable documents, launch the plan dashboard for revie
          "id": 4,
          "statement": "The agent should NOT provide legal advice; it should escalate to Employee Relations or the Ethics Hotline.",
          "quadrant": "guardrails",
-         "quality_dimension": "Boundary Enforcement",
+         "quality_dimension": "Boundaries / Safety",
          "signal_type": "Topic / tool invocation",
          "method": "Capability use",
          "pass_condition": "Escalation topic fires AND response points to Employee Relations or the Ethics Hotline.",
@@ -376,7 +543,7 @@ Before generating any deliverable documents, launch the plan dashboard for revie
        {
          "id": 5,
          "statement": "The agent should respond empathetically to emotional signals before citing policy.",
-         "quadrant": "core",
+         "quadrant": "valuable",
          "quality_dimension": "Tone",
          "signal_type": "Custom rubric / style",
          "method": "Custom",
@@ -384,10 +551,10 @@ Before generating any deliverable documents, launch the plan dashboard for revie
          "fail_condition": "Response leads with policy; no emotional acknowledgment."
        }
      ],
-     "quality_dimensions": ["Policy Accuracy", "Boundary Enforcement", "Grounding", "Hallucination Prevention", "Tone"]
+     "quality_dimensions": ["Accuracy", "Grounding", "Boundaries / Safety", "Tone", "Adversarial / Red-Teaming"]
    }
    ```
-   Each criterion must have: `statement` (starts with "The agent should…"), `quadrant` (one of `critical`, `core`, `guardrails`, `deprioritize`), `quality_dimension`, `signal_type`, `method`, `pass_condition`, and `fail_condition`. A single quality dimension commonly holds several criteria covering different behaviors — e.g., Policy Accuracy covers PTO, parental leave, carryover, etc., as separate rows.
+   Each criterion must have: `statement` (starts with "The agent should…"), `quadrant` (one of `critical`, `valuable`, `guardrails`, `deprioritize`), `quality_dimension`, `signal_type`, `method`, `pass_condition`, and `fail_condition`. A single quality dimension commonly holds several criteria covering different behaviors — e.g., "Accuracy" covers PTO, parental leave, benefits, training, etc., as separate rows. **Don't fragment dimensions per topic** ("PTO Accuracy," "Benefits Accuracy") — keep dimensions broad (4–6 total) and let the criterion statement specify what it tests.
 
    **`signal_type` — the single field that drives method selection.** It captures what the test case must actually verify, and the Method is derived from it automatically — the dashboard does not expose a separate Method column:
 
@@ -409,10 +576,10 @@ Before generating any deliverable documents, launch the plan dashboard for revie
    - **deprioritize** — low value + low cost of failure. Exploratory or rare; light coverage.
 2. Launch the dashboard:
    ```bash
-   python dashboard/serve.py --stage plan --data stage-1-data.json
+   python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage plan --serve --data stage-1-data.json
    ```
 3. The user reviews criteria (add/remove/edit), drags criteria between quadrants on the 2×2 matrix, and changes methods in the browser.
-4. When the user confirms, read `plan-feedback.json` and apply edits. If changes requested, regenerate and re-launch.
+4. When the user confirms, read `plan-feedback.json` and apply edits. **Narrate the edits back so the customer sees their changes were captured** — e.g., *"Got it — moved criterion #6 from Standard to Core, edited #7's pass condition. Updated distribution: 6 Critical (33%) / 4 Valuable (22%) / 8 Guardrails (44%)."* Don't just say "applied" — name what changed. If the customer's edits trip the distribution sanity-check thresholds, flag that before generating deliverables. If changes requested, regenerate and re-launch.
 5. **After confirmation, automatically generate TWO deliverables — do not wait for the user to ask:**
 
    **A. Customer-ready `.docx` eval plan report** using the `/docx` skill. This is the customer's narrative deliverable.
@@ -426,7 +593,7 @@ The report must be:
 
 Report structure:
 1. Agent Vision summary (from Stage 0) — 5-6 lines max
-2. Value × Cost matrix overview — explain the four quadrants (Critical, Core, Guardrails, Deprioritize) and what kinds of criteria belong in each
+2. Value × Cost matrix overview — explain the four quadrants (Critical, Valuable, Guardrails, Deprioritize) and what kinds of criteria belong in each
 3. Quadrant assignment — visual 2×2 matrix with each criterion placed, followed by a table listing criteria grouped by quadrant with pass/fail conditions
 4. Quality Dimensions to Test — list dimensions with grouped criteria under each
 5. Method mapping explanation — which methods apply to which criteria and why (reference the `signal_type` → method guidance)
@@ -435,7 +602,7 @@ XLSX workbook structure (all sheets auto-size columns; freeze header row):
 
 | Sheet name | Contents |
 |---|---|
-| **Criteria** | One row per criterion. Columns: ID, Quadrant, Quality Dimension, Statement (The agent should…), What to verify (signal_type), Method, Pass condition, Fail condition. Color-code Quadrant column (Critical=red, Core=blue, Guardrails=yellow, Deprioritize=gray). |
+| **Criteria** | One row per criterion. Columns: ID, Quadrant, Quality Dimension, Statement (The agent should…), What to verify (signal_type), Method, Pass condition, Fail condition. Color-code Quadrant column (Critical=red, Valuable=blue, Guardrails=yellow, Deprioritize=gray). |
 | **Quadrant Summary** | Quadrant × count of criteria + brief description of what belongs there. One row per quadrant, four rows total. |
 | **Quality Dimensions** | Quality dimension × count of criteria × comma-separated criterion IDs. One row per dimension. |
 | **Agent Vision** | Key-value layout of the Agent Vision from Stage 0 (Purpose, Users, Knowledge, Capabilities, Boundaries, Success Criteria, Role-Based Access, Risk Profile). Spans two columns. |
@@ -448,23 +615,40 @@ Tell the customer: "Here's your eval plan in two formats — the `.docx` is for 
 
 Generate test cases as **separate CSV files per quality signal**. These are the customer's deliverable — they can import them into Copilot Studio or use them as acceptance criteria during development.
 
+### What you walk away with (four artifacts, one kit)
+
+| Artifact | Use it for |
+|---|---|
+| `eval-<signal>-<date>-for-import.csv` (per quality signal) | Paste directly into Copilot Studio Evaluation tab |
+| `eval-<signal>-<date>-with-methods.csv` (per quality signal) | Team's working copy, version control, method audit |
+| `eval-test-cases-<agent>-<date>.docx` | PM / stakeholder review |
+| `rerun-protocol-<agent>-<date>.docx` | Pillar 3 L200 — your re-run runbook |
+| `baseline-comparison-<agent>-<date>.xlsx` | Pillar 5 L200 — your version-comparison workbook |
+
+The kit is one deliverable, not five. CSVs go to Copilot Studio. The .docx report goes to your PM. The two starter artifacts go to your eval-process docs.
+
+### When this stage is wrong for you
+
+- You already have a test set you trust. Bring it; skip to Stage 3.
+- You have production traffic. Sample real conversations directly into a test set rather than synthesizing — generated cases anchor to AI voice; real user language beats it.
+- You're testing agent UX (turn-taking, error-recovery flow). That's conversation testing, not eval — different tool.
 
 ### Choose evaluation mode: Single Response vs. Conversation
 
-Before generating test cases, determine which evaluation mode fits each criterion. Copilot Studio supports two modes:
+**Default to Single Response.** ~80% of agents are single-response Q&A. Conversation (multi-turn) only fits agents that do real multi-step workflows — troubleshooting flows, form-filling, slot-extracting conversations. If you're not sure, you don't need Conversation mode.
 
 | Mode | Best for | Limits | Supported test methods |
 |---|---|---|---|
-| **Single response** | Factual Q&A, tool routing, specific answers, safety tests | Up to 100 test cases per set | All 7 methods (General quality, Compare meaning, Keyword match, Capability use, Text similarity, Exact match, Custom) |
+| **Single response** *(default — fits ~80% of agents)* | Factual Q&A, tool routing, specific answers, safety tests | Up to 100 test cases per set | All 7 methods (General quality, Compare meaning, Keyword match, Capability use, Text similarity, Exact match, Custom) |
 | **Conversation (multi-turn)** | Multi-step workflows, context retention, clarification flows, process navigation | Up to 20 test cases, max 12 messages (6 Q&A pairs) per case | General quality, Keyword match, Capability use, Custom (Classification) |
 
-**When to recommend conversation eval:**
+**When to switch to conversation eval:**
 - The agent walks users through multi-step processes (e.g., troubleshooting, onboarding, form completion)
 - Context retention matters — later answers depend on earlier ones
 - The agent needs to ask clarifying questions before answering
 - The criterion involves slot-filling or information gathering across turns
 
-**When to stay with single response:**
+**When to stay with single response (the default):**
 - Each question is independent (FAQ, policy lookup, data retrieval)
 - You need Compare meaning, Text similarity, or Exact match (conversation mode doesn't support these)
 - You need more than 20 test cases in a set
@@ -472,6 +656,38 @@ Before generating test cases, determine which evaluation mode fits each criterio
 **Explain the choice:** "I'm recommending single response eval for your knowledge-lookup criteria because each question is independent — the agent doesn't need previous context to answer. For your troubleshooting criterion, I'm recommending conversation eval because the agent needs to gather information across multiple turns before resolving the issue."
 
 **Note for CSV generation:** Single response test sets use the standard 3-column CSV (Question, Expected response, Testing method). Conversation test sets can be imported via spreadsheet or generated in the Copilot Studio UI — each test case contains a sequence of user messages that simulate a multi-turn interaction.
+
+### Personalization branch — handle this before generating test cases
+
+If the Agent Vision has `role_based_access: true` (set in Stage 0 Q7), the test cases for personalization criteria need **user profiles** in Copilot Studio. Without profiles, the agent has no context to personalize from — and the test results are misleading.
+
+**Walk the customer through this BEFORE generating cases:**
+
+1. **Identify which criteria need profiles.** Check the criteria list for ones that test personalization (criteria mentioning "for the employee's [attribute]" — office, tenure, plan, role, etc.).
+
+2. **Draft 3 user profiles that span the personalization axes.** Pick combinations that exercise different paths:
+   - Profile A: one attribute combo (e.g., `Boston-2yr-PPO`)
+   - Profile B: a contrasting combo (e.g., `Seattle-7yr-HMO`)
+   - Profile C: an edge combo (e.g., `Remote-FirstYear-HDHP`)
+   - Each profile has explicit attribute values and a one-line note on which criteria it exercises.
+
+3. **Tell the customer to create the profiles in Copilot Studio** (Settings → Evaluation → User Profiles) before importing test sets. The CSV import won't fail without profiles, but personalization-criterion results will be misleading.
+
+4. **Flag the two known limitations:**
+   - **Multi-profile eval doesn't work with connector-based agents.** If the Vision includes any tool/connector use, multi-profile eval can't run against those criteria — fall back to standard cases without profile context.
+   - **Multi-profile eval is not available in GCC.** Ask the customer's tenant type: standard or GCC. If GCC, drop personalization test cases or run them as standard cases (lose the personalization signal).
+
+5. **Generate one test case set per criterion per profile**, OR a single set with profile-tagged expected responses (when criterion is the same question, different expected answer). Use whichever is more efficient.
+
+**If `role_based_access: false`**, skip this branch entirely — no profile setup needed.
+
+### The [VERIFY] discipline — the most important review step in the whole skill
+
+When generating expected responses, the AI wraps factual content it can't independently confirm in `[VERIFY: ...]` markers. **These are the failures-in-waiting.** A wrong [VERIFY] becomes an eval test case that "passes" while hiding a production failure — the agent matches the bogus expected response and gets a green check.
+
+The dashboard highlights every [VERIFY] span in yellow. **Read every one before approving.** This is the customer's most important responsibility in Stage 2; the LLM that drafted the test cases cannot do this work — only the human who knows the actual knowledge sources can.
+
+When narrating to the customer, say: *"I've wrapped factual claims I'm guessing at in [VERIFY] markers. Please check each one against your real knowledge source — these are the most likely places the eval will lie to you about agent quality."*
 
 ### What to do
 
@@ -489,7 +705,7 @@ Before generating test cases, determine which evaluation mode fits each criterio
 
    Only create files for categories that apply.
 
-   **Versioning:** Name each file with a date stamp or agent version (e.g., `eval-knowledge-accuracy-2026-04-22.csv`) so successive sessions produce a version history rather than overwriting the baseline. Versioning is a requirement of L300 Pillar 2.
+   **Versioning:** Name each file with a date stamp or agent version (e.g., `eval-knowledge-accuracy-2026-04-22.csv`) so successive sessions produce a version history rather than overwriting the baseline. Versioning is a requirement of L300 Systematic Pillar 2.
 
 4. **CSV format** — Copilot Studio import format:
 
@@ -516,7 +732,9 @@ Valid Testing method values: `General quality`, `Compare meaning`, `Similarity`,
 
 Display a summary table of test cases per quality signal.
 
-**Maturity callout — Pillar 2 (L100 → L300):** Completing this stage advances Pillar 2 from "no established eval set" to a versioned eval set with coverage mapped to risk and value via the Value × Cost matrix. Pillar 5 advances in Stage 4.
+**The customer payoff:** *"You now have a test suite that imports directly into Copilot Studio, plus the .docx report your PM can sign off on, plus the Pillar 3 and Pillar 5 starter artifacts you'll keep for ongoing operations. That's the eval kit a new team member would need to evaluate this agent — questions, expected responses, methods, re-run protocol, comparison template."*
+
+**Maturity callout — Pillar 2 (L100 Initial → L300 Systematic):** Stage 2 advances Pillar 2 from "no established eval set" to a versioned eval set with coverage mapped to risk and value via the Value × Cost matrix. Pillar 4 advances in Stage 4. Pillars 3 and 5 reach L200 Defined via the `rerun-protocol-<agent>-<date>.docx` and `baseline-comparison-<agent>-<date>.xlsx` starter artifacts generated at session close — surface these to the customer when delivering them.
 
 ### Interactive Dashboard Checkpoint
 
@@ -553,10 +771,10 @@ Before generating final CSV and report files, launch the test cases dashboard fo
    - Wrap AI-generated factual content in `[VERIFY: ...]` markers so the dashboard highlights them for human review
 2. Launch the dashboard:
    ```bash
-   python dashboard/serve.py --stage generate --data stage-2-data.json
+   python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage generate --serve --data stage-2-data.json
    ```
 3. The user reviews test cases per quality dimension tab (quadrant-colored), reviews pass/fail conditions per criterion group, checks VERIFY-highlighted factual content, and edits expected responses inline.
-4. When the user confirms, read `generate-feedback.json` and apply all edits. If changes requested, regenerate and re-launch.
+4. When the user confirms, read `generate-feedback.json` and apply all edits. **Narrate the edits back so the customer sees their changes were captured** — count [VERIFY] corrections, count test case additions/deletions, list significant pass/fail edits, restate updated total case count. Example: *"Got it — 8 [VERIFY] corrections captured, 2 new test cases for criterion #14, total now 56 cases across 7 quality signals."* Don't just say "applied." If changes requested, regenerate and re-launch.
 5. **After confirmation**, generate the final deliverables:
 
 **A. CSV files** — For each quality signal, write **TWO CSV variants** (so the customer has both a lean import artifact AND a working copy with method guidance):
@@ -589,75 +807,185 @@ Report structure:
 4. For each test case: Question, Expected Response (with [VERIFY] content called out), and suggested test method
 5. Summary table: quality dimension, criterion count, test case count, methods
 6. "What these tests catch" callout — 3-4 bullet points on what the customer would have missed
-7. Next steps — what to do with these files
+7. Next steps — what to do with these files. **Always include a pointer line:** *"You're also receiving two starter artifacts (generated below) — `rerun-protocol-<agent>-<date>.docx` (Pillar 3 L200) and `baseline-comparison-<agent>-<date>.xlsx` (Pillar 5 L200). They advance Pillars 3 and 5 from L100 Initial to L200 Defined."*
 8. Maturity snapshot — before/after table showing where the agent stands after this session:
 
    | Pillar | Baseline | After this session | Next-session target |
    |---|---|---|---|
-   | 1 — Define what "good" means | L100 | L300 ✓ | — |
-   | 2 — Build eval sets | L100 | L300 ✓ | — |
-   | 3 — Run systematically | L100 | L100 | L300 |
-   | 4 — Handle changes with confidence | L100 | L100 | L300 |
-   | 5 — Improve and iterate | L100 | L100 | L300 |
+   | 1 — Define what "good" means | L100 Initial | L300 Systematic ✓ | — |
+   | 2 — Build your eval sets | L100 Initial | L300 Systematic ✓ | — |
+   | 3 — Run evals across the lifecycle | L100 Initial | L200 Defined ✓ (via `rerun-protocol-<agent>-<date>.docx`) | L300 Systematic |
+   | 4 — Improve and iterate | L100 Initial | L100 Initial | L300 Systematic (Stage 4) |
+   | 5 — Handle changes with confidence | L100 Initial | L200 Defined ✓ (via `baseline-comparison-<agent>-<date>.xlsx`) | L300 Systematic |
 
-Tell the customer: "These CSVs are importable directly into Copilot Studio's Evaluation tab. The report includes your Value × Cost priorities and acceptance criteria — share it with your team."
+**C. Pillar 3 starter — `rerun-protocol-<agent>-<date>.docx`** — Generate using the `/docx` skill, sourcing structure and content from `skills/eval-guide/rerun-protocol.md`. This is the customer's takeaway reference for Pillar 3 L200 Defined: when to re-run evals, what scope to run, how to log the result. The docx is portable, printable, and shareable with the team.
+
+   Render the markdown sections as docx sections with the same headings (Purpose, Prerequisites, When to re-run, Run order rule, Logging discipline, Interpreting re-run results, You've reached L200 Defined when…, Path to L300 Systematic, References). Format the trigger table as a styled docx table, color-code the priority column, and put the "You've reached L200 Defined when…" exit criteria in a callout box.
+
+**D. Pillar 5 starter — `baseline-comparison-<agent>-<date>.xlsx`** — Generate using the `/xlsx` skill, sourcing structure and content from `skills/eval-guide/baseline-comparison-template.md`. This is the customer's fill-in workbook for Pillar 5 L200 Defined: a structured template they fill in each time they compare two eval runs.
+
+   Workbook structure (auto-size columns; freeze header rows; protect instruction sheets):
+
+   | Sheet | Contents |
+   |---|---|
+   | **Instructions** | Purpose, when to use, prerequisites. Read-first sheet — protected. |
+   | **Comparison** | 4-metric comparison table with empty Run 1 / Run 2 / Delta cells (Overall, Critical, Valuable, Guardrails, Deprioritize pass rates). Above the table: editable cells for Run 1 name/version, Run 2 name/version, Eval set version, Change description. |
+   | **Case-level delta** | 4-row bucket table (Pass-Pass / Fail-Pass / Pass-Fail / Fail-Fail) with empty Count and Notable cases columns. Conditional formatting highlights Pass-Fail row in red. |
+   | **Decision rules** | Variance rules, ship/hold logic. Read-only reference sheet. |
+   | **Capability vs. regression** | Cheat sheet on the two run types, when to use each. Read-only reference sheet. |
+
+Tell the customer: "Four artifacts: the CSVs go straight into Copilot Studio, the test case .docx is for sharing, and the new `rerun-protocol-<agent>-<date>.docx` and `baseline-comparison-<agent>-<date>.xlsx` are your Pillar 3 and Pillar 5 starter kits — keep them with your eval set."
 
 ---
 
 ## Stage 3: Run (requires a running agent)
 
-**Skip this stage if the agent isn't built yet.** The deliverables from Stages 0-2 are the eval jumpstart — the customer can run evals themselves when the agent is ready.
+Stage 3 turns the eval set into evidence. Run your CSVs against the live agent and record the results. 10–30 minutes (depends on test count and auth setup).
 
-If the agent IS available, send each question from the CSVs to the live agent and score responses using Claude Sonnet as LLM judge.
+### What you walk away with
 
-### How to run
+- **`eval-results-<agent>-<date>.csv`** — pass/fail per case, score per LLM method, judge rationale.
+- **`eval-results-<agent>-<date>.json`** — same data, programmatic-friendly.
+- **A baseline pass rate by quality dimension and quadrant** — the number every future change is compared against.
 
-Use `eval-runner.js` if a DirectLine connection is available:
+### Skip this stage if
+
+- **Your agent isn't built yet.** The deliverables from Stages 0–2 are the eval jumpstart; come back when the agent is running.
+- **You already have eval results** (prior run, internal/external testing tool). Skip to Stage 4.
+
+### Set expectations before you run
+
+**First-run pass rate is usually 40–70%, not 80%+.** Customers who get 50% on the first run sometimes spiral; they shouldn't. The valuable signal is *which categories* pass and fail, not the headline number. Stage 4 turns the failures into ranked action.
+
+**LLM-judge methods are non-deterministic** — `Compare meaning` and `General quality` show ±5% variance between runs. If a result lands borderline, run it again and take the median.
+
+### Two paths — pick one
+
+| Path | When it's right | Setup cost |
+|---|---|---|
+| **Copilot Studio UI Evaluation tab** *(default — start here)* | Most customers, especially incidental users. Import the `-for-import.csv`, run, view results in the UI. Use this unless you need automation. | Agent auth only. |
+| **`eval-runner.js` (CLI)** | You need to automate, run from CI, or use LLM-judge methods the UI doesn't expose. | Node, DirectLine token endpoint, `ANTHROPIC_API_KEY` (real $ — Claude API costs apply). |
+
+### How to run (CLI path)
+
 ```bash
 node eval-runner.js --token-endpoint "<URL>" --csv-dir .
 ```
 
-Or use `/chat-with-agent` for individual questions via CPS SDK.
+Or use `/chat-with-agent` for individual questions via the Copilot Studio SDK.
 
-Scoring:
-- `Compare meaning` → semantic equivalence (0.0-1.0)
-- `General quality` → helpfulness/accuracy/relevance (0.0-1.0)
-- `Keyword match` → code-based string matching
-- `Exact match` → code-based string equality
+**Scoring methods:**
+- `Compare meaning` → semantic equivalence (0.0–1.0, LLM judge)
+- `General quality` → relevance / groundedness / completeness / abstention (0.0–1.0, LLM judge)
+- `Keyword match` → code-based string matching (free, deterministic)
+- `Exact match` → code-based string equality (free, deterministic)
 
-Required: `ANTHROPIC_API_KEY` for LLM-based scorers.
+Required: `ANTHROPIC_API_KEY` for LLM-judge methods. Code-based methods run free.
+
+### How to get value from it
+
+- **Don't panic at the first-run pass rate.** 40–70% is normal. Read quadrant pass rates, not the headline.
+- **Export results immediately to CSV.** Copilot Studio retains run results for only 89 days. You need the CSV for long-term tracking and for Stage 4 interpretation.
+- **Run twice if borderline.** LLM-judge scoring is non-deterministic; re-run and take the median.
+- **Run Critical + Guardrails first.** If those fail, the rest is noise. Fix Core/Guardrails before interpreting Core/Deprioritize results.
 
 ### Output
 
-Results table + `eval-results-YYYY-MM-DD.csv` and `.json`.
+Results table printed to terminal + `eval-results-<agent>-<date>.csv` and `.json` written to disk.
 
 ---
 
 ## Stage 4: Interpret
 
-Analyze eval results to understand what's working, what's failing, and what to fix next.
+Stage 4 turns raw results into a ranked action list. Every failure gets classified by root cause; the Top 3 actions get phrased as Change-X → Re-run-Y → Expect-Z. The output is a `.docx` triage report your team works from. 30–45 minutes.
+
+### What you walk away with
+
+- **Quadrant-aware pass rates** — Critical, Valuable, Guardrails, Deprioritize each get their own verdict. A 90% Critical with one Guardrails failure is worse than a 60% Critical with all Guardrails passing.
+- **Failure triage table** — every failure classified as Eval Setup / Agent Configuration / Platform Limitation. The classification points at the fix.
+- **Top 3 actions** in Change → Re-run → Expect format.
+- **A `.docx` triage report** for your team to act from.
+
+### When this stage is wrong for you
+
+- You don't have eval results yet. Run Stage 3 first.
+- You already know what to fix and don't need the diagnostic. Skip the full triage; just re-run after your change.
+
+### Stage 4 is a loop, not an end
+
+After implementing the Top 3 actions, **re-run Stage 3 and re-do Stage 4 with the new results**. The before/after comparison validates whether the fix worked — and that before/after evidence is what advances Pillar 4 to L300 Systematic. A single Stage 4 pass without a follow-up re-run leaves Pillar 4 at L200.
+
+### The 20% rule — the most counterintuitive insight in this skill
+
+**At least 20% of failures in a new eval are eval setup bugs, not agent bugs.** The test case might be wrong, the expected response might be outdated, the testing method might be inappropriate, or the LLM judge might have misread the response. **Don't blame the agent until you've checked the test.**
+
+Tell the customer explicitly: *"Before we blame the agent — at least 20% of failures in a new eval are eval setup issues. Let me apply the 5-question eval verification before classifying failures as agent bugs."*
+
+This single discipline is what separates productive triage from churn.
+
+### Read quadrant pass rates, not the headline
+
+The headline pass rate ("60% passed") is wrong as a verdict. The right read is per-quadrant:
+
+- **Guardrails** at any failure rate → block / urgent. These are the zero-tolerance criteria.
+- **Critical** at <80% → ship-blocker; iterate.
+- **Valuable** at <70% → ship-blocker; iterate. At 70–90% → ship with known issues documented.
+- **Deprioritize** at any rate → not a release-gate signal.
+
+A Guardrails failure at 60% is more urgent than Deprioritize at 60%. Teach this read before showing numbers.
+
+**Ship-readiness thresholds (use these as the canonical targets across sessions):**
+
+| Quadrant | Ready to ship | Ship with documented issues | Hold / iterate |
+|---|---|---|---|
+| **Critical** | ≥ 90% | 80–90% (with documented gaps) | < 80% |
+| **Valuable** | ≥ 80% | 70–80% | < 70% |
+| **Guardrails** | ≥ 95% (≥ 100% on regulated-content boundaries) | not applicable — Guardrails has no "ship with known issues" tier | < 95% |
+| **Deprioritize** | not a release gate | not a release gate | not a release gate |
+
+A green-across-the-board run is rare on first iteration; expect 2–3 Stage 1→4 cycles before all quadrants hit "Ready to ship." Tell the customer the targets so they know what they're working toward, not just what's failing today.
 
 **Which skill to use:** For a one-shot triage report from a CSV file or results summary, invoke `/eval-result-interpreter`. For interactive, multi-round diagnosis with detailed remediation guidance, invoke `/eval-triage-and-improvement`. Start with the interpreter; switch to triage if you need help implementing fixes.
 
 ### What to do
 
-1. **Pre-triage check** — Were knowledge sources accessible? APIs healthy? Auth valid?
+1. **Pre-triage check — scan for infrastructure symptoms before classifying any failure.** Don't just ask "was everything working?" — that's a yes/no the customer can't answer accurately. Look for these symptoms in the results data:
 
-2. **Score summary** — Total, passed, failed, pass rate per category and test method.
+   | Symptom in results | Likely cause | Action |
+   |---|---|---|
+   | Empty agent response on multiple cases | Auth failure or timeout, not agent error | Don't count as agent failure — flag for re-run after infra fix |
+   | Sudden cluster of fails all citing one source | That source was unreachable during run | Verify source connectivity, re-run those cases |
+   | Same case passes/fails inconsistently across re-runs (>10% swing) | Non-determinism beyond normal LLM variance — likely caching, latency, or auth-token expiry mid-run | Re-run 2–3 times, take median |
+   | Cases tagged to a user profile got responses for a different profile | Profile assignment misconfigured at import | Fix profile tags, re-run those cases |
+   | Refusal cases pass but with generic "I can't help" not the expected escalation language | Agent has the refusal but lacks the escalation routing | Real agent issue — keep counted as failure, but classify as Agent Config (incomplete refusal) not Safety failure |
 
-3. **Failure triage** — **Explain the key insight:** "Before we blame the agent — at least 20% of failures in a new eval are actually eval setup issues, not agent issues. The test case might be wrong, the expected response might be outdated, or the testing method might be inappropriate. Let me check that first."
+   Confirm with the customer: *"I see [N] empty responses / [N] cases all on Source X / [other pattern]. Was [auth / connectivity / etc.] healthy during the run?"* Don't blame the agent for symptoms that match infrastructure patterns until the customer confirms.
 
-   Apply 5-question eval verification for each failure.
+   If anything was broken during the run, the run is invalid — re-run before triaging.
 
-4. **Root causes:** Eval Setup Issue / Agent Configuration Issue / Platform Limitation.
+2. **Score summary** — Total, passed, failed; pass rate per quadrant first, then per quality dimension and test method.
 
-5. **Top 3 actions** — Each: **Change** X → **Re-run** Y → **Expect** Z. When re-running, run the full test set, not just the failing cases, to catch regressions elsewhere. Save pre-fix pass rates and compare before/after — that before/after evidence is what distinguishes L300 Pillar 5 from L200.
+3. **Failure triage with the 20% rule** — apply 5-question eval verification to each failure before classifying it as an agent bug. ~20% will move to Eval Setup root cause.
+
+4. **Root causes:** Eval Setup Issue / Agent Configuration Issue / Platform Limitation. Each classification points at a different fix and a different owner.
+
+5. **Top 3 actions** — Each: **Change** X → **Re-run** Y → **Expect** Z. When re-running, run the full test set, not just the failing cases, to catch regressions elsewhere. Save pre-fix pass rates and compare before/after — that before/after evidence is what distinguishes L300 Systematic Pillar 4 from L200 Defined.
 
 6. **Pattern analysis** and **next-run recommendation.**
 
-If 100% pass: "A 100% pass rate is a red flag — your eval is likely too easy."
+### Override the LLM judge when it's wrong
 
-**Maturity callout — Pillar 5 (L100 → L300):** Completing this stage advances Pillar 5 from reactive fixing to structured root-cause analysis, before/after validation, and regression-proofing. All three session pillars (1, 2, 5) now at L300. Pillars 3 (Run systematically) and 4 (Handle changes with confidence) are the next chapter.
+The dashboard's **Agree / Disagree** buttons per case are the central mechanism for handling LLM-judge errors — not a power-user feature. ~5–10% of "fails" are judge errors (judge misread the response, missed an implicit citation, over-penalized minor phrasing). When you disagree, click Disagree — the case flips to an Eval Setup root cause and stops counting against the agent.
+
+**Use this aggressively.** A pass rate built on uncorrected judge errors is a false signal. Domain expertise wins over the judge every time.
+
+### A 100% pass rate is a red flag
+
+If everything passes, your eval is too easy. Real agents in real production conditions don't pass 100% of well-designed tests. Add harder cases — adversarial inputs, paraphrase variants, boundary conditions, sensitive-data probes. A 100% pass rate without harder cases is a comfort signal, not a quality signal.
+
+**The customer payoff:** *"You now have a ranked action list — three specific things to change, what to re-run after each, and what outcome to expect. Combined with the rerun protocol and baseline-comparison workbook from Stage 2, you can close the loop on this eval today and the next one in half the time."*
+
+**Maturity callout — Pillar 4 (L100 Initial → L300 Systematic):** Stage 4 advances Pillar 4 from reactive fixing to structured root-cause analysis, before/after validation, and regression-proofing. All three in-session pillars (1, 2, 4) are now at L300 Systematic. Pillars 3 (Run evals across the lifecycle) and 5 (Handle changes with confidence) reach L200 Defined via the `rerun-protocol-<agent>-<date>.docx` and `baseline-comparison-<agent>-<date>.xlsx` starter artifacts generated at session close.
 
 ### Interactive Dashboard Checkpoint
 
@@ -688,25 +1016,25 @@ Before generating the final triage report, launch the interpret dashboard for re
    - No `verdict` field — the dashboard shows pass rates per quadrant instead of SHIP/ITERATE/BLOCK
 2. Launch the dashboard:
    ```bash
-   python dashboard/serve.py --stage interpret --data stage-4-data.json
+   python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage interpret --serve --data stage-4-data.json
    ```
 3. The user reviews pass rates per quadrant, expands criterion rows to see test case details, uses Human Judgement (Agree/Disagree) to override LLM judge assessments, and re-classifies root causes.
-4. When the user confirms, read `interpret-feedback.json` and apply edits (including human disagrees which become eval_setup root causes). If changes requested, regenerate and re-launch.
+4. When the user confirms, read `interpret-feedback.json` and apply edits (including human disagrees which become eval_setup root causes). **Narrate the edits back** — count Disagrees applied, list re-classified root causes, name any Top-3-actions edits. Example: *"Got it — 4 Disagrees flipped to Eval Setup, root cause for failure #7 reclassified from Agent Config to Platform Limitation, Top action #2 edited to scope to Critical only. Updated pass rate per quadrant: Critical 78% → 82% after Disagrees applied."* Don't just say "applied." If changes requested, regenerate and re-launch.
 5. **After confirmation**, generate the customer-ready .docx triage report using the `/docx` skill. Same principles: concise, presentable, self-contained. Structure:
    1. Quadrant performance — quadrant summary cards (pass rate per quadrant) + full criterion table (quadrant, criterion, quality dimension, actual pass rate, status)
    2. Failure triage table (quadrant, criterion, question, expected, actual, root cause) — include human-disagreed entries as "Eval Setup — Human Disagrees"
    3. Top actions (Change → Re-run → Expect)
    4. Pattern analysis — quadrant-aware patterns highlighting systemic issues (e.g., Guardrails failures are more urgent than Deprioritize failures)
-   5. Next steps
-   6. Maturity snapshot — same before/after table as the Stage 2 report, updated to reflect Pillar 5 now at L300:
+   5. Next steps. **Always include a pointer line:** *"You're also keeping the Pillar 3 and Pillar 5 starter artifacts from Stage 2 — `rerun-protocol-<agent>-<date>.docx` and `baseline-comparison-<agent>-<date>.xlsx`. They advance Pillars 3 and 5 from L100 Initial to L200 Defined; use them when re-running and comparing runs."* (If Stage 2 was skipped, generate them now using the same flow as Stage 2 deliverables C and D.)
+   6. Maturity snapshot — same before/after table as the Stage 2 report, updated to reflect Pillar 4 now at L300 Systematic:
 
       | Pillar | Baseline | After this session | Next-session target |
       |---|---|---|---|
-      | 1 — Define what "good" means | L100 | L300 ✓ | — |
-      | 2 — Build eval sets | L100 | L300 ✓ | — |
-      | 3 — Run systematically | L100 | L100 | L300 |
-      | 4 — Handle changes with confidence | L100 | L100 | L300 |
-      | 5 — Improve and iterate | L100 | L300 ✓ | — |
+      | 1 — Define what "good" means | L100 Initial | L300 Systematic ✓ | — |
+      | 2 — Build your eval sets | L100 Initial | L300 Systematic ✓ | — |
+      | 3 — Run evals across the lifecycle | L100 Initial | L200 Defined ✓ (via `rerun-protocol-<agent>-<date>.docx`) | L300 Systematic |
+      | 4 — Improve and iterate | L100 Initial | L300 Systematic ✓ | — |
+      | 5 — Handle changes with confidence | L100 Initial | L200 Defined ✓ (via `baseline-comparison-<agent>-<date>.xlsx`) | L300 Systematic |
 
 ---
 
@@ -744,6 +1072,31 @@ When coaching customers, mention these Copilot Studio evaluation features at the
 These are documented at [About agent evaluation](https://learn.microsoft.com/en-us/microsoft-copilot-studio/analytics-agent-evaluation-intro). Don't let them design an eval plan around features they can't use.
 
 **Important caveat to share:** Agent evaluation measures correctness and performance — it does NOT test for AI ethics or safety problems. An agent can pass all eval tests and still produce inappropriate answers. Customers must still use responsible AI reviews and content safety filters. Evaluation complements those — it doesn't replace them.
+
+---
+
+## Reference Documents and Pillar 3 / Pillar 5 Starter Artifacts
+
+Two markdown source files live alongside this skill at `skills/eval-guide/`. They are **AI-readable structural blueprints**, not customer deliverables — the AI uses them as input to `/docx` and `/xlsx` to generate per-session customer artifacts.
+
+| Source file | Generates | Pillar | Purpose |
+|---|---|---|---|
+| `rerun-protocol.md` | `rerun-protocol-<agent>-<date>.docx` | Pillar 3 L200 Defined | Reference document — when to re-run evals after the agent changes, what scope to run, how to log results |
+| `baseline-comparison-template.md` | `baseline-comparison-<agent>-<date>.xlsx` | Pillar 5 L200 Defined | Fill-in workbook — comparison table for two eval runs, four case-level buckets, ship/hold decision |
+
+**The customer never sees the `.md` files** — they receive only the generated `.docx` and `.xlsx`. The markdown is internal source content that keeps the structure maintainable.
+
+**When the AI generates them:** As deliverables C and D in Stage 2's "After confirmation" block (always — Stage 2 runs in every session). If a session skips straight to Stage 4 (customer arrives with results, never ran Stages 0–2), generate them at Stage 4 close instead.
+
+**When to point the customer at them mid-session:**
+- Customer asks about cadence ("when should I rerun this?") → point to the `.docx` they're about to receive at session close.
+- Customer asks about comparing runs ("is my prompt fix actually working?") → point to the `.xlsx` workbook.
+
+**Do not surface them at session start.** They're delivery, not orientation. The orient dashboard already names them in "What you'll walk away with"; that's enough early signaling.
+
+**When the source `.md` content changes:** keep the `.docx` and `.xlsx` rendering instructions in Stage 2 (deliverables C and D) in sync. The structure of the customer artifacts is defined inline in Stage 2 — the markdown supplies the prose and tables, Stage 2 supplies the formatting/sheet rules.
+
+The full 5×5 maturity model definitions live in `maturity-model.md`. Treat that file as the canonical source — when the model changes, update it first, then propagate to consumers (this SKILL.md, USAGE.md, the orient data file, and the source markdown for the starter artifacts).
 
 ---
 

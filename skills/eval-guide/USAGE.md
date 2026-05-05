@@ -41,17 +41,17 @@ Your step-by-step guide to running a `/eval-guide` session. Written for you, the
 
 ## 3. The Eval Maturity Journey
 
-Eval maturity has five pillars. The default assumption is that the agent starts at **L100 (beginner)** on all five. Today's session moves three of them to **L300 (practitioner)**.
+Eval maturity has five pillars and five levels each — from `L100 Initial` (no practice in place) to `L500 Optimized` (continuous improvement built into operations). Today's session takes Pillars 1, 2, and 4 to **L300 Systematic** through in-session work, and Pillars 3 and 5 to **L200 Defined** through reference protocols you keep after the session. The full 5×5 lives in `maturity-model.md`.
 
 | Pillar | What it covers | Today's session | Where you land |
 |---|---|---|---|
-| **1. Define what "good" means** | Agent Vision, acceptance criteria (*"The agent should…"*), Value × Cost matrix, pass/fail conditions | **Delivered (Stage 0 + Stage 1)** | L300 |
-| **2. Build eval sets** | Test cases per acceptance criterion, CSVs ready for Copilot Studio | **Delivered (Stage 2)** | L300 |
-| **3. Run systematically** | Scheduled runs, CI integration, regression gating | Out of scope today | Stays at L100 |
-| **4. Handle changes** | Drift detection, comparative testing across versions | Out of scope today | Stays at L100 |
-| **5. Improve and iterate** | Root-cause triage, failure patterns, next-action playbook | **Delivered (Stage 4 — if eval results are available)** | L300 |
+| **1. Define what "good" means** | Agent Vision, acceptance criteria (*"The agent should…"*), Value × Cost matrix, pass/fail conditions | **Delivered (Stage 0 + Stage 1)** | L300 Systematic |
+| **2. Build your eval sets** | Test cases per acceptance criterion, CSVs ready for Copilot Studio | **Delivered (Stage 2)** | L300 Systematic |
+| **3. Run evals across the lifecycle** | When and where evals execute (offline, pre-deploy, in production) | **Starter delivered (`rerun-protocol-<agent>-<date>.docx`)** | L200 Defined |
+| **4. Improve and iterate** | Root-cause triage, failure patterns, next-action playbook | **Delivered (Stage 4 — if eval results are available)** | L300 Systematic |
+| **5. Handle changes with confidence** | Comparing eval runs, validating prompt/tool/model changes before shipping | **Starter delivered (`baseline-comparison-<agent>-<date>.xlsx`)** | L200 Defined |
 
-**Why Pillars 3 and 4 are out of scope:** they aren't single-session deliverables — they're ongoing operating practices. Pillar 3 needs a release cadence and CI hooks; Pillar 4 needs drift history and version comparisons to compare *against*. A single session can't build either. Once you have a running agent and a few weeks of production signal, come back to stand those up.
+**Why Pillars 3 and 5 stop at L200 Defined:** they aren't single-session deliverables — they're ongoing operating practices. Pillar 3 needs a release cadence with codified triggers (CI hooks, scheduled runs, production-quality tracking); Pillar 5 needs version-tagged baselines accumulated over multiple changes. The two starter artifacts you'll receive at session close (`rerun-protocol-<agent>-<date>.docx` and `baseline-comparison-<agent>-<date>.xlsx`) give you the documented protocol and fill-in workbook to execute when triggered — the L200 Defined milestone — and the path to L300 Systematic is described inside each artifact. Once you have a running agent and a few changes' worth of comparison history, come back to push them to L300.
 
 ## 4. Stage 0 — Discover *(advances Pillar 1)*
 
@@ -99,7 +99,7 @@ Eval maturity has five pillars. The default assumption is that the agent starts 
   - Which **functional families** apply (Information Retrieval, Request Submission, Troubleshooting, Process Navigation, Triage & Routing).
   - Which **capability families** apply (Knowledge Grounding, Tool Invocation, Trigger Routing, Safety, Compliance, Red-Teaming, Graceful Failure, Tone & Quality).
   - **Pass/fail conditions** for each criterion — explicit enough that a human or LLM judge can decide the outcome from the criterion alone.
-- **Coverage target:** ~50–70% focused on Core + Guardrails, ~20–30% on expected-but-lower-priority behaviors, ~10–20% on exploratory/edge. Always include at least one adversarial / Red-Teaming criterion.
+- **Coverage target:** ~50–70% focused on Critical + Guardrails, ~20–30% on expected-but-lower-priority behaviors, ~10–20% on exploratory/edge. Always include at least one adversarial / Red-Teaming criterion.
 - **What you get back:** A list of acceptance criteria printed in chat. Example:
   > "The agent should return the correct PTO days for the employee's office and tenure, with a citation to the source policy."
 
@@ -108,7 +108,7 @@ Eval maturity has five pillars. The default assumption is that the agent starts 
 - **Goal:** Assign each criterion to one of four quadrants so effort flows to what matters most.
 - **Quadrants** (two judgments: how much VALUE does getting this right deliver? how much COST does failure cause?):
   - **Critical** (high value, high cost) — product-defining capabilities and high-harm behaviors. Invest heaviest.
-  - **Core** (high value, low cost) — expected capabilities; occasional misses tolerable.
+  - **Valuable** (high value, low cost) — expected capabilities; occasional misses tolerable.
   - **Guardrails** (low value, high cost) — rarely triggered safety/compliance/refusal criteria. Zero tolerance for failure.
   - **Deprioritize** (low value, low cost) — exploratory or rare. Test lightly.
 - **What to verify (per criterion)** — a decision-aid field that captures what the test must actually check. Picking one **sets the test method automatically**:
@@ -128,14 +128,14 @@ Eval maturity has five pillars. The default assumption is that the agent starts 
 
 ### 1.4 Plan dashboard checkpoint
 
-- **What happens:** The AI runs `python dashboard/serve.py --stage plan --data stage-1-data.json`. Your browser opens `plan-dashboard.html`.
+- **What happens:** The AI launches the plan dashboard from the eval-guide plugin install. Your browser opens `plan-dashboard.html` (the file gets written next to your working directory).
 - **What you do in the browser:**
   - **Value × Cost matrix:** Each criterion is a draggable card placed in its starting quadrant. Axis labels: *High value* / *Low value* on the left, *Low cost of failure* / *High cost of failure* above. **Drag cards between quadrants** to adjust priority. Add new criteria with the per-quadrant *"+ The agent should…"* input.
   - **Acceptance Criteria & Conditions table:** Edit each criterion inline — Statement, the **What to verify** dropdown (auto-sets method), and the explicit green **Pass =** / red **Fail =** condition textareas. Edited fields turn blue.
   - **Quality Dimensions:** Drag criterion chips between dimension groups, or add a new dimension.
   - **General Comments** box at the bottom for anything not captured by the fields above.
   - Click **Approve & Continue to Next Stage** to accept (your inline edits flow into Stage 2), or **Incorporate Changes & Generate New Plan** to send it back to the AI for another pass.
-- **What you save:** Either button downloads `plan-feedback.json`. Save it in the same folder as `stage-1-data.json`. The AI detects the file and proceeds.
+- **What happens when you click:** The browser sends your feedback directly to the localhost dashboard server. `plan-feedback.json` is written next to your data file automatically — no download or manual file move. The server shuts down and the AI continues.
 - **What you get back (after Approve) — two deliverables:**
   - **`.docx` eval plan** — narrative report: Agent Vision summary, Value × Cost matrix overview, quadrant assignment (visual 2×2 + grouped criterion table), quality dimensions, method mapping. For sharing and team alignment.
   - **`.xlsx` workbook** (`eval-plan-<agent>-<date>.xlsx`) — machine-readable, filterable/sortable Excel. Sheets: Criteria (color-coded by quadrant) • Quadrant Summary • Quality Dimensions • Agent Vision. For offline editing or import into other tools.
@@ -158,16 +158,16 @@ Eval maturity has five pillars. The default assumption is that the agent starts 
 
 ### 2.3 Generate dashboard checkpoint
 
-- **What happens:** `python dashboard/serve.py --stage generate --data stage-2-data.json` opens `generate-dashboard.html`.
+- **What happens:** The AI launches the generate dashboard from the eval-guide plugin install. Your browser opens `generate-dashboard.html`.
 - **What you do in the browser:**
-  - **Quality-dimension tabs** at the top (each colored by the most severe quadrant present in that dimension — Critical red, Guardrails yellow, Core blue, Deprioritize gray).
+  - **Quality-dimension tabs** at the top (each colored by the most severe quadrant present in that dimension — Critical red, Guardrails yellow, Valuable blue, Deprioritize gray).
   - **"Test Methods to Use:"** bar under each tab lists the methods in play. Hover a chip to reveal its **×** (remove). Use the **+ Add method** dropdown at the end of the bar to add another method. Edits are saved automatically.
   - **Criterion groups** under each tab show the quadrant badge, the statement, and the **Pass = / Fail =** conditions in green/red.
   - **Test cases per criterion** — edit **Question** and **Expected response** inline. `[VERIFY: …]` spans are highlighted yellow — these are AI-generated factual claims you need to confirm against your knowledge source.
   - **When method is `General quality`, `Custom`, or `Capability use`:** the **Expected Response** column is hidden — those methods don't compare against a reference answer. They grade each response directly against the criterion's pass/fail conditions. A small note appears in the criterion group explaining why.
   - Add or delete test cases with the per-row buttons.
   - Click **Approve & Continue to Next Stage** or **Incorporate Changes & Generate New Plan**.
-- **What you save:** `generate-feedback.json` next to `stage-2-data.json`.
+- **What happens when you click:** Browser POSTs to the localhost server, `generate-feedback.json` is written next to `stage-2-data.json` automatically. No download.
 - **What you get back (after Approve):**
   - **Two CSV variants per quality signal** — e.g. for `knowledge-accuracy`, both `eval-knowledge-accuracy-<date>-for-import.csv` and `eval-knowledge-accuracy-<date>-with-methods.csv`. Same pairing for `safety-compliance`, `hallucination-prevention`, `routing`, `robustness`, `personalization` (when applicable).
     - `-for-import.csv` — 2 columns (`Question`, `Expected response`). Paste directly into Copilot Studio's Evaluation tab.
@@ -175,11 +175,11 @@ Eval maturity has five pillars. The default assumption is that the agent starts 
     - For criteria using reference-free methods (`General quality` / `Custom` / `Capability use`), the `Expected response` cell is empty in both CSVs — the pass/fail judgment comes from the criterion's pass/fail conditions.
   - A customer-ready **`.docx` test case report** — Value × Cost matrix summary, test cases grouped by quality dimension with quadrant badges and pass/fail conditions, and a "What these tests catch" callout.
 
-## 7. Stage 3 — Run *(Pillar 3 preview only — skip if agent isn't built)*
+## 7. Stage 3 — Run *(Pillar 3 starter — skip if agent isn't built)*
 
 **Goal:** Execute the CSVs against a live agent.
 
-Pillar 3 is not in today's L300 scope — it's an ongoing practice, not a single-session deliverable. Run Stage 3 yourself later when the agent is ready, or come back for a Pillar 3 session focused on cadence and automation.
+This session reaches **L200 Defined on Pillar 3** through the `rerun-protocol-<agent>-<date>.docx` reference document you'll receive at session close — a documented protocol for re-running evals when the agent changes. L300 Systematic on Pillar 3 (offline + production evals running on a defined cadence with production-quality tracking) requires automation and production signal that the starter doc points toward but doesn't deliver. Run Stage 3 yourself later when the agent is ready; the rerun protocol tells you when to trigger and what scope to run.
 
 If the agent IS running:
 
@@ -188,7 +188,7 @@ If the agent IS running:
 - **What you get back:** `eval-results-YYYY-MM-DD.csv` and `.json`. **Export immediately** — Copilot Studio only retains results for 89 days.
 - **Checkpoint:** None. This stage executes; no dashboard.
 
-## 8. Stage 4 — Interpret *(advances Pillar 5)*
+## 8. Stage 4 — Interpret *(advances Pillar 4)*
 
 **Goal:** Turn raw results into a ranked list of actions.
 
@@ -208,15 +208,15 @@ If the agent IS running:
 
 ### 4.4 Interpret dashboard checkpoint
 
-- **What happens:** `python dashboard/serve.py --stage interpret --data stage-4-data.json` opens `interpret-dashboard.html`.
+- **What happens:** The AI launches the interpret dashboard from the eval-guide plugin install. Your browser opens `interpret-dashboard.html`.
 - **What you do in the browser:**
-  - Scan the **quadrant summary cards** — pass rate per quadrant (Critical / Core / Guardrails / Deprioritize). A Guardrails failure is more urgent than a Deprioritize failure at the same rate; the cards make that visible.
+  - Scan the **quadrant summary cards** — pass rate per quadrant (Critical / Valuable / Guardrails / Deprioritize). A Guardrails failure is more urgent than a Deprioritize failure at the same rate; the cards make that visible.
   - Expand criterion rows to see every test case with the LLM judge's explanation.
   - Click **Agree** / **Disagree** per case. Disagrees flip the case to an Eval Setup root cause — your human judgment overrides the LLM judge.
   - Reclassify root causes via the dropdown.
   - Edit the Top 3 actions if the AI missed context.
   - Click **Approve & Continue to Next Stage** or **Incorporate Changes & Generate New Plan**.
-- **What you save:** `interpret-feedback.json` next to `stage-4-data.json`.
+- **What happens when you click:** Browser POSTs to the localhost server, `interpret-feedback.json` is written next to `stage-4-data.json` automatically. No download.
 - **What you get back:** A **`.docx` triage report** — pass rates per quadrant, failure triage table with human-disagreed entries flagged as *"Eval Setup — Human Disagrees"*, Top Actions, quadrant-aware pattern analysis, and next steps.
 
 ## 9. After the session
@@ -228,15 +228,18 @@ If the agent IS running:
 - Two CSV variants per quality signal (Stage 2): `-for-import` (2 cols, paste into Copilot Studio) and `-with-methods` (3 cols, working copy).
 - `.docx` test case report (Stage 2).
 - *If Stage 3 ran:* results CSV/JSON and `.docx` triage report (Stage 4).
-- The vocabulary to do the next round yourself: acceptance criteria (*"The agent should…"*), the four quadrants (**Critical / Core / Guardrails / Deprioritize**), quality dimensions, `[VERIFY]` discipline, pass/fail conditions, root-cause classification.
+- **`rerun-protocol-<agent>-<date>.docx`** — Pillar 3 L200 Defined starter. Reference document — when to re-run evals after the agent changes, what scope to run, how to log results, exit criteria for L200, path to L300. Read it, share it with your team, keep it next to your eval set.
+- **`baseline-comparison-<agent>-<date>.xlsx`** — Pillar 5 L200 Defined starter. Fill-in Excel workbook — comparison table for Run 1 vs. Run 2 metrics, four case-level buckets (Pass-Pass / Fail-Pass / Pass-Fail / Fail-Fail), decision rules, capability-vs-regression cheat sheet. Open it each time you compare two eval runs.
+- The vocabulary to do the next round yourself: acceptance criteria (*"The agent should…"*), the four quadrants (**Critical / Valuable / Guardrails / Deprioritize**), quality dimensions, `[VERIFY]` discipline, pass/fail conditions, root-cause classification.
 
-**How to re-engage for Pillars 3 and 4:**
-- **Pillar 3 (Run systematically)** — come back when you have a DirectLine endpoint and want scheduled runs, CI gating, and a cadence plan (Critical + Guardrails on every change, full suite weekly + pre-release).
-- **Pillar 4 (Handle changes)** — come back when you have two agent versions to compare, or you suspect drift from a model/prompt change. Use Copilot Studio's comparative testing plus version-tagged result archives.
+**How to push Pillars 3 and 5 from L200 Defined to L300 Systematic:**
+- **Pillar 3 (Run evals across the lifecycle)** — your `rerun-protocol-<agent>-<date>.docx` gets you to L200 Defined: a documented protocol you execute when triggered. L300 Systematic requires automation (CI hooks, scheduled runs) and production-quality tracking on a defined cadence. Come back when you have a DirectLine endpoint and want to codify the triggers and start sampling production traffic.
+- **Pillar 5 (Handle changes with confidence)** — your `baseline-comparison-<agent>-<date>.xlsx` gets you to L200 Defined: a fill-in workbook for comparing two runs. L300 Systematic requires per-change-type routing (a prompt edit triggers the prompt subset; a tool change triggers the tool-routing subset) and at least three changes' worth of comparison history. Come back when you've accumulated that history.
 
 **How to re-run as the agent evolves:**
-- Any change to knowledge, topics, or tools → re-run **Critical + Guardrails** CSVs first, then the full set to catch regressions.
+- Any change to knowledge, topics, or tools → follow the trigger table in your `rerun-protocol-<agent>-<date>.docx`. Critical + Guardrails first, then the prescribed scope.
 - New feature → new `/eval-guide` session, jumping to Stage 1 with the existing Agent Vision as input.
+- Comparing two runs → open your `baseline-comparison-<agent>-<date>.xlsx`, fill in the Comparison sheet and Case-level delta sheet. Pass-Fail (regression) cases are highest priority.
 - Production signal (real user issues) → add cases to the relevant quality signal CSV, re-run, re-interpret.
 - **Export every run's results to CSV immediately** — Copilot Studio retains them for only 89 days.
 
