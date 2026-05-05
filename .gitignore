@@ -15,6 +15,19 @@ eval-results-*.csv
 eval-results-*.json
 eval-*-for-import.csv
 eval-*-with-methods.csv
+# Per-signal eval CSVs (Stage 2 deliverable, new naming)
+eval-knowledge-*.csv
+eval-safety-*.csv
+eval-tone-*.csv
+eval-policy-*.csv
+eval-grounding-*.csv
+eval-routing-*.csv
+eval-robustness-*.csv
+eval-personalization-*.csv
+eval-hallucination-*.csv
+eval-boundary-*.csv
+eval-compliance-*.csv
+eval-accuracy-*.csv
 rerun-protocol-*.docx
 baseline-comparison-*.xlsx
 triage-report-*.docx

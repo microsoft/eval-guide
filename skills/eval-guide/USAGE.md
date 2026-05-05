@@ -159,22 +159,20 @@ Eval maturity has five pillars and five levels each — from `L100 Initial` (no 
 
 - **What happens:** The AI launches the generate dashboard from the eval-guide plugin install. Your browser opens `generate-dashboard.html`.
 - **What you do in the browser:**
-  - **Eval Sets Overview at the top** — a 3-column table (Quality Signal · Test Methods · Priority Level) listing every signal the AI proposes. Edits below update this table in real time. Click a signal name to jump to its section.
+  - **Eval Sets Overview at the top** — a 4-column table (Quality Signal · # Test Cases · Test Methods · Priority Level) listing every signal the AI proposes. Edits below update this table in real time. Click a signal name to jump to its section.
   - **Stacked signal sections, ordered by priority** — High Value · High Risk first, then Low Value · High Risk, then High Value · Low Risk, then Low Value · Low Risk. Each section has a colored top border matching its priority level. No tabs.
-  - **"Test Methods to Use:"** bar at the top of each signal section lists the methods in play. Hover a chip to reveal its **×** (remove). Use the **+ Add method** dropdown to add another method.
-  - **Criterion groups** show the quadrant badge, the statement, the case count, and a **per-criterion method dropdown** — change the test method directly per criterion. Changes propagate to the overview and to whether the Expected Response column is shown.
-  - **Pass = / Fail = conditions** are shown in green/red under each criterion header.
-  - **Test cases per criterion** — edit **Question** and **Expected response** inline. `[VERIFY: …]` spans are highlighted yellow — these are AI-generated factual claims you need to confirm against your knowledge source.
-  - **When method is `General quality`, `Custom`, or `Capability use`:** the **Expected Response** column is hidden — those methods don't compare against a reference answer. They grade each response directly against the criterion's pass/fail conditions. A small note appears in the criterion group explaining why.
+  - **"Test Methods to Use:"** bar at the top of each signal section lists the methods that apply to **every criterion in that signal** — methods are signal-level, not per-criterion. Hover a chip and click × to remove. Use **+ Add method** to add another.
+  - **Criterion cards** show the quadrant badge, the statement, and the **Pass = / Fail = conditions** in green/red. No per-criterion method dropdown — every criterion in a signal uses the signal's full method set.
+  - **Custom rubric callout** appears under the conditions when `Custom` is in the signal's methods — an editable LLM-judge rubric drafted from the criterion's pass/fail conditions. Edit it for your domain.
+  - **A small reference-free note** appears when `General quality` or `Capability use` is in the signal's methods — those methods grade against pass/fail conditions, not a reference, so they don't add a per-case column.
+  - **Test cases table** has columns driven by the signal's reference-needing methods: one column for `Question`, then one column per method that needs a per-case reference (`Compare meaning`, `Text similarity`, `Exact match`, `Keyword match`). Each cell is editable. `[VERIFY: …]` spans in `Compare meaning` / `Text similarity` cells are highlighted yellow — fact-check before approving.
   - Add or delete test cases with the per-row buttons.
   - Click **Approve & Continue to Next Stage** or **Incorporate Changes & Generate New Plan**.
 - **What happens when you click:** Browser POSTs to the localhost server, `generate-feedback.json` is written next to `stage-2-data.json` automatically. No download.
 - **What you get back (after Approve):**
-  - **Two CSV variants per quality signal** — e.g. for `knowledge-accuracy`, both `eval-knowledge-accuracy-<date>-for-import.csv` and `eval-knowledge-accuracy-<date>-with-methods.csv`. Same pairing for `safety-compliance`, `hallucination-prevention`, `routing`, `robustness`, `personalization` (when applicable).
-    - `-for-import.csv` — 2 columns (`Question`, `Expected response`). Paste directly into Copilot Studio's Evaluation tab.
-    - `-with-methods.csv` — 3 columns (`Question`, `Expected response`, `Testing method`). Your team's working copy with method suggestions per row.
-    - For criteria using reference-free methods (`General quality` / `Custom` / `Capability use`), the `Expected response` cell is empty in both CSVs — the pass/fail judgment comes from the criterion's pass/fail conditions.
-  - A customer-ready **`.docx` test case report** — Value × Cost matrix summary, test cases grouped by quality dimension with quadrant badges and pass/fail conditions, and a "What these tests catch" callout.
+  - **One CSV per quality signal** — e.g. `eval-knowledge-accuracy-<date>.csv`, `eval-safety-compliance-<date>.csv`, etc. Three columns: `Question`, `Expected response`, `Testing method`. Each test case is repeated once per method in that signal's method set, with the `Testing method` column distinguishing the rows. Paste directly into Copilot Studio's Evaluation tab.
+  - For methods that grade against pass/fail (`General quality`, `Capability use`, `Custom`), the `Expected response` cell is empty — Copilot Studio uses the criterion's pass/fail (and for `Custom`, the rubric you set in the test-set configuration).
+  - A customer-ready **`.docx` test case report** — Value × Risk matrix summary, test cases grouped by quality dimension with quadrant badges, pass/fail conditions, Custom rubrics where set, and a "What these tests catch" callout.
 
 ## 7. Stage 3 — Run *(Pillar 3 starter — skip if agent isn't built)*
 
@@ -225,7 +223,7 @@ If the agent IS running:
 **You walk away with:**
 - `stage-0-data.json` — confirmed Agent Vision.
 - `.docx` eval plan (Stage 1) with Value × Cost matrix and acceptance criteria.
-- Two CSV variants per quality signal (Stage 2): `-for-import` (2 cols, paste into Copilot Studio) and `-with-methods` (3 cols, working copy).
+- One CSV per quality signal (Stage 2): `eval-<signal>-<date>.csv` — 3 columns (Question, Expected response, Testing method), one row per case × method.
 - `.docx` test case report (Stage 2).
 - *If Stage 3 ran:* results CSV/JSON and `.docx` triage report (Stage 4).
 - **`eval-setup-guide-<agent>-<date>.docx`** — step-by-step walkthrough for setting up and running the CSVs in Copilot Studio's Evaluate tab. Per-method setup details (`General quality`, `Compare meaning`, `Keyword match`, `Custom`, etc.), threshold guidance tied to your quadrants, and a troubleshooting table for common import/run problems. Open it the first time you set up the run and any time someone new on the team picks it up.

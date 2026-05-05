@@ -627,8 +627,7 @@ Generate test cases as **separate CSV files per quality signal**. These are the 
 
 | Artifact | Use it for |
 |---|---|
-| `eval-<signal>-<date>-for-import.csv` (per quality signal) | Paste directly into Copilot Studio Evaluation tab |
-| `eval-<signal>-<date>-with-methods.csv` (per quality signal) | Team's working copy, version control, method audit |
+| `eval-<signal>-<date>.csv` (per quality signal — 3 columns: Question, Expected response, Testing method; one row per case × method) | Paste directly into Copilot Studio Evaluation tab |
 | `eval-test-cases-<agent>-<date>.docx` | PM / stakeholder review |
 | `eval-setup-guide-<agent>-<date>.docx` | Step-by-step walkthrough for setting up + running the eval in Copilot Studio's Evaluate tab |
 | `rerun-protocol-<agent>-<date>.docx` | Pillar 3 L200 — when to re-run the eval as the agent changes |
@@ -749,23 +748,32 @@ Display a summary table of test cases per quality signal.
 
 Before generating final CSV and report files, launch the test cases dashboard for review:
 
-1. Write the test cases to `stage-2-data.json` using the criterion + quadrant structure:
+1. Write the test cases to `stage-2-data.json`. **Methods live at the quality signal (test_set) level — every criterion in the signal shares that method set.** There is no per-criterion method.
+
    ```json
    {
      "agent_name": "...",
      "test_sets": [
        {
          "quality_dimension": "Policy Accuracy",
+         "methods": ["Compare meaning", "Keyword match"],
          "criteria": [
            {
              "criterion_id": 1,
              "statement": "The agent should return the correct PTO days for the employee's office and tenure, citing the Time Off Policy.",
              "quadrant": "critical",
-             "method": "Compare meaning",
              "pass_condition": "Response contains the correct PTO number for the user's office/tenure AND cites the Time Off Policy.",
              "fail_condition": "Incorrect number, missing citation, or cites the wrong policy.",
+             "custom_rubric": "",
              "cases": [
-               {"id": 1, "question": "...", "expected_response": "Text with [VERIFY: factual content to check] markers"}
+               {
+                 "id": 1,
+                 "question": "...",
+                 "expected_responses": {
+                   "Compare meaning": "Canonical answer, with [VERIFY: factual content to check] markers",
+                   "Keyword match": "PTO, Time Off Policy, accrual"
+                 }
+               }
              ]
            }
          ]
@@ -773,51 +781,56 @@ Before generating final CSV and report files, launch the test cases dashboard fo
      ]
    }
    ```
+
    Key requirements:
-   - Group test cases by `quality_dimension`, with `criteria` nested under each dimension
-   - Each criterion carries its `statement` (from Stage 1, starts with "The agent should…"), `quadrant`, `method`, `pass_condition`, `fail_condition`, and `cases`
-   - Method is set per-criterion (carried from Stage 1); if a specific case needs a different method, override on the case
-   - Wrap AI-generated factual content in `[VERIFY: ...]` markers so the dashboard highlights them for human review
-   - **`Custom` method**: also write a `custom_rubric` field on the criterion — a short LLM-judge rubric drafted from the pass/fail conditions ("Rate the response Pass / Fail. Pass = …. Fail = …. Output PASS or FAIL with a one-sentence reason."). The dashboard shows this as an editable textarea for the customer to refine. Don't leave Custom criteria without a rubric.
-   - **`Keyword match` method**: each test case's `expected_response` field holds the **comma-separated keyword list** (not a reference answer). The dashboard relabels this column as "Keywords" so the customer knows what to type. In the generated CSVs, this same field becomes the `Expected response` cell — Copilot Studio's Keyword match reads keywords from there.
+   - Group test cases by `quality_dimension`, with `criteria` nested under each dimension.
+   - Each test set carries a `methods: []` array — **the methods in this signal's CSV**. Choose one method when one fits; choose multiple only when the signal genuinely needs them (e.g., compliance signal needs both `Compare meaning` for content correctness AND `Keyword match` for required disclaimers). Default to one method.
+   - Each criterion carries its `statement` (from Stage 1, starts with "The agent should…"), `quadrant`, `pass_condition`, `fail_condition`, and `cases`. **No `method` field on the criterion.**
+   - Each case has `expected_responses: { method → value }` — one entry per method in the signal's `methods` array that needs a per-case reference (`Compare meaning`, `Text similarity`, `Exact match`, `Keyword match`). Methods that grade against the criterion's pass/fail conditions (`General quality`, `Capability use`, `Custom`) do NOT need entries.
+   - Wrap AI-generated factual content in `[VERIFY: ...]` markers inside the `Compare meaning` / `Text similarity` entries so the dashboard highlights them for review.
+   - **`Custom` method in the signal**: also write a `custom_rubric` field on each criterion — a short LLM-judge rubric drafted from the criterion's pass/fail conditions ("Rate the response Pass / Fail. Pass = …. Fail = …. Output PASS or FAIL with a one-sentence reason."). The dashboard shows this as an editable textarea per criterion. Don't leave criteria without a rubric when Custom is in the signal's methods.
+   - **`Keyword match` method**: the per-case `expected_responses["Keyword match"]` value is a **comma-separated keyword list** (not a reference answer). The dashboard renders this as a "Keywords" column.
 2. Launch the dashboard:
    ```bash
    python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage generate --serve --data stage-2-data.json
    ```
-3. The user reviews the **Eval Sets Overview** at the top, then walks the stacked signal sections (High Value · High Risk → Low Value · High Risk → High Value · Low Risk → Low Value · Low Risk) reviewing pass/fail conditions per criterion, changing the test method per criterion via the dropdown, checking VERIFY-highlighted factual content, and editing expected responses inline.
+3. The user reviews the **Eval Sets Overview** at the top, then walks the stacked signal sections (High Value · High Risk → Low Value · High Risk → High Value · Low Risk → Low Value · Low Risk). Per signal: edits the **Test Methods to Use** chips (signal-level — applies to every criterion). Per criterion: reviews pass/fail conditions, edits the Custom rubric callout if Custom is in the signal's methods, edits the per-method columns in the cases table (one column per reference-needing method in the signal), checks VERIFY-highlighted factual content, adds/removes test cases.
 4. When the user confirms, read `generate-feedback.json` and **apply every edit it contains, faithfully and without question**. The customer's choices are final — do NOT re-litigate, do NOT suggest reverting, do NOT ask for confirmation again, do NOT partially apply.
 
    This applies to ALL edit types:
    - [VERIFY] span corrections (the customer fact-checked your draft against their real knowledge sources — their version wins)
-   - Question edits, expected-response edits, keyword-list edits (Keyword match criteria store keywords in `expected_response`)
-   - Per-criterion method changes (dropdown in the criterion header — `test_sets[i].criteria[j].method`)
-   - Custom-method rubric edits (`test_sets[i].criteria[j].custom_rubric`) — the customer's refined rubric is final; use it as the LLM judge prompt verbatim
-   - Test case additions and deletions
-   - Method-bar additions / removals per quality signal (`test_sets[i].methods`)
-   - General Comments box content
+   - Question edits
+   - Per-method per-case expected-response edits — keyed by method: `test_sets[i].criteria[j].cases[k].expected_responses["Compare meaning"]`, `test_sets[i].criteria[j].cases[k].expected_responses["Keyword match"]`, etc. Each method's value updates that method's column for that case.
+   - Custom-method rubric edits (`test_sets[i].criteria[j].custom_rubric`) — the customer's refined rubric is final; use it as the LLM judge prompt verbatim.
+   - Signal-level method additions / removals (`test_sets[i].methods`) — adding/removing a method changes which columns + rubric blocks every criterion in the signal renders.
+   - Test case additions and deletions.
+   - General Comments box content.
 
    **Then narrate the edits back so the customer sees their changes were captured** — count [VERIFY] corrections, count test case additions/deletions, list significant pass/fail edits, restate updated total case count. Example: *"Got it — 8 [VERIFY] corrections captured, 2 new test cases for criterion #14, total now 56 cases across 7 quality signals."* Don't just say "applied." The narration confirms you parsed correctly; it is NOT an invitation to re-decide.
 
    If changes requested instead of confirmed, regenerate and re-launch.
 5. **After confirmation**, generate the final deliverables:
 
-**A. CSV files** — For each quality signal, write **TWO CSV variants** (so the customer has both a lean import artifact AND a working copy with method guidance):
+**A. CSV files** — One CSV per quality signal: `eval-<signal>-<date>.csv`. **Three columns**:
 
-   1. **`eval-<signal>-<date>-for-import.csv`** — **Import-ready for Copilot Studio.** Two columns only:
-      ```csv
-      "Question","Expected response"
-      ```
-      This is what the customer pastes directly into Copilot Studio's Evaluation tab. Minimal, no method column.
+   ```csv
+   "Question","Expected response","Testing method"
+   ```
 
-   2. **`eval-<signal>-<date>-with-methods.csv`** — **Working copy with method suggestions.** Three columns:
-      ```csv
-      "Question","Expected response","Testing method"
-      ```
-      Keep this alongside the import version for team review, version control, or tools that consume the per-case method hint.
+   **Row generation rule.** Walk every criterion in the signal, every active case in that criterion, and every method in `test_sets[i].methods`. For each `(case, method)` pair emit one row:
 
-   **Handling reference-free methods:** For criteria with method `General quality`, `Custom`, or `Capability use`, leave the `Expected response` cell empty in both CSVs. The pass/fail judgment comes from the criterion's pass/fail conditions in those cases, not a reference string. Note in the docx report which criteria use reference-free methods so the customer knows why some cells are blank.
+   - `Question` = the case's question (same across methods).
+   - `Testing method` = the method name.
+   - `Expected response`:
+     - For `Compare meaning` / `Text similarity` → `case.expected_responses["Compare meaning"]` (or `"Text similarity"`) verbatim.
+     - For `Exact match` → `case.expected_responses["Exact match"]` verbatim.
+     - For `Keyword match` → `case.expected_responses["Keyword match"]` (the comma-separated keyword list) verbatim.
+     - For `General quality` / `Capability use` → leave **empty**. The judge grades against the criterion's pass/fail conditions.
+     - For `Custom` → leave **empty**. The judge uses `criterion.custom_rubric` (carried alongside in the docx report); the CSV cell stays blank because Copilot Studio's Custom method picks up the rubric from the test-set configuration, not from the row.
 
-   Tell the customer: "You get two CSVs per quality dimension — the `-for-import` version is what you paste into Copilot Studio; the `-with-methods` version keeps the suggested testing method per row for your team's reference. Both have the same questions and expected responses."
+   A signal with `methods: ["Compare meaning"]` and 12 cases produces 12 rows. A signal with `methods: ["Compare meaning", "Keyword match"]` and 12 cases produces 24 rows (the same 12 questions, each repeated once per method, with the Testing method column distinguishing them).
+
+   Tell the customer: "One CSV per quality signal — paste directly into Copilot Studio's Evaluation tab. Each test case is repeated once per method in that signal's method set so the Testing method column matches the row's Expected response."
 
 **B. .docx report** — Generate a customer-ready report using the `/docx` skill. The report must be:
 - **Concise** — no filler, no walls of text. Tables over paragraphs.
@@ -891,7 +904,7 @@ Stage 3 turns the eval set into evidence. Run your CSVs against the live agent a
 
 | Path | When it's right | Setup cost |
 |---|---|---|
-| **Copilot Studio UI Evaluation tab** *(default — start here)* | Most customers, especially incidental users. Import the `-for-import.csv`, run, view results in the UI. Use this unless you need automation. | Agent auth only. |
+| **Copilot Studio UI Evaluation tab** *(default — start here)* | Most customers, especially incidental users. Import `eval-<signal>-<date>.csv`, run, view results in the UI. Use this unless you need automation. | Agent auth only. |
 | **`eval-runner.js` (CLI)** | You need to automate, run from CI, or use LLM-judge methods the UI doesn't expose. | Node, DirectLine token endpoint, `ANTHROPIC_API_KEY` (real $ — Claude API costs apply). |
 
 ### How to run (CLI path)

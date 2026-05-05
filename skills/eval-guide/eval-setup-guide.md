@@ -20,7 +20,7 @@ If any of these are missing, finish them first — running the eval before this 
 
 | You need | Where it came from | What it looks like |
 |---|---|---|
-| Your eval CSVs (one per quality signal) | Stage 2 of `/eval-guide` | `eval-knowledge-accuracy-<date>-for-import.csv`, `eval-safety-compliance-<date>-for-import.csv`, etc. |
+| Your eval CSVs (one per quality signal) | Stage 2 of `/eval-guide` | `eval-knowledge-accuracy-<date>.csv`, `eval-safety-compliance-<date>.csv`, etc. |
 | Your eval plan `.docx` | Stage 1 of `/eval-guide` | `eval-plan-<agent>-<date>.docx` — keep it open; the quadrants and pass/fail conditions live here. |
 | A Copilot Studio agent in your environment | Whoever built the agent | Reachable in the Copilot Studio Maker portal. |
 | Maker access to that agent | Your tenant admin | You can open the agent and see the **Test** / **Evaluate** tab without errors. |
@@ -48,7 +48,7 @@ A test set is one bundle of test cases that share an evaluation mode. You will c
 ## Step 3 — Import the CSV
 
 1. Inside the new test set, click **Add test cases** → **Import from CSV**.
-2. Use the **`-for-import.csv`** variant (e.g., `eval-knowledge-accuracy-<date>-for-import.csv`). The other CSV in the pair (`-with-methods.csv`) carries your team's working method suggestions and is **not** the import file.
+2. Pick the CSV for the signal you're setting up (e.g., `eval-knowledge-accuracy-<date>.csv`). It has 3 columns: `Question`, `Expected response`, `Testing method`. Each test case appears once per method in that signal's method set, with the `Testing method` column distinguishing the rows.
 3. Confirm the column mapping:
    - `Question` → user prompt
    - `Expected response` → reference answer (blank for `General quality` / `Custom` / `Capability use` rows; that is intentional)
@@ -56,7 +56,7 @@ A test set is one bundle of test cases that share an evaluation mode. You will c
 
 ## Step 4 — Choose a test method per row, configure it, and set thresholds
 
-This is the step where most first-time runs go wrong. Each criterion in your eval plan should already be tagged with a method (Stage 1 dashboard column **What to verify** → method); your `-with-methods.csv` carries that tag per row. Use this section to (a) pick the right method when you're unsure, (b) configure it correctly, and (c) set a sensible threshold.
+This is the step where most first-time runs go wrong. Methods are set at the **quality signal level** in `/eval-guide` Stage 2 — every criterion in a signal shares the same method set. The signal CSV's `Testing method` column carries that mapping per row. Use this section to (a) pick the right method when you're unsure, (b) configure it correctly, and (c) set a sensible threshold.
 
 ### How to pick the method (quick decision tree)
 
@@ -215,7 +215,7 @@ If you skip the export, you will lose run history and the ability to compare run
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| CSV import fails with "row format invalid" | Smart quotes / non-UTF-8 / extra columns | Re-save the CSV as UTF-8; confirm exactly the columns the Evaluate tab expects (2 cols for `-for-import.csv`). |
+| CSV import fails with "row format invalid" | Smart quotes / non-UTF-8 / extra columns | Re-save the CSV as UTF-8; confirm exactly the columns the Evaluate tab expects (3 cols: Question, Expected response, Testing method). |
 | Every case fails on `Compare meaning` | Expected response column is blank or contains `[VERIFY: …]` placeholders | Fill in the expected response with verified content; never leave `[VERIFY]` markers in the imported file. |
 | LLM judge marks correct answers as wrong | Pass/fail condition is too narrow, or judge doesn't know the domain | Switch to `General quality` with a more explicit pass condition, OR add a `Custom` rubric, OR fix the expected response. |
 | Run gets stuck "in progress" past expected time | Agent endpoint is unreachable, throttled, or auth expired | Re-test the agent in the standard Test pane. Resolve auth/quota first; restart the run. |
@@ -224,7 +224,7 @@ If you skip the export, you will lose run history and the ability to compare run
 
 ## You've finished setup successfully when…
 
-- All your `-for-import.csv` files are imported as named test sets in the agent.
+- All your `eval-<signal>-<date>.csv` files are imported as named test sets in the agent.
 - Each test set's evaluation mode and per-row method match your eval plan.
 - A first run has completed end-to-end (even on a small subset).
 - Results are exported as `eval-results-<agent>-<YYYY-MM-DD>.csv` and stored next to your eval plan.
@@ -234,8 +234,7 @@ At that point you have a repeatable eval setup. The rerun protocol tells you whe
 ## Related artifacts (from this session)
 
 - `eval-plan-<agent>-<date>.docx` — Stage 1 plan; defines the criteria each test case is judging.
-- `eval-<signal>-<date>-for-import.csv` — the files you import in Step 3.
-- `eval-<signal>-<date>-with-methods.csv` — your team's working copy with method suggestions per row; reference it when filling Step 4.
+- `eval-<signal>-<date>.csv` — the files you import in Step 3 (Question, Expected response, Testing method per row).
 - `rerun-protocol-<agent>-<date>.docx` — when to re-run; pairs with this guide.
 - `baseline-comparison-<agent>-<date>.xlsx` — how to compare two runs once you have multiple exports.
 

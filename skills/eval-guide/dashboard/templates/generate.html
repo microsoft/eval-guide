@@ -1,18 +1,17 @@
-<!-- Stage 2: Generate — Test Cases Review (editorial card layout) -->
+<!-- Stage 2: Generate — Test Cases Review (signal-level methods, multi-column cases) -->
 
 <style>
 /* ════════════════════════════════════════════════════════════════
-   STAGE 2 LAYOUT — keep existing color palette, restructure form
-   The page reads top-down as: overview → signal sections →
-   criterion cards → test cases. Each criterion is one cohesive card
-   so meta and content stop feeling like loose horizontal slabs.
+   STAGE 2 LAYOUT — signal-level methods govern per-case columns.
+   Per criterion: statement → pass/fail → (rubric if Custom in
+   signal) → reference-free note (if any) → cases table whose
+   columns are determined by the signal's reference-needing methods.
+   No per-criterion method picker.
    ════════════════════════════════════════════════════════════════ */
 
 /* ── Eval Sets Overview ─────────────────────────────── */
 
-.eval-overview table {
-  font-size: 0.92rem;
-}
+.eval-overview table { font-size: 0.92rem; }
 .eval-overview th {
   font-size: 0.66rem;
   letter-spacing: 0.12em;
@@ -105,7 +104,6 @@
   font-variation-settings: "opsz" 14;
   font-size: 0.92rem;
   color: var(--ink-muted);
-  letter-spacing: 0;
 }
 .signal-meta .meta-sep {
   display: inline-block;
@@ -135,6 +133,13 @@
   letter-spacing: 0.12em;
   color: var(--ink-muted);
   margin-right: 0.3rem;
+}
+.dim-methods-bar .bar-help {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  margin-left: 0.4rem;
 }
 .method-chip {
   display: inline-flex;
@@ -175,7 +180,7 @@
 }
 .add-method-select:hover { border-color: var(--accent); color: var(--accent); border-style: solid; }
 
-/* ── Criterion card: cohesive unit ──────────────────── */
+/* ── Criterion card ─────────────────────────────────── */
 
 .criterion-card {
   background: var(--surface);
@@ -191,11 +196,7 @@
 .criterion-card.q-card-valuable     { border-top: 2px solid var(--valuable); }
 .criterion-card.q-card-guardrails   { border-top: 2px solid var(--guardrails); }
 .criterion-card.q-card-deprioritize { border-top: 2px solid var(--deprioritize); }
-
-/* The card's interior is one padded canvas, not horizontal bands */
-.criterion-card-body {
-  padding: 1.05rem 1.2rem 0.4rem;
-}
+.criterion-card-body { padding: 1.05rem 1.2rem 0.4rem; }
 
 .criterion-statement {
   display: flex;
@@ -210,12 +211,8 @@
   letter-spacing: -0.005em;
   margin-bottom: 0.6rem;
 }
-.criterion-statement .q-tag {
-  flex-shrink: 0;
-  margin-top: 0.25rem;
-}
+.criterion-statement .q-tag { flex-shrink: 0; margin-top: 0.25rem; }
 
-/* Pass/fail conditions: side-by-side, color-keyed left rules */
 .conditions-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -229,7 +226,6 @@
   font-size: 0.85rem;
   line-height: 1.5;
   color: var(--ink);
-  position: relative;
 }
 .condition-block.pass { border-left: 3px solid var(--green); }
 .condition-block.fail { border-left: 3px solid var(--critical); }
@@ -248,65 +244,25 @@
   .conditions-grid { grid-template-columns: 1fr; }
 }
 
-/* Meta row: method dropdown + case count */
-.criterion-meta {
+/* Slim case-count line that replaces the old dropdown row */
+.criterion-summary {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.8rem;
-  padding: 0.55rem 0;
-  border-top: 1px dashed var(--rule-fine);
-  margin-bottom: 0.85rem;
-  font-size: 0.78rem;
-}
-.criterion-meta .meta-left {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  flex-wrap: wrap;
-}
-.criterion-meta .meta-label {
-  font-family: var(--sans);
-  font-size: 0.62rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--ink-muted);
-}
-.criterion-method-select {
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  padding: 0.25rem 0.55rem;
-  padding-right: 1.4rem;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  background: var(--paper);
-  color: var(--ink);
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-}
-.criterion-method-select:hover { border-color: var(--ink-soft); background: #fff; }
-.criterion-method-select:focus {
-  border-color: var(--accent);
-  outline: none;
-  box-shadow: 0 0 0 3px var(--accent-wash);
-  background: #fff;
-}
-.criterion-method-select.edited {
-  background: var(--accent-wash);
-  border-color: var(--accent);
-}
-.criterion-meta .case-count {
+  justify-content: flex-end;
   font-family: var(--serif);
   font-style: italic;
   font-variation-settings: "opsz" 14;
+  font-size: 0.85rem;
   color: var(--ink-muted);
+  padding: 0.35rem 0;
+  border-top: 1px dashed var(--rule-fine);
+  margin-bottom: 0.7rem;
 }
-.criterion-meta .case-count strong {
+.criterion-summary strong {
   font-style: normal;
   font-family: var(--mono);
   color: var(--ink);
   font-weight: 500;
+  margin-right: 0.25rem;
 }
 
 /* ── Reference-free note + Custom rubric block ──────── */
@@ -386,7 +342,6 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-wash);
 }
-.rubric-textarea.edited { background: #fff; border-color: var(--accent); }
 
 /* ── Test cases area: nested but visually contained ─── */
 
@@ -412,16 +367,39 @@
   border-radius: var(--radius);
   overflow: hidden;
   font-size: 0.86rem;
+  table-layout: fixed;
 }
 .cases-block th {
   background: var(--paper-darker);
   font-size: 0.62rem;
   letter-spacing: 0.12em;
   padding: 0.5rem 0.7rem;
+  vertical-align: bottom;
+}
+.cases-block th .col-method-name {
+  display: block;
+  font-size: 0.72rem;
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-bottom: 0.05rem;
+}
+.cases-block th .col-help {
+  display: block;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
 }
 .cases-block td {
   padding: 0.5rem 0.7rem;
   border-bottom: 1px solid var(--rule-fine);
+  vertical-align: top;
 }
 .cases-block tr:last-child td { border-bottom: none; }
 .cases-block .row-num {
@@ -429,21 +407,19 @@
   color: var(--ink-faint);
   font-size: 0.78rem;
   text-align: right;
-  vertical-align: top;
   padding-top: 0.85rem;
+  width: 2.4rem;
 }
 .cases-block td.editable textarea {
   background: transparent;
   font-size: 0.88rem;
   padding: 0.35rem 0.45rem;
 }
-.cases-block td.editable textarea:focus {
-  background: #fff;
-}
+.cases-block td.editable textarea:focus { background: #fff; }
 .cases-block .row-actions {
   text-align: center;
-  vertical-align: top;
   padding-top: 0.7rem;
+  width: 2.4rem;
 }
 .cases-block .btn-add {
   margin-top: 0.55rem;
@@ -451,7 +427,11 @@
   font-size: 0.8rem;
 }
 
-/* ── VERIFY highlight (kept) ─────────────────────────── */
+/* When a signal has no per-case columns (only reference-free methods),
+   show a simpler one-question-per-row layout */
+.cases-block.no-columns table { table-layout: auto; }
+
+/* ── VERIFY highlight ────────────────────────────────── */
 
 .verify-highlight {
   background: var(--guardrails-wash);
@@ -483,12 +463,10 @@
 .q-tag-guardrails   { background: var(--guardrails-wash); color: #7a5a16; }
 .q-tag-deprioritize { background: var(--deprioritize-wash); color: var(--deprioritize); }
 .q-tag-mixed        { background: var(--surface-warm); color: var(--ink-muted); border: 1px dashed var(--rule); }
-
-/* Smaller variant used in the overview table */
 .q-tag-sm { font-size: 0.58rem; padding: 0.1rem 0.45rem; }
 </style>
 
-<!-- ── Eval Sets Overview (top, live-updated) ──────────────────── -->
+<!-- ── Eval Sets Overview ──────────────────────────────────────── -->
 <div class="section eval-overview">
   <div class="section-header flex-between">
     <span data-tooltip="Live overview of every quality signal you'll generate test cases for. Edits below (adding cases, changing methods) update this table in real time. Use it to verify coverage before approving.">Eval Sets Overview</span>
@@ -509,7 +487,7 @@
   </div>
 </div>
 
-<!-- ── Stacked per-signal sections (sorted High Value · High Risk → Low Value · High Risk → High Value · Low Risk → Low Value · Low Risk) ── -->
+<!-- ── Stacked per-signal sections (sorted by dominant priority) ── -->
 <div id="signal-sections"></div>
 
 <script>
@@ -541,15 +519,20 @@ const Q_CARD_CSS = {
   deprioritize: "q-card-deprioritize",
 };
 
-// Section ordering: High Value · High Risk first, Low Value · High Risk,
-// High Value · Low Risk, Low Value · Low Risk, and any mixed at the end.
 const QUADRANT_DISPLAY_ORDER = { critical: 0, guardrails: 1, valuable: 2, deprioritize: 3, mixed: 4 };
-// "Dominant quadrant" weighting when a signal has criteria across multiple quadrants
-// — High Value · High Risk wins ties over Low Value · High Risk > High Value · Low Risk > Low Value · Low Risk.
 const QUADRANT_WEIGHT = { critical: 4, guardrails: 3, valuable: 2, deprioritize: 1 };
 
 const METHODS = ["Compare meaning", "General quality", "Keyword match", "Exact match", "Text similarity", "Capability use", "Custom"];
-const REFERENCE_FREE_METHODS = ["General quality", "Custom", "Capability use"];
+
+// Methods that need a per-case reference column. Each value is { header, help, placeholder }.
+const REFERENCE_NEEDING_METHODS = {
+  "Compare meaning":  { help: "canonical answer (paraphrase OK)",   placeholder: "the answer the agent should give"      },
+  "Text similarity":  { help: "expected text (similarity ≥ 0.7)",   placeholder: "expected text the response should match" },
+  "Exact match":      { help: "exact string",                        placeholder: "exact text the response must match"     },
+  "Keyword match":    { help: "comma-separated keywords",            placeholder: "keyword1, keyword2, keyword3"           },
+};
+// Methods that grade against the criterion's pass/fail conditions, no per-case reference.
+const REFERENCE_FREE_METHODS = ["General quality", "Capability use", "Custom"];
 
 let testSets = [];
 
@@ -576,22 +559,28 @@ function normalizeCriterion(raw) {
     passCondition = passMatch ? passMatch[1].trim() : "";
     failCondition = failMatch ? failMatch[1].trim() : "";
   }
+  // Backward compat: legacy data with `criterion.method` + `case.expected_response`.
+  // Migrate the single expected_response into expected_responses[legacyMethod] so
+  // the new multi-method UI can render it under the right column.
+  const legacyMethod = raw.method || "Compare meaning";
   return {
     criterion_id: raw.criterion_id || raw.scenario_id || raw.id,
     statement: statement,
     quadrant: quadrant,
-    method: raw.method || "Compare meaning",
-    _originalMethod: raw.method || "Compare meaning",
     pass_condition: passCondition,
     fail_condition: failCondition,
     custom_rubric: raw.custom_rubric || "",
-    cases: (raw.cases || []).map((c, i) => ({...c, _idx: i, _deleted: false})),
+    cases: (raw.cases || []).map((c, i) => {
+      const expected_responses = Object.assign({}, c.expected_responses || {});
+      if (c.expected_response !== undefined && c.expected_response !== "" && expected_responses[legacyMethod] === undefined) {
+        expected_responses[legacyMethod] = c.expected_response;
+      }
+      return Object.assign({}, c, { _idx: i, _deleted: false, expected_responses });
+    }),
   };
 }
 
 // Draft a Custom-method rubric from the criterion's pass/fail conditions.
-// The user is expected to refine this for their domain — it's a starting frame,
-// not a final rubric.
 function draftCustomRubric(c) {
   if (c.custom_rubric) return c.custom_rubric;
   const lines = [];
@@ -611,13 +600,15 @@ function stageInit() {
     criteria: (ts.criteria || ts.scenarios || []).map(normalizeCriterion),
   }));
 
-  // Initialize each test set's `methods` array from the union of criterion methods
-  // if not already present. Stays editable at the dimension level afterwards.
-  testSets.forEach(ts => {
+  // Initialize each test set's `methods` array. If absent, take the union of
+  // any legacy per-criterion methods present in the raw data; default to
+  // ["Compare meaning"] if nothing is set.
+  testSets.forEach((ts, i) => {
     if (!ts.methods || !ts.methods.length) {
       const methodSet = new Set();
-      ts.criteria.forEach(c => { if (c.method) methodSet.add(c.method); });
-      ts.methods = Array.from(methodSet);
+      const rawCriteria = (EMBEDDED_DATA.data.test_sets[i].criteria || EMBEDDED_DATA.data.test_sets[i].scenarios || []);
+      rawCriteria.forEach(rc => { if (rc.method) methodSet.add(rc.method); });
+      ts.methods = methodSet.size ? Array.from(methodSet) : ["Compare meaning"];
     }
   });
 
@@ -686,7 +677,6 @@ function buildSignalSectionHTML(ts, tsIdx, quadrant) {
   const dimensionName = ts.quality_dimension || ts.quality_signal || "";
   const anchorId = "signal-anchor-" + tsIdx;
 
-  // Headline — title + italic meta + small quadrant tag
   let html = '<div id="' + anchorId + '" class="signal-headline">' +
     '<h2 class="signal-title">' + escapeHtml(dimensionName) + '</h2>' +
     '<span class="q-tag ' + (Q_TAG_CSS[quadrant] || "") + '">' + (QUADRANT_LABELS[quadrant] || quadrant) + '</span>' +
@@ -697,7 +687,7 @@ function buildSignalSectionHTML(ts, tsIdx, quadrant) {
     '</span>' +
     '</div>';
 
-  // Dimension-level method bar — annotated strip, not a banner
+  // Dimension-level method bar — all criteria in this signal share these methods.
   html += '<div class="dim-methods-bar" id="dim-methods-bar-' + tsIdx + '">' +
     '<span class="bar-label">Test Methods to Use</span>';
   ts.methods.forEach(m => {
@@ -712,23 +702,28 @@ function buildSignalSectionHTML(ts, tsIdx, quadrant) {
       remaining.map(m => '<option value="' + escapeAttr(m) + '">' + escapeHtml(m) + '</option>').join("") +
       '</select>';
   }
+  html += '<span class="bar-help">applies to every criterion in this signal</span>';
   html += '</div>';
 
-  // Criteria — each as a self-contained card
+  // Criteria
   ts.criteria.forEach((c, cIdx) => {
-    html += buildCriterionCardHTML(c, tsIdx, cIdx, prefix);
+    html += buildCriterionCardHTML(c, tsIdx, cIdx, prefix, ts.methods);
   });
 
   return html;
 }
 
-function buildCriterionCardHTML(c, tsIdx, cIdx, prefix) {
+function buildCriterionCardHTML(c, tsIdx, cIdx, prefix, signalMethods) {
   const cPrefix = prefix + ".criteria[" + cIdx + "]";
   const activeCases = c.cases.filter(cs => !cs._deleted);
-  const methodEdited = c.method !== c._originalMethod;
-  const needsReference = !REFERENCE_FREE_METHODS.includes(c.method);
-  const isKeywordMatch = c.method === "Keyword match";
-  const isCustom = c.method === "Custom";
+
+  // Reference-needing methods for this signal — drives per-case columns.
+  const refNeeding = signalMethods.filter(m => REFERENCE_NEEDING_METHODS[m]);
+  // Reference-free methods other than Custom — they share one note.
+  const refFreeNonCustom = signalMethods.filter(m =>
+    REFERENCE_FREE_METHODS.includes(m) && m !== "Custom"
+  );
+  const hasCustom = signalMethods.includes("Custom");
 
   let html = '<article class="criterion-card ' + (Q_CARD_CSS[c.quadrant] || "") + '">' +
     '<div class="criterion-card-body">';
@@ -742,45 +737,17 @@ function buildCriterionCardHTML(c, tsIdx, cIdx, prefix) {
   // Pass / Fail conditions — side-by-side
   if (c.pass_condition || c.fail_condition) {
     html += '<div class="conditions-grid">';
-    if (c.pass_condition) {
-      html += '<div class="condition-block pass">' +
-        '<span class="condition-label">Pass =</span>' +
-        escapeHtml(c.pass_condition) +
-        '</div>';
-    } else {
-      html += '<div></div>';
-    }
-    if (c.fail_condition) {
-      html += '<div class="condition-block fail">' +
-        '<span class="condition-label">Fail =</span>' +
-        escapeHtml(c.fail_condition) +
-        '</div>';
-    } else {
-      html += '<div></div>';
-    }
+    html += c.pass_condition
+      ? '<div class="condition-block pass"><span class="condition-label">Pass =</span>' + escapeHtml(c.pass_condition) + '</div>'
+      : '<div></div>';
+    html += c.fail_condition
+      ? '<div class="condition-block fail"><span class="condition-label">Fail =</span>' + escapeHtml(c.fail_condition) + '</div>'
+      : '<div></div>';
     html += '</div>';
   }
 
-  // Meta row: method dropdown + case count
-  html += '<div class="criterion-meta">' +
-    '<div class="meta-left">' +
-      '<span class="meta-label">Method</span>' +
-      '<select class="criterion-method-select' + (methodEdited ? " edited" : "") + '" ' +
-        'data-field="' + cPrefix + '.method" data-original="' + escapeAttr(c._originalMethod) + '" ' +
-        'onchange="changeCriterionMethod(' + tsIdx + ',' + cIdx + ',this.value)">' +
-      METHODS.map(m =>
-        '<option value="' + escapeAttr(m) + '"' + (m === c.method ? " selected" : "") + '>' +
-        escapeHtml(m) + '</option>'
-      ).join("") +
-      '</select>' +
-    '</div>' +
-    '<div class="case-count"><strong>' + activeCases.length + '</strong> ' +
-      (activeCases.length === 1 ? 'test case' : 'test cases') +
-    '</div>' +
-    '</div>';
-
-  // Custom rubric block (Custom method only)
-  if (isCustom) {
+  // Custom rubric — only if Custom is in the signal's method set
+  if (hasCustom) {
     const rubricFp = cPrefix + ".custom_rubric";
     const persistedEdit = (typeof edits === "object" && edits && edits[rubricFp] !== undefined && edits[rubricFp] !== "__DELETE__")
       ? edits[rubricFp] : null;
@@ -794,56 +761,97 @@ function buildCriterionCardHTML(c, tsIdx, cIdx, prefix) {
       'data-field="' + rubricFp + '" data-original="" ' +
       'oninput="scheduleSave()">' + escapeHtml(rubricValue) + '</textarea>' +
       '</div>';
-  } else if (!needsReference) {
-    // General quality / Capability use: explanatory note instead of a reference column
+  }
+
+  // Single shared note for reference-free non-Custom methods (General quality / Capability use)
+  if (refFreeNonCustom.length > 0) {
+    const list = refFreeNonCustom.map(m => '<em>' + escapeHtml(m) + '</em>').join(" and ");
     html += '<div class="reference-note">' +
-      '<strong>No expected response needed</strong>' +
-      '<em>' + escapeHtml(c.method) + '</em> grades each response directly against the pass/fail conditions above, not against a reference answer.' +
+      '<strong>No per-case reference for ' + (refFreeNonCustom.length === 1 ? 'this method' : 'these methods') + '</strong>' +
+      list + ' grade' + (refFreeNonCustom.length === 1 ? 's' : '') +
+      ' each response directly against the pass/fail conditions above.' +
       '</div>';
   }
 
-  // Test cases area — visually contained inside the card
-  const secondColLabel = isKeywordMatch ? "Keywords" : "Expected Response";
-  const secondColPlaceholder = isKeywordMatch ? "comma-separated keywords (case-insensitive by default)" : "";
+  // Summary line (replaces old method dropdown row)
+  html += '<div class="criterion-summary">' +
+    '<span><strong>' + activeCases.length + '</strong> ' +
+      (activeCases.length === 1 ? 'test case' : 'test cases') +
+    '</span>' +
+    '</div>';
 
   html += '</div>'; // end criterion-card-body
-  html += '<div class="cases-block">' +
+
+  // ── Cases block — columns driven by signal's reference-needing methods ──
+  const hasColumns = refNeeding.length > 0;
+  html += '<div class="cases-block' + (hasColumns ? '' : ' no-columns') + '">' +
     '<div class="cases-label">Test cases</div>' +
     '<div style="overflow-x:auto;"><table><thead><tr>' +
-      '<th style="width:2.4rem; text-align:right;">#</th>' +
-      (needsReference ? '<th style="width:40%">Question</th><th>' + secondColLabel + '</th>' : '<th>Question</th>') +
-      '<th style="width:2.4rem;"></th>' +
-      '</tr></thead><tbody>';
+      '<th class="row-num-h" style="width:2.4rem; text-align:right;">#</th>';
+
+  if (hasColumns) {
+    // Question column shrinks as more method columns are added
+    const questionColPct = Math.max(20, 50 - refNeeding.length * 8);
+    html += '<th style="width:' + questionColPct + '%">Question</th>';
+    refNeeding.forEach(m => {
+      const meta = REFERENCE_NEEDING_METHODS[m];
+      html += '<th>' +
+        '<span class="col-method-name">' + escapeHtml(m) + '</span>' +
+        '<span class="col-help">' + escapeHtml(meta.help) + '</span>' +
+        '</th>';
+    });
+  } else {
+    html += '<th>Question</th>';
+  }
+  html += '<th class="row-actions-h" style="width:2.4rem;"></th></tr></thead><tbody>';
 
   c.cases.forEach((cs, csIdx) => {
     if (cs._deleted) return;
-    const fp = "test_sets[" + tsIdx + "].criteria[" + cIdx + "].cases[" + csIdx + "]";
-    const questionCell =
-      '<td class="editable"><textarea data-field="' + fp + '.question" data-original="' + escapeAttr(cs.question || "") + '" oninput="scheduleSave()">' + escapeHtml(cs.question || "") + '</textarea></td>';
-    let secondCell = "";
-    if (needsReference) {
-      if (isKeywordMatch) {
-        secondCell = '<td class="editable"><textarea data-field="' + fp + '.expected_response" ' +
-          'data-original="' + escapeAttr(cs.expected_response || "") + '" ' +
-          'placeholder="' + escapeAttr(secondColPlaceholder) + '" ' +
-          'oninput="scheduleSave()">' + escapeHtml(cs.expected_response || "") + '</textarea></td>';
-      } else {
-        secondCell = '<td class="editable"><div class="verify-container" data-field-target="' + fp + '.expected_response">' + renderVerifyText(cs.expected_response || "") + '</div>' +
-          '<textarea data-field="' + fp + '.expected_response" data-original="' + escapeAttr(cs.expected_response || "") + '" oninput="onExpectedEdit(this);scheduleSave()" style="display:none;">' + escapeHtml(cs.expected_response || "") + '</textarea></td>';
-      }
-    }
+    const fpCase = cPrefix + ".cases[" + csIdx + "]";
     html += '<tr>' +
       '<td class="row-num">' + (csIdx + 1) + '</td>' +
-      questionCell +
-      secondCell +
-      '<td class="row-actions"><button class="btn btn-sm btn-danger" onclick="deleteCase(' + tsIdx + ',' + cIdx + ',' + csIdx + ')" title="Delete test case">&#x2715;</button></td>' +
+      '<td class="editable">' +
+        '<textarea data-field="' + fpCase + '.question" ' +
+          'data-original="' + escapeAttr(cs.question || "") + '" ' +
+          'oninput="scheduleSave()">' + escapeHtml(cs.question || "") + '</textarea>' +
+      '</td>';
+
+    if (hasColumns) {
+      refNeeding.forEach(m => {
+        const meta = REFERENCE_NEEDING_METHODS[m];
+        const value = (cs.expected_responses && cs.expected_responses[m]) || "";
+        const fpField = fpCase + '.expected_responses["' + m + '"]';
+        if (m === "Compare meaning" || m === "Text similarity") {
+          // VERIFY-aware text input (these methods grade against canonical prose)
+          html += '<td class="editable">' +
+            '<div class="verify-container" data-field-target="' + fpField + '">' + renderVerifyText(value) + '</div>' +
+            '<textarea data-field="' + escapeAttr(fpField) + '" ' +
+              'data-original="' + escapeAttr(value) + '" ' +
+              'placeholder="' + escapeAttr(meta.placeholder) + '" ' +
+              'oninput="onExpectedEdit(this);scheduleSave()" style="display:none;">' + escapeHtml(value) + '</textarea>' +
+            '</td>';
+        } else {
+          // Plain editable textarea (Keyword match / Exact match — no [VERIFY] prose)
+          html += '<td class="editable">' +
+            '<textarea data-field="' + escapeAttr(fpField) + '" ' +
+              'data-original="' + escapeAttr(value) + '" ' +
+              'placeholder="' + escapeAttr(meta.placeholder) + '" ' +
+              'oninput="scheduleSave()">' + escapeHtml(value) + '</textarea>' +
+            '</td>';
+        }
+      });
+    }
+
+    html += '<td class="row-actions">' +
+      '<button class="btn btn-sm btn-danger" onclick="deleteCase(' + tsIdx + ',' + cIdx + ',' + csIdx + ')" title="Delete test case">&#x2715;</button>' +
+      '</td>' +
       '</tr>';
   });
 
   html += '</tbody></table></div>';
   html += '<button class="btn btn-add" onclick="addCase(' + tsIdx + ',' + cIdx + ')">+ Add test case</button>';
   html += '</div>'; // end cases-block
-  html += '</article>'; // end criterion-card
+  html += '</article>';
 
   return html;
 }
@@ -901,18 +909,6 @@ function removeMethod(tsIdx, method) {
   scheduleSave();
 }
 
-function changeCriterionMethod(tsIdx, cIdx, newMethod) {
-  const criterion = testSets[tsIdx].criteria[cIdx];
-  criterion.method = newMethod;
-  if (!testSets[tsIdx].methods.includes(newMethod)) {
-    testSets[tsIdx].methods.push(newMethod);
-    edits["test_sets[" + tsIdx + "].methods"] = JSON.stringify(testSets[tsIdx].methods);
-  }
-  rerenderSection(tsIdx);
-  updateOverview();
-  scheduleSave();
-}
-
 function deleteCase(tsIdx, cIdx, csIdx) {
   testSets[tsIdx].criteria[cIdx].cases[csIdx]._deleted = true;
   edits["test_sets[" + tsIdx + "].criteria[" + cIdx + "].cases[" + csIdx + "]"] = "__DELETE__";
@@ -928,7 +924,7 @@ function addCase(tsIdx, cIdx) {
     _idx: newIdx,
     _deleted: false,
     question: "",
-    expected_response: "",
+    expected_responses: {},
   });
   rerenderSection(tsIdx);
   updateOverview();
@@ -961,12 +957,7 @@ function updateOverview() {
 
     const quadrant = getDominantQuadrant(ts);
     const dimensionName = ts.quality_dimension || ts.quality_signal || "";
-
-    // Methods column = union of (a) explicit dimension-level methods set and
-    // (b) per-criterion methods, so per-criterion edits show up immediately.
-    const methodSet = new Set(ts.methods || []);
-    ts.criteria.forEach(c => { if (c.method) methodSet.add(c.method); });
-    const methodsHtml = Array.from(methodSet).map(m =>
+    const methodsHtml = (ts.methods || []).map(m =>
       '<span class="method-pill">' + escapeHtml(m) + '</span>'
     ).join("");
 

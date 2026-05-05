@@ -19,7 +19,7 @@ This is the Pillar 3 starter artifact from `/eval-guide`. It moves the agent fro
 
 You need:
 
-- An eval set built (Stage 2 deliverable: the `eval-<signal>-<date>-for-import.csv` files).
+- An eval set built (Stage 2 deliverable: the `eval-<signal>-<date>.csv` files).
 - A way to run it — Copilot Studio's Evaluation tab, the eval-runner script, or another runner.
 - A place to archive results — local `.csv` exports work fine for L200; Copilot Studio retains run results for only 89 days, so always export.
 
