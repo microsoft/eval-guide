@@ -120,7 +120,7 @@
 <!-- Section 1: Quadrant Performance -->
 <div class="section">
   <div class="section-header flex-between">
-    <span data-tooltip="Actual pass rate of each criterion, grouped by quadrant. Quadrant tells you where effort matters most — a Guardrails failure is more urgent than a Deprioritize failure at the same pass rate.">Quadrant Performance</span>
+    <span data-tooltip="Actual pass rate of each criterion, grouped by quadrant. Quadrant tells you where effort matters most — a Low Value · High Risk failure is more urgent than a Low Value · Low Risk failure at the same pass rate.">Quadrant Performance</span>
     <span class="text-sm text-muted" id="metrics-status-count"></span>
   </div>
   <div class="section-body">
@@ -173,17 +173,17 @@
 
 <!-- Section 4: Patterns -->
 <div class="section">
-  <div class="section-header"><span data-tooltip="Cross-cutting failure patterns. Guardrails failures are more urgent than Deprioritize failures at the same rate — patterns should be read with quadrant weight in mind.">Patterns</span></div>
+  <div class="section-header"><span data-tooltip="Cross-cutting failure patterns. Low Value · High Risk failures are more urgent than Low Value · Low Risk failures at the same rate — patterns should be read with quadrant weight in mind.">Patterns</span></div>
   <div class="section-body" id="patterns-list"></div>
 </div>
 
 <script>
 const QUADRANTS_ORDER = ["critical", "valuable", "guardrails", "deprioritize"];
 const QUADRANT_LABELS = {
-  critical: "Critical",
-  valuable: "Valuable",
-  guardrails: "Guardrails",
-  deprioritize: "Deprioritize",
+  critical: "High Value · High Risk",
+  valuable: "High Value · Low Risk",
+  guardrails: "Low Value · High Risk",
+  deprioritize: "Low Value · Low Risk",
 };
 const Q_BADGE_CSS = {
   critical: "q-badge-sm-critical",

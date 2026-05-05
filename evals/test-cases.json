@@ -41,7 +41,7 @@
       "quality_signal": "Triggers",
       "quadrant": "guardrails",
       "method": "Capability use",
-      "trigger_input": "We've got an eval suite running on cadence and the latest run came back with 60% pass on Critical. Help me figure out what's broken.",
+      "trigger_input": "We've got an eval suite running on cadence and the latest run came back with 60% pass on High Value · High Risk. Help me figure out what's broken.",
       "expected_behavior": "Skill recognizes mature-eval-suite signal and routes to /eval-triage-and-improvement (or /eval-result-interpreter). Does NOT start Stage 0.",
       "pass_conditions": [
         "AI response names `/eval-triage-and-improvement` or `/eval-result-interpreter` as the right skill",
@@ -115,7 +115,7 @@
         "Risk Profile blank / set to MEDIUM despite HR + regulated context",
         "AI gates on 'confirmed' before proceeding"
       ],
-      "notes": "Most important Critical test in the eval set. If pre-extraction breaks, the whole skill regresses to interrogative mode."
+      "notes": "Most important High-Value-High-Risk test in the eval set. If pre-extraction breaks, the whole skill regresses to interrogative mode."
     },
     {
       "id": "T-V-02",
@@ -189,13 +189,13 @@
         "Criteria count is 10–15",
         "Every criterion phrased as 'The agent should X' or 'The agent should NOT X'",
         "Every criterion has all four fields (quadrant, method, pass_condition, fail_condition) explicitly named",
-        "Distribution roughly matches HIGH-risk targets (Critical 25–40%, Guardrails 30–50%)"
+        "Distribution roughly matches HIGH-risk targets (High Value · High Risk 25–40%, Low Value · High Risk 30–50%)"
       ],
       "fail_conditions": [
         "< 10 or > 15 criteria",
         "Any criterion phrased as a goal/value ('agent should be helpful', 'tone should be welcoming') without observable behavior",
         "Any criterion missing quadrant / method / pass_condition / fail_condition",
-        "Distribution off (e.g., < 30% Guardrails for HIGH-risk)"
+        "Distribution off (e.g., < 30% Low Value · High Risk for HIGH-risk)"
       ],
       "notes": "Multi-method test: Capability use checks structural completeness; Compare meaning checks the behavior-led phrasing rule."
     },
@@ -246,7 +246,7 @@
       "quadrant": "guardrails",
       "method": "Keyword match (negative)",
       "trigger_input": "[Anywhere in Stage 1 output.]",
-      "expected_behavior": "Output uses ONLY the canonical quadrant names: Critical, Valuable, Guardrails, Deprioritize.",
+      "expected_behavior": "Output uses ONLY the canonical quadrant names: High Value · High Risk, High Value · Low Risk, Low Value · High Risk, Low Value · Low Risk.",
       "pass_conditions": [
         "All four canonical names appear in the matrix and criterion table",
         "The string 'Core' does NOT appear as a quadrant name (it can appear in 'Core Capabilities' Vision context — that's a different use)"
@@ -272,7 +272,7 @@
         "Ship-readiness thresholds (when discussed in Stage 4) are per-quadrant aggregates, not per-criterion"
       ],
       "fail_conditions": [
-        "Output says 'Critical criteria must pass at 90%'",
+        "Output says 'High Value · High Risk criteria must pass at 90%'",
         "Pass conditions framed as percentages",
         "Quadrant and threshold conflated"
       ],
@@ -305,19 +305,19 @@
       "quality_signal": "Plan Quality",
       "quadrant": "guardrails",
       "method": "Custom rubric",
-      "trigger_input": "[After Stage 1 produces a plan with risk_profile = HIGH and only 15% Guardrails criteria.] Verify the distribution sanity-check.",
-      "expected_behavior": "Skill auto-detects the violation: HIGH-risk requires 30–50% Guardrails, plan has 15%. Skill pushes back: 'This distribution looks off — only 15% Guardrails for HIGH risk. Want me to suggest a rebalance?'",
+      "trigger_input": "[After Stage 1 produces a plan with risk_profile = HIGH and only 15% Low Value · High Risk criteria.] Verify the distribution sanity-check.",
+      "expected_behavior": "Skill auto-detects the violation: HIGH-risk requires 30–50% Low Value · High Risk, plan has 15%. Skill pushes back: 'This distribution looks off — only 15% Low Value · High Risk for HIGH risk. Want me to suggest a rebalance?'",
       "pass_conditions": [
         "Skill flags the distribution violation",
-        "Skill names the specific shortfall (Guardrails % vs. target)",
+        "Skill names the specific shortfall (Low Value · High Risk % vs. target)",
         "Skill offers a rebalance"
       ],
       "fail_conditions": [
-        "Plan locks with 15% Guardrails on a HIGH-risk agent without pushback",
+        "Plan locks with 15% Low Value · High Risk on a HIGH-risk agent without pushback",
         "Skill flags the issue too late (after deliverables generated)",
         "Skill flags wrong threshold"
       ],
-      "notes": "Force the failure scenario by feeding a deliberately Critical-heavy plan into Stage 1's distribution check."
+      "notes": "Force the failure scenario by feeding a deliberately High-Value-High-Risk-heavy plan into Stage 1's distribution check."
     },
     {
       "id": "T-G-09",
@@ -326,9 +326,9 @@
       "quadrant": "guardrails",
       "method": "Capability use",
       "trigger_input": "[Stage 1 for the HR bot from T-C-01a with risk_profile = HIGH and HR + employee data keywords.]",
-      "expected_behavior": "Skill auto-doubles the adversarial mandate from 1 to 2 Guardrails red-team criteria. Narrates the trigger: 'Your agent matches the sensitive-data trigger (HIGH risk + HR data) — doubling the Guardrails mandate from 1 to 2 minimum.'",
+      "expected_behavior": "Skill auto-doubles the adversarial mandate from 1 to 2 Low Value · High Risk red-team criteria. Narrates the trigger: 'Your agent matches the sensitive-data trigger (HIGH risk + HR data) — doubling the Low Value · High Risk mandate from 1 to 2 minimum.'",
       "pass_conditions": [
-        "≥ 2 explicit adversarial / red-team criteria in Guardrails quadrant",
+        "≥ 2 explicit adversarial / red-team criteria in Low Value · High Risk quadrant",
         "Skill narrates the auto-double trigger and the rationale",
         "Adversarial criteria target real boundary risks (privacy probe, jailbreak)"
       ],
@@ -446,8 +446,8 @@
       "quality_signal": "Skill Integrity",
       "quadrant": "critical",
       "method": "Custom rubric",
-      "trigger_input": "[Stage 1 dashboard. Customer makes 5 edits and clicks Approve & Continue: (1) drags criterion #6 from Valuable to Critical, (2) renames dimension 'Benefits Accuracy' → 'Accuracy' (merging with existing Accuracy group), (3) deletes dimension 'Tone' (criteria reassign), (4) edits criterion #4's pass condition to add a citation requirement, (5) adds a new criterion in Guardrails. plan-feedback.json now has all five edits.]",
-      "expected_behavior": "AI reads plan-feedback.json and applies every edit. Narrates the five changes back: 'Got it — moved #6 to Critical, merged Benefits Accuracy into Accuracy, deleted Tone (3 criteria reassigned to next dimension), edited #4's pass condition, added new Guardrails criterion #16. Updated distribution: ...' Then proceeds to deliverable generation. Does NOT ask 'are you sure about deleting Tone?' / 'want to revert the merge?' / 'should we rebalance?'",
+      "trigger_input": "[Stage 1 dashboard. Customer makes 5 edits and clicks Approve & Continue: (1) drags criterion #6 from High Value · Low Risk to High Value · High Risk, (2) renames dimension 'Benefits Accuracy' → 'Accuracy' (merging with existing Accuracy group), (3) deletes dimension 'Tone' (criteria reassign), (4) edits criterion #4's pass condition to add a citation requirement, (5) adds a new criterion in Low Value · High Risk. plan-feedback.json now has all five edits.]",
+      "expected_behavior": "AI reads plan-feedback.json and applies every edit. Narrates the five changes back: 'Got it — moved #6 to High Value · High Risk, merged Benefits Accuracy into Accuracy, deleted Tone (3 criteria reassigned to next dimension), edited #4's pass condition, added new Low Value · High Risk criterion #16. Updated distribution: ...' Then proceeds to deliverable generation. Does NOT ask 'are you sure about deleting Tone?' / 'want to revert the merge?' / 'should we rebalance?'",
       "pass_conditions": [
         "All 5 edits visible in the in-memory plan and the generated .docx / .xlsx",
         "Narration names every distinct edit type (move, rename/merge, delete, edit, add)",
@@ -461,7 +461,7 @@
         "AI suggests reverting the dimension delete because criteria orphaned to a different group",
         "AI re-prompts for the General Comments box content"
       ],
-      "notes": "Most important Critical-skill-integrity test. If this regresses, customers' edits silently disappear and they don't trust the dashboard."
+      "notes": "Most important High-Value-High-Risk-quadrant skill-integrity test. If this regresses, customers' edits silently disappear and they don't trust the dashboard."
     },
     {
       "id": "T-V-08",
@@ -469,11 +469,11 @@
       "quality_signal": "Plan Quality",
       "quadrant": "valuable",
       "method": "Custom rubric",
-      "trigger_input": "[Stage 1, customer just moved a Tone criterion from Valuable to Critical. Resulting distribution: Critical 35%, Valuable 13%, Guardrails 47%, Deprioritize 5%. The customer says 'lock it in.']",
-      "expected_behavior": "Skill accepts the lock and proceeds to dashboard. Does NOT offer a rebalance just because Valuable is at 13% (vs. target 15-30%). The deviation is marginal, the customer made an intentional move, and no red-flag pattern is triggered.",
+      "trigger_input": "[Stage 1, customer just moved a Tone criterion from High Value · Low Risk to High Value · High Risk. Resulting distribution: High Value · High Risk 35%, High Value · Low Risk 13%, Low Value · High Risk 47%, Low Value · Low Risk 5%. The customer says 'lock it in.']",
+      "expected_behavior": "Skill accepts the lock and proceeds to dashboard. Does NOT offer a rebalance just because High Value · Low Risk is at 13% (vs. target 15-30%). The deviation is marginal, the customer made an intentional move, and no red-flag pattern is triggered.",
       "pass_conditions": [
         "Skill confirms the lock without offering a rebalance",
-        "Skill does NOT say 'Valuable is below target — want me to rebalance?'",
+        "Skill does NOT say 'High Value · Low Risk is below target — want me to rebalance?'",
         "Skill proceeds to the next step (deliverables generation / dashboard)",
         "If the skill comments on distribution at all, it's a one-line acknowledgment, not an offer to re-edit"
       ],
@@ -528,7 +528,7 @@
       "quality_signal": "Triage Discipline",
       "quadrant": "critical",
       "method": "Compare meaning",
-      "trigger_input": "[Stage 4 with results: 30 failures across Critical / Core / Guardrails. Run triage.]",
+      "trigger_input": "[Stage 4 with results: 30 failures across High Value · High Risk / High Value · Low Risk / Low Value · High Risk. Run triage.]",
       "expected_behavior": "Before classifying any failure as agent-related, skill applies the 20% rule: at least 20% of failures are eval setup bugs. Each failure passes a 5-question eval verification check. Final classification table contains an 'Eval Setup Issue' column with non-zero entries.",
       "pass_conditions": [
         "Skill narrates the 20% rule explicitly with the framing 'before we blame the agent…'",
@@ -542,7 +542,7 @@
         "Triage proceeds straight to Top 3 actions without per-failure classification",
         "Eval Setup category absent entirely"
       ],
-      "notes": "The 20% rule is the most counterintuitive insight in the skill. If it's not applied, customers fix the wrong thing. Critical-quadrant test."
+      "notes": "The 20% rule is the most counterintuitive insight in the skill. If it's not applied, customers fix the wrong thing. High-Value-High-Risk-quadrant test."
     },
     {
       "id": "T-V-06",
@@ -570,19 +570,19 @@
       "quality_signal": "Triage Discipline",
       "quadrant": "guardrails",
       "method": "Compare meaning",
-      "trigger_input": "[Stage 4 results: Critical 92%, Core 85%, Guardrails 88%, Deprioritize 70%. Customer asks 'are we ready to ship?']",
-      "expected_behavior": "Skill says NO — Guardrails 88% is below the ≥ 95% ship threshold. Top action becomes 'Hold ship; fix Guardrails first'.",
+      "trigger_input": "[Stage 4 results: High Value · High Risk 92%, High Value · Low Risk 85%, Low Value · High Risk 88%, Low Value · Low Risk 70%. Customer asks 'are we ready to ship?']",
+      "expected_behavior": "Skill says NO — Low Value · High Risk 88% is below the ≥ 95% ship threshold. Top action becomes 'Hold ship; fix Low Value · High Risk first'.",
       "pass_conditions": [
         "Skill recommends HOLD or NOT READY",
-        "Skill names Guardrails as the blocker, not Critical or Core",
-        "Skill cites the ≥ 95% threshold for Guardrails"
+        "Skill names Low Value · High Risk as the blocker, not High Value · High Risk or High Value · Low Risk",
+        "Skill cites the ≥ 95% threshold for Low Value · High Risk"
       ],
       "fail_conditions": [
-        "Skill recommends ship despite Guardrails < 95%",
-        "Skill focuses on the 92% Critical (which IS ship-ready) and ignores the Guardrails breach",
+        "Skill recommends ship despite Low Value · High Risk < 95%",
+        "Skill focuses on the 92% High Value · High Risk (which IS ship-ready) and ignores the Low Value · High Risk breach",
         "Ship readiness assessed by overall pass rate (87%) instead of per-quadrant"
       ],
-      "notes": "Quadrant-aware ship-readiness. The biggest practical risk if this regresses: customers ship agents that pass Critical but fail safety/refusal cases."
+      "notes": "Quadrant-aware ship-readiness. The biggest practical risk if this regresses: customers ship agents that pass High Value · High Risk but fail safety/refusal cases."
     },
     {
       "id": "T-G-11",

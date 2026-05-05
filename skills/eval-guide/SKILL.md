@@ -170,7 +170,7 @@ Microsoft's [evaluation checklist](https://learn.microsoft.com/en-us/microsoft-c
 |---|---|---|---|
 | **Stage 1: Define** — Create foundational test cases with clear acceptance criteria | Translate agent scenarios into testable components before you even have a working agent | **Stage 0 (Discover)** + **Stage 1 (Plan)** + **Stage 2 (Generate)** | eval-suite-planner, eval-generator |
 | **Stage 2: Baseline** — Run tests, measure, enter the evaluate→analyze→improve loop | Establish quantitative baseline, categorize failures by quality signal, iterate | **Stage 3 (Run)** + **Stage 4 (Interpret)** | eval-result-interpreter |
-| **Stage 3: Expand** — Add variation, architecture, and edge-case test categories | Build comprehensive suite: Valuable (regression), Variations (generalization), Architecture (diagnostic), Edge cases (robustness) | Repeat **Stage 1–2** with broader categories | eval-suite-planner (expansion sets) |
+| **Stage 3: Expand** — Add variation, architecture, and edge-case test categories | Build comprehensive suite: High Value · Low Risk (regression), Variations (generalization), Architecture (diagnostic), Edge cases (robustness) | Repeat **Stage 1–2** with broader categories | eval-suite-planner (expansion sets) |
 | **Stage 4: Operationalize** — Establish cadence, triggers, continuous monitoring | Run core on every change, full suite weekly + before releases, track quality signals over time | **Stage 4 (Interpret)** ongoing | eval-triage-and-improvement |
 
 **When to share this:** After completing Stage 0, show the customer this mapping and say: *"What we're doing today covers Microsoft's Stage 1 — defining your foundational test cases. Once you have a running agent, you'll move into Stage 2 (baseline), then expand and operationalize. The checklist template helps you track progress."*
@@ -283,13 +283,13 @@ Using the Agent Vision, produce a structured eval suite plan. This works whether
 ### What you walk away with
 
 - **10–15 acceptance criteria** phrased as *"The agent should…"* (or *"should NOT…"* for negative tests). Testable, prioritizable, reviewable.
-- **Each criterion placed on a Value × Cost matrix** — Critical (highest investment), Valuable (expected behavior, occasional misses tolerable), Guardrails (low traffic, zero tolerance for failure), Deprioritize (light coverage). The matrix is what keeps the plan tractable.
+- **Each criterion placed on a Value × Risk matrix** — High Value · High Risk (highest investment), High Value · Low Risk (expected behavior, occasional misses tolerable), Low Value · High Risk (low traffic, zero tolerance for failure), Low Value · Low Risk (light coverage). The matrix is what keeps the plan tractable.
 - **Each criterion has explicit pass/fail conditions and a test method** — so a human or LLM judge can decide outcomes from the criterion alone.
 - **A `.docx` eval plan** for stakeholder review (PM, security, business owner). The artifact for sign-off.
 
 ### When this stage is wrong for you
 
-- You already have written acceptance criteria covering Critical / Valuable / Guardrails coverage. Bring them and skip to Stage 2.
+- You already have written acceptance criteria covering all four Value × Risk quadrants. Bring them and skip to Stage 2.
 - You're testing a single new feature on an existing agent. Run a mini Stage 1 on just that feature; don't redo the whole plan.
 - Your agent has 50+ topics. Run Stage 1 per top-level capability; one pass won't fit.
 
@@ -364,7 +364,7 @@ Default dimension set for most agents:
 | **Hallucination Prevention** | "The agent should NOT invent facts not in sources" criteria |
 | **Routing** | Out-of-scope handling, escalation, handoff to right resource |
 | **Tone** | Tone, empathy, brand voice, persona criteria |
-| **Boundaries / Safety** | Refusals on legal / medical / privacy / regulated topics — pair with Guardrails quadrant |
+| **Boundaries / Safety** | Refusals on legal / medical / privacy / regulated topics — pair with Low Value · High Risk quadrant |
 | **Adversarial / Red-Teaming** | Jailbreak resistance, boundary probing |
 | **Personalization** *(if role-based access)* | Role/cohort-specific behavior |
 
@@ -430,7 +430,7 @@ Tell the customer: "If General Quality scores are low, these four sub-criteria t
 
 5. **Prioritize criteria on the Value × Cost-of-Failure matrix:**
 
-**The matrix tells you where to invest test-writing effort, not what your eval plan must include.** Critical gets the most cases, Deprioritize the fewest, Guardrails the strictest review — the *quantity* of test cases per criterion differs by quadrant. Every criterion still gets at least one test case in Stage 2.
+**The matrix tells you where to invest test-writing effort, not what your eval plan must include.** High Value · High Risk gets the most cases, Low Value · Low Risk the fewest, Low Value · High Risk the strictest review — the *quantity* of test cases per criterion differs by quadrant. Every criterion still gets at least one test case in Stage 2.
 
 Every acceptance criterion goes in one of four quadrants based on two judgments:
 - **Value** of getting this right — how much does successful behavior drive the product's purpose?
@@ -438,56 +438,56 @@ Every acceptance criterion goes in one of four quadrants based on two judgments:
 
 |  | **Low cost of failure** | **High cost of failure** |
 |---|---|---|
-| **High value** | **Valuable** — expected capabilities users rely on. Solid coverage; occasional misses tolerable. | **Critical** — product-defining; failure hurts. Invest heaviest: most test cases, strictest review. |
-| **Low value** | **Deprioritize** — exploratory or rare behaviors. Light coverage; revisit when the criterion starts mattering more. | **Guardrails** — rarely triggered but must never fail (safety refusals, compliance boundaries). Invest in negative tests and adversarial cases. |
+| **High value** | **High Value · Low Risk** — expected capabilities users rely on. Solid coverage; occasional misses tolerable. | **High Value · High Risk** — product-defining; failure hurts. Invest heaviest: most test cases, strictest review. |
+| **Low value** | **Low Value · Low Risk** — exploratory or rare behaviors. Light coverage; revisit when the criterion starts mattering more. | **Low Value · High Risk** — rarely triggered but must never fail (safety refusals, compliance boundaries). Invest in negative tests and adversarial cases. |
 
 **Quadrant assignment guidance:**
-- **Critical** — the agent's main capabilities AND high-harm behaviors. Highest investment.
-- **Valuable** — the agent's expected behaviors where misses are noticed but not catastrophic.
-- **Guardrails** — safety, compliance, refusals. Low traffic; zero tolerance for failure.
-- **Deprioritize** — experimental, low-traffic, or low-stakes. Test lightly; revisit if usage grows.
+- **High Value · High Risk** — the agent's main capabilities AND high-harm behaviors. Highest investment.
+- **High Value · Low Risk** — the agent's expected behaviors where misses are noticed but not catastrophic.
+- **Low Value · High Risk** — safety, compliance, refusals. Low traffic; zero tolerance for failure.
+- **Low Value · Low Risk** — experimental, low-traffic, or low-stakes. Test lightly; revisit if usage grows.
 
 Pass/fail for each test case is determined by the criterion's pass/fail conditions, not a prescribed percentage target. The quadrant tells you **where to invest effort**, not a threshold to clear.
 
-**Distribution sanity-check (apply before locking the matrix).** The targets below are reference patterns, not gates. Only push back on **red flags** — patterns that almost always indicate a missing or miscategorized criterion. **Do not flag marginal deviations** (e.g., Valuable at 13% when target is 15–30%, or Critical at 22% when target is 25–40%). Customers often have legitimate reasons to drift from the bands — fewer-but-meaningful Valuable criteria, intentional re-quadrant moves, smaller agent surface — and re-litigating those choices is friction.
+**Distribution sanity-check (apply before locking the matrix).** The targets below are reference patterns, not gates. Only push back on **red flags** — patterns that almost always indicate a missing or miscategorized criterion. **Do not flag marginal deviations** (e.g., High Value · Low Risk at 13% when target is 15–30%, or High Value · High Risk at 22% when target is 25–40%). Customers often have legitimate reasons to drift from the bands — fewer-but-meaningful High Value · Low Risk criteria, intentional re-quadrant moves, smaller agent surface — and re-litigating those choices is friction.
 
-| Risk profile | Critical | Valuable | Guardrails | Deprioritize | Sanity-check rule |
+| Risk profile | High Value · High Risk | High Value · Low Risk | Low Value · High Risk | Low Value · Low Risk | Sanity-check rule |
 |---|---|---|---|---|---|
-| **`low`** | 30–50% | 30–50% | 10–20% | 0–20% | Reference only. At least 1 Guardrails (always). |
-| **`medium`** | 25–40% | 25–40% | 20–30% | 0–15% | Reference only. At least 1 Guardrails. |
-| **`high`** | 25–40% | 15–30% | 30–50% | 0–10% | Reference only. **At least 2 Guardrails (auto-doubled trigger)**. |
-| **`critical`** | 20–35% | 10–20% | 40–60% | 0–5% | Reference only. At least 3 Guardrails. Compliance / Safety domains required. |
+| **`low`** | 30–50% | 30–50% | 10–20% | 0–20% | Reference only. At least 1 Low Value · High Risk (always). |
+| **`medium`** | 25–40% | 25–40% | 20–30% | 0–15% | Reference only. At least 1 Low Value · High Risk. |
+| **`high`** | 25–40% | 15–30% | 30–50% | 0–10% | Reference only. **At least 2 Low Value · High Risk (auto-doubled trigger)**. |
+| **`critical`** | 20–35% | 10–20% | 40–60% | 0–5% | Reference only. At least 3 Low Value · High Risk. Compliance / Safety domains required. |
 
 **Red flags — these are the ONLY conditions that warrant pushback:**
-- **0 Guardrails on any plan** — the agent has no enforced boundaries.
-- **0 Critical** — the plan has no product-defining tests; you're testing edge cases of a capability you haven't validated.
-- **>70% Critical** — every criterion is "the most important." Anchoring bias; force re-evaluation.
-- **HIGH risk + <30% Guardrails** — under-investment in the failure modes that cause real damage.
-- **CRITICAL risk + <40% Guardrails** — same as above, stricter.
+- **0 Low Value · High Risk on any plan** — the agent has no enforced boundaries.
+- **0 High Value · High Risk** — the plan has no product-defining tests; you're testing edge cases of a capability you haven't validated.
+- **>70% High Value · High Risk** — every criterion is "the most important." Anchoring bias; force re-evaluation.
+- **HIGH risk + <30% Low Value · High Risk** — under-investment in the failure modes that cause real damage.
+- **CRITICAL risk + <40% Low Value · High Risk** — same as above, stricter.
 
 If the plan trips a red flag, tell the customer: *"This distribution looks off — [specific issue]. Want me to suggest a rebalance?"* and explain the specific failure mode the rebalance would address.
 
 **Do NOT push back when:**
-- A quadrant is within ~5% of its target band (e.g., Valuable at 13% with target 15–30% — that's marginal, the customer can defend it).
+- A quadrant is within ~5% of its target band (e.g., High Value · Low Risk at 13% with target 15–30% — that's marginal, the customer can defend it).
 - The customer just made an intentional move and the distribution is the result.
 - Total criteria count is on the lower end (e.g., 10 vs. 15) — percentages get noisy at small N.
-- The customer's agent genuinely has fewer expected-behavior capabilities to test (some agents are mostly Critical + Guardrails).
+- The customer's agent genuinely has fewer expected-behavior capabilities to test (some agents are mostly High Value · High Risk + Low Value · High Risk).
 
 When in doubt, lock and proceed. The customer can always re-open Stage 1 later. Friction from over-rebalancing is a worse failure mode than a slightly imbalanced distribution.
 
-**Before confirming quadrant assignments:** Align placements with the customer's risk owner or compliance partner — especially for Guardrails criteria. Human expert review of criteria and their placement is what distinguishes L300 Systematic Pillar 1 from L200 Defined.
+**Before confirming quadrant assignments:** Align placements with the customer's risk owner or compliance partner — especially for Low Value · High Risk criteria. Human expert review of criteria and their placement is what distinguishes L300 Systematic Pillar 1 from L200 Defined.
 
-**Highlight what they'd miss:** "Notice I included a Guardrails criterion for topics NOT in your knowledge sources. Most customers only test what the agent should know. Testing what it should NOT know — and where it should refuse — is just as important."
+**Highlight what they'd miss:** "Notice I included a Low Value · High Risk criterion for topics NOT in your knowledge sources. Most customers only test what the agent should know. Testing what it should NOT know — and where it should refuse — is just as important."
 
-**Adversarial coverage minimums — auto-applied based on the Agent Vision.** Every plan needs at least one Guardrails / Red-Teaming criterion. The mandate doubles to **two minimum** automatically when any of these triggers fire (don't wait for the customer to ask):
+**Adversarial coverage minimums — auto-applied based on the Agent Vision.** Every plan needs at least one Low Value · High Risk / Red-Teaming criterion. The mandate doubles to **two minimum** automatically when any of these triggers fire (don't wait for the customer to ask):
 
 - **`risk_profile` is `high` or `critical`** in the Agent Vision (set in Stage 0 Q6)
 - **Domain keywords in Vision purpose / boundaries / users:** PII, payments, financial, HR, employee data, health, medical, legal, regulated, compliance, GDPR, HIPAA, SOX, customer-facing, external traffic, public-facing
 - **Capability includes any data egress:** "share with," "send to," "export," "publish"
 
-When triggered, tell the customer: *"Your agent matches the sensitive-data trigger (risk profile is HIGH / it touches HR data / etc.) — doubling the Guardrails mandate from 1 to 2 minimum. We'll write at least two adversarial / red-team criteria targeting your specific boundary risks."*
+When triggered, tell the customer: *"Your agent matches the sensitive-data trigger (risk profile is HIGH / it touches HR data / etc.) — doubling the Low Value · High Risk mandate from 1 to 2 minimum. We'll write at least two adversarial / red-team criteria targeting your specific boundary risks."*
 
-Adversarial gaps are the failure mode that bites in production: the agent passes every Critical test and then leaks data on a question no one thought to write a test for. Auto-applying the trigger means the customer doesn't have to know to ask for it.
+Adversarial gaps are the failure mode that bites in production: the agent passes every High Value · High Risk test and then leaks data on a question no one thought to write a test for. Auto-applying the trigger means the customer doesn't have to know to ask for it.
 
 ### Output
 
@@ -589,14 +589,14 @@ Before generating any deliverable documents, launch the plan dashboard for revie
 
    This applies to ALL edit types:
    - Statement edits, pass/fail condition edits, method changes
-   - Quadrant moves (drag-and-drop between Critical / Valuable / Guardrails / Deprioritize)
+   - Quadrant moves (drag-and-drop between High Value · High Risk / High Value · Low Risk / Low Value · High Risk / Low Value · Low Risk)
    - Quality-dimension renames, merges (rename to existing name), deletes
    - Criterion additions and deletions
    - General Comments box content (treat as Vision-level customer note)
 
-   **Then narrate the edits back so the customer sees their changes were captured** — e.g., *"Got it — moved criterion #6 from Valuable to Critical, edited #7's pass condition, renamed 'Benefits Accuracy' → 'Accuracy' (merged with existing dimension). Updated distribution: 6 Critical (33%) / 4 Valuable (22%) / 8 Guardrails (44%)."* Don't just say "applied" — name what changed. The narration is for confirmation that you parsed the edits correctly, NOT an invitation for the customer to re-decide.
+   **Then narrate the edits back so the customer sees their changes were captured** — e.g., *"Got it — moved criterion #6 from High Value · Low Risk to High Value · High Risk, edited #7's pass condition, renamed 'Benefits Accuracy' → 'Accuracy' (merged with existing dimension). Updated distribution: 6 High Value · High Risk (33%) / 4 High Value · Low Risk (22%) / 8 Low Value · High Risk (44%)."* Don't just say "applied" — name what changed. The narration is for confirmation that you parsed the edits correctly, NOT an invitation for the customer to re-decide.
 
-   **Only push back on the explicit red-flag distribution patterns** (0 Guardrails, 0 Critical, >70% Critical, HIGH-risk + <30% Guardrails — see the Distribution sanity-check section earlier in this stage). Marginal deviations after a customer-initiated move are NOT red flags. Lock and proceed.
+   **Only push back on the explicit red-flag distribution patterns** (0 Low Value · High Risk, 0 High Value · High Risk, >70% High Value · High Risk, HIGH-risk + <30% Low Value · High Risk — see the Distribution sanity-check section earlier in this stage). Marginal deviations after a customer-initiated move are NOT red flags. Lock and proceed.
 
    If changes requested instead of confirmed, regenerate and re-launch.
 5. **After confirmation, automatically generate the eval plan deliverable — do not wait for the user to ask:**
@@ -610,7 +610,7 @@ The report must be:
 
 Report structure:
 1. Agent Vision summary (from Stage 0) — 5-6 lines max
-2. Value × Cost matrix overview — explain the four quadrants (Critical, Valuable, Guardrails, Deprioritize) and what kinds of criteria belong in each
+2. Value × Cost matrix overview — explain the four quadrants (High Value · High Risk, High Value · Low Risk, Low Value · High Risk, Low Value · Low Risk) and what kinds of criteria belong in each
 3. Quadrant assignment — visual 2×2 matrix with each criterion placed, followed by a table listing criteria grouped by quadrant with pass/fail conditions
 4. Quality Dimensions to Test — list dimensions with grouped criteria under each
 5. Method mapping explanation — which methods apply to which criteria and why (reference the `signal_type` → method guidance)
@@ -778,17 +778,20 @@ Before generating final CSV and report files, launch the test cases dashboard fo
    - Each criterion carries its `statement` (from Stage 1, starts with "The agent should…"), `quadrant`, `method`, `pass_condition`, `fail_condition`, and `cases`
    - Method is set per-criterion (carried from Stage 1); if a specific case needs a different method, override on the case
    - Wrap AI-generated factual content in `[VERIFY: ...]` markers so the dashboard highlights them for human review
+   - **`Custom` method**: also write a `custom_rubric` field on the criterion — a short LLM-judge rubric drafted from the pass/fail conditions ("Rate the response Pass / Fail. Pass = …. Fail = …. Output PASS or FAIL with a one-sentence reason."). The dashboard shows this as an editable textarea for the customer to refine. Don't leave Custom criteria without a rubric.
+   - **`Keyword match` method**: each test case's `expected_response` field holds the **comma-separated keyword list** (not a reference answer). The dashboard relabels this column as "Keywords" so the customer knows what to type. In the generated CSVs, this same field becomes the `Expected response` cell — Copilot Studio's Keyword match reads keywords from there.
 2. Launch the dashboard:
    ```bash
    python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage generate --serve --data stage-2-data.json
    ```
-3. The user reviews the **Eval Sets Overview** at the top, then walks the stacked signal sections (Critical → Guardrails → Valuable → Deprioritize) reviewing pass/fail conditions per criterion, changing the test method per criterion via the dropdown, checking VERIFY-highlighted factual content, and editing expected responses inline.
+3. The user reviews the **Eval Sets Overview** at the top, then walks the stacked signal sections (High Value · High Risk → Low Value · High Risk → High Value · Low Risk → Low Value · Low Risk) reviewing pass/fail conditions per criterion, changing the test method per criterion via the dropdown, checking VERIFY-highlighted factual content, and editing expected responses inline.
 4. When the user confirms, read `generate-feedback.json` and **apply every edit it contains, faithfully and without question**. The customer's choices are final — do NOT re-litigate, do NOT suggest reverting, do NOT ask for confirmation again, do NOT partially apply.
 
    This applies to ALL edit types:
    - [VERIFY] span corrections (the customer fact-checked your draft against their real knowledge sources — their version wins)
-   - Question edits, expected-response edits
+   - Question edits, expected-response edits, keyword-list edits (Keyword match criteria store keywords in `expected_response`)
    - Per-criterion method changes (dropdown in the criterion header — `test_sets[i].criteria[j].method`)
+   - Custom-method rubric edits (`test_sets[i].criteria[j].custom_rubric`) — the customer's refined rubric is final; use it as the LLM judge prompt verbatim
    - Test case additions and deletions
    - Method-bar additions / removals per quality signal (`test_sets[i].methods`)
    - General Comments box content
@@ -850,7 +853,7 @@ Report structure:
    | Sheet | Contents |
    |---|---|
    | **Instructions** | Purpose, when to use, prerequisites. Read-first sheet — protected. |
-   | **Comparison** | 4-metric comparison table with empty Run 1 / Run 2 / Delta cells (Overall, Critical, Valuable, Guardrails, Deprioritize pass rates). Above the table: editable cells for Run 1 name/version, Run 2 name/version, Eval set version, Change description. |
+   | **Comparison** | 4-metric comparison table with empty Run 1 / Run 2 / Delta cells (Overall, High Value · High Risk, High Value · Low Risk, Low Value · High Risk, Low Value · Low Risk pass rates). Above the table: editable cells for Run 1 name/version, Run 2 name/version, Eval set version, Change description. |
    | **Case-level delta** | 4-row bucket table (Pass-Pass / Fail-Pass / Pass-Fail / Fail-Fail) with empty Count and Notable cases columns. Conditional formatting highlights Pass-Fail row in red. |
    | **Decision rules** | Variance rules, ship/hold logic. Read-only reference sheet. |
    | **Capability vs. regression** | Cheat sheet on the two run types, when to use each. Read-only reference sheet. |
@@ -912,7 +915,7 @@ Required: `ANTHROPIC_API_KEY` for LLM-judge methods. Code-based methods run free
 - **Don't panic at the first-run pass rate.** 40–70% is normal. Read quadrant pass rates, not the headline.
 - **Export results immediately to CSV.** Copilot Studio retains run results for only 89 days. You need the CSV for long-term tracking and for Stage 4 interpretation.
 - **Run twice if borderline.** LLM-judge scoring is non-deterministic; re-run and take the median.
-- **Run Critical + Guardrails first.** If those fail, the rest is noise. Fix Core/Guardrails before interpreting Core/Deprioritize results.
+- **Run High Value · High Risk + Low Value · High Risk first.** If those fail, the rest is noise. Fix High-Risk quadrants before interpreting Low-Risk results.
 
 ### Output
 
@@ -926,7 +929,7 @@ Stage 4 turns raw results into a ranked action list. Every failure gets classifi
 
 ### What you walk away with
 
-- **Quadrant-aware pass rates** — Critical, Valuable, Guardrails, Deprioritize each get their own verdict. A 90% Critical with one Guardrails failure is worse than a 60% Critical with all Guardrails passing.
+- **Quadrant-aware pass rates** — High Value · High Risk, High Value · Low Risk, Low Value · High Risk, Low Value · Low Risk each get their own verdict. A 90% High Value · High Risk pass rate with one Low Value · High Risk failure is worse than a 60% High Value · High Risk with all Low Value · High Risk cases passing.
 - **Failure triage table** — every failure classified as Eval Setup / Agent Configuration / Platform Limitation. The classification points at the fix.
 - **Top 3 actions** in Change → Re-run → Expect format.
 - **A `.docx` triage report** for your team to act from.
@@ -952,21 +955,21 @@ This single discipline is what separates productive triage from churn.
 
 The headline pass rate ("60% passed") is wrong as a verdict. The right read is per-quadrant:
 
-- **Guardrails** at any failure rate → block / urgent. These are the zero-tolerance criteria.
-- **Critical** at <80% → ship-blocker; iterate.
-- **Valuable** at <70% → ship-blocker; iterate. At 70–90% → ship with known issues documented.
-- **Deprioritize** at any rate → not a release-gate signal.
+- **Low Value · High Risk** at any failure rate → block / urgent. These are the zero-tolerance criteria.
+- **High Value · High Risk** at <80% → ship-blocker; iterate.
+- **High Value · Low Risk** at <70% → ship-blocker; iterate. At 70–90% → ship with known issues documented.
+- **Low Value · Low Risk** at any rate → not a release-gate signal.
 
-A Guardrails failure at 60% is more urgent than Deprioritize at 60%. Teach this read before showing numbers.
+A Low Value · High Risk failure at 60% is more urgent than Low Value · Low Risk at 60%. Teach this read before showing numbers.
 
 **Ship-readiness thresholds (use these as the canonical targets across sessions):**
 
 | Quadrant | Ready to ship | Ship with documented issues | Hold / iterate |
 |---|---|---|---|
-| **Critical** | ≥ 90% | 80–90% (with documented gaps) | < 80% |
-| **Valuable** | ≥ 80% | 70–80% | < 70% |
-| **Guardrails** | ≥ 95% (≥ 100% on regulated-content boundaries) | not applicable — Guardrails has no "ship with known issues" tier | < 95% |
-| **Deprioritize** | not a release gate | not a release gate | not a release gate |
+| **High Value · High Risk** | ≥ 90% | 80–90% (with documented gaps) | < 80% |
+| **High Value · Low Risk** | ≥ 80% | 70–80% | < 70% |
+| **Low Value · High Risk** | ≥ 95% (≥ 100% on regulated-content boundaries) | not applicable — Low Value · High Risk has no "ship with known issues" tier | < 95% |
+| **Low Value · Low Risk** | not a release gate | not a release gate | not a release gate |
 
 A green-across-the-board run is rare on first iteration; expect 2–3 Stage 1→4 cycles before all quadrants hit "Ready to ship." Tell the customer the targets so they know what they're working toward, not just what's failing today.
 
@@ -1052,14 +1055,14 @@ Before generating the final triage report, launch the interpret dashboard for re
    - Top-3-action edits
    - General Comments box content
 
-   **Then narrate the edits back** — count Disagrees applied, list re-classified root causes, name any Top-3-action edits. Example: *"Got it — 4 Disagrees flipped to Eval Setup, root cause for failure #7 reclassified from Agent Config to Platform Limitation, Top action #2 edited to scope to Critical only. Updated pass rate per quadrant: Critical 78% → 82% after Disagrees applied."* Don't just say "applied." The narration confirms you parsed correctly; it is NOT an invitation to re-decide.
+   **Then narrate the edits back** — count Disagrees applied, list re-classified root causes, name any Top-3-action edits. Example: *"Got it — 4 Disagrees flipped to Eval Setup, root cause for failure #7 reclassified from Agent Config to Platform Limitation, Top action #2 edited to scope to High Value · High Risk only. Updated pass rate per quadrant: High Value · High Risk 78% → 82% after Disagrees applied."* Don't just say "applied." The narration confirms you parsed correctly; it is NOT an invitation to re-decide.
 
    If changes requested instead of confirmed, regenerate and re-launch.
 5. **After confirmation**, generate the customer-ready .docx triage report using the `/docx` skill. Same principles: concise, presentable, self-contained. Structure:
    1. Quadrant performance — quadrant summary cards (pass rate per quadrant) + full criterion table (quadrant, criterion, quality dimension, actual pass rate, status)
    2. Failure triage table (quadrant, criterion, question, expected, actual, root cause) — include human-disagreed entries as "Eval Setup — Human Disagrees"
    3. Top actions (Change → Re-run → Expect)
-   4. Pattern analysis — quadrant-aware patterns highlighting systemic issues (e.g., Guardrails failures are more urgent than Deprioritize failures)
+   4. Pattern analysis — quadrant-aware patterns highlighting systemic issues (e.g., Low Value · High Risk failures are more urgent than Low Value · Low Risk failures)
    5. Next steps. **Always include a pointer line:** *"You're also keeping the companion artifacts from Stage 2 — `eval-setup-guide-<agent>-<date>.docx` (step-by-step Copilot Studio setup), `rerun-protocol-<agent>-<date>.docx` (Pillar 3 L200), and `baseline-comparison-<agent>-<date>.xlsx` (Pillar 5 L200). They walk you through how to set up the run, when to re-run, and how to compare runs."* (If Stage 2 was skipped, generate them now using the same flow as Stage 2 deliverables C, D, and E.)
    6. Maturity snapshot — same before/after table as the Stage 2 report, updated to reflect Pillar 4 now at L300 Systematic:
 
@@ -1144,7 +1147,7 @@ The full 5×5 maturity model definitions live in `maturity-model.md`. Treat that
 - **Highlight what they'd miss.** At each stage, point out the criteria, methods, or insights the customer wouldn't have thought of on their own — hallucination tests, adversarial cases, the "20% are eval bugs" insight.
 - **Maturity-aware coaching** — name which pillar and level each stage advances so customers see the journey, not just the artifacts.
 - Be specific — use real names, real scenarios. No generic advice.
-- Always include at least 1 adversarial/safety criterion (typically a Guardrails-quadrant entry).
+- Always include at least 1 adversarial/safety criterion (typically a Low Value · High Risk entry).
 - Keep everything in the CLI unless asked otherwise.
 - Pause between stages for confirmation.
 - Match the user's language.

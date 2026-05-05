@@ -293,25 +293,25 @@
 
 <!-- Section 1: Value × Cost matrix -->
 <div class="section">
-  <div class="section-header"><span data-tooltip="Each acceptance criterion belongs in one quadrant based on (a) the VALUE of getting it right and (b) the COST of failure. Drag cards between quadrants. Pass/fail for each test case lives in each criterion's own pass/fail conditions — not a prescribed percentage threshold.">Value × Cost-of-Failure Matrix</span></div>
+  <div class="section-header"><span data-tooltip="Each acceptance criterion belongs in one quadrant based on (a) the VALUE of getting it right and (b) the RISK if it fails. Drag cards between quadrants. Pass/fail for each test case lives in each criterion's own pass/fail conditions — not a prescribed percentage threshold.">Value × Risk Matrix</span></div>
   <div class="section-body">
     <div class="matrix-intro">
-      Each acceptance criterion is placed in one of four quadrants based on <strong>Value</strong> (how much does getting it right drive the product?) and <strong>Cost of failure</strong> (how much harm does a failure cause?). Drag criteria between quadrants as your thinking evolves.
+      Each acceptance criterion is placed in one of four quadrants based on <strong>Value</strong> (how much does getting it right drive the product?) and <strong>Risk</strong> (how much harm does a failure cause?). Drag criteria between quadrants as your thinking evolves.
       <div class="matrix-legend">
         <div class="matrix-legend-item legend-critical">
-          <b>Critical (high value, high cost)</b>
+          <b>High Value · High Risk</b>
           Product-defining capabilities. Most test cases, strictest review.
         </div>
         <div class="matrix-legend-item legend-valuable">
-          <b>Valuable (high value, low cost)</b>
+          <b>High Value · Low Risk</b>
           Expected capabilities users rely on. Occasional misses tolerable.
         </div>
         <div class="matrix-legend-item legend-guardrails">
-          <b>Guardrails (low value, high cost)</b>
+          <b>Low Value · High Risk</b>
           Rarely triggered but must never fail. Safety, compliance, refusals.
         </div>
         <div class="matrix-legend-item legend-deprioritize">
-          <b>Deprioritize (low value, low cost)</b>
+          <b>Low Value · Low Risk</b>
           Exploratory or rare. Light coverage; revisit if usage grows.
         </div>
       </div>
@@ -320,24 +320,24 @@
     <div class="matrix-wrap">
       <!-- Row 1: column headers (empty corner, then X-axis labels above each column) -->
       <div class="matrix-corner"></div>
-      <div class="matrix-x-label">Low cost of failure</div>
-      <div class="matrix-x-label">High cost of failure</div>
+      <div class="matrix-x-label">Low risk</div>
+      <div class="matrix-x-label">High risk</div>
 
       <!-- Row 2: HIGH VALUE row -->
       <div class="matrix-y-label">High value</div>
-      <!-- Top-left: Valuable (high value, low cost) -->
+      <!-- Top-left: High Value · Low Risk -->
       <div class="quadrant" id="quadrant-valuable" data-quadrant="valuable">
         <div class="quadrant-header quadrant-header-valuable">
-          <span data-tooltip="Valuable: high value, low cost of failure. The agent's expected capabilities — users rely on these and notice when they're off, but a miss isn't catastrophic. Invest in solid coverage.">Valuable</span>
+          <span data-tooltip="High Value · Low Risk: the agent's expected capabilities — users rely on these and notice when they're off, but a miss isn't catastrophic. Invest in solid coverage.">High Value · Low Risk</span>
           <span class="quadrant-subtitle" id="quadrant-valuable-count"></span>
         </div>
         <div class="quadrant-items" id="quadrant-items-valuable"></div>
         <input class="quadrant-add-input" placeholder="+ The agent should..." data-quadrant="valuable" onkeydown="onAddKeydown(event)">
       </div>
-      <!-- Top-right: Critical (high value, high cost) -->
+      <!-- Top-right: High Value · High Risk -->
       <div class="quadrant" id="quadrant-critical" data-quadrant="critical">
         <div class="quadrant-header quadrant-header-critical">
-          <span data-tooltip="Critical: high value AND high cost of failure. Product-defining capabilities where a miss hurts. Heaviest investment — most test cases, strictest acceptance criteria, human review mandatory.">Critical</span>
+          <span data-tooltip="High Value · High Risk: product-defining capabilities where a miss hurts. Heaviest investment — most test cases, strictest acceptance criteria, human review mandatory.">High Value · High Risk</span>
           <span class="quadrant-subtitle" id="quadrant-critical-count"></span>
         </div>
         <div class="quadrant-items" id="quadrant-items-critical"></div>
@@ -346,19 +346,19 @@
 
       <!-- Row 3: LOW VALUE row -->
       <div class="matrix-y-label">Low value</div>
-      <!-- Bottom-left: Deprioritize (low value, low cost) -->
+      <!-- Bottom-left: Low Value · Low Risk -->
       <div class="quadrant" id="quadrant-deprioritize" data-quadrant="deprioritize">
         <div class="quadrant-header quadrant-header-deprioritize">
-          <span data-tooltip="Deprioritize: low value, low cost of failure. Exploratory or rarely exercised behaviors. Test lightly; revisit if usage grows or stakes change.">Deprioritize</span>
+          <span data-tooltip="Low Value · Low Risk: exploratory or rarely exercised behaviors. Test lightly; revisit if usage grows or stakes change.">Low Value · Low Risk</span>
           <span class="quadrant-subtitle" id="quadrant-deprioritize-count"></span>
         </div>
         <div class="quadrant-items" id="quadrant-items-deprioritize"></div>
         <input class="quadrant-add-input" placeholder="+ The agent should..." data-quadrant="deprioritize" onkeydown="onAddKeydown(event)">
       </div>
-      <!-- Bottom-right: Guardrails (low value, high cost) -->
+      <!-- Bottom-right: Low Value · High Risk -->
       <div class="quadrant" id="quadrant-guardrails" data-quadrant="guardrails">
         <div class="quadrant-header quadrant-header-guardrails">
-          <span data-tooltip="Guardrails: low value, high cost of failure. Low-traffic behaviors where a failure causes real harm — safety refusals, compliance boundaries, escalation. Zero tolerance for failure; invest in negative tests and adversarial cases.">Guardrails</span>
+          <span data-tooltip="Low Value · High Risk: low-traffic behaviors where a failure causes real harm — safety refusals, compliance boundaries, escalation. Zero tolerance for failure; invest in negative tests and adversarial cases.">Low Value · High Risk</span>
           <span class="quadrant-subtitle" id="quadrant-guardrails-count"></span>
         </div>
         <div class="quadrant-items" id="quadrant-items-guardrails"></div>
@@ -407,10 +407,10 @@
 <script>
 const QUADRANTS = ["critical", "valuable", "guardrails", "deprioritize"];
 const QUADRANT_LABELS = {
-  critical: "Critical",
-  valuable: "Valuable",
-  guardrails: "Guardrails",
-  deprioritize: "Deprioritize",
+  critical: "High Value · High Risk",
+  valuable: "High Value · Low Risk",
+  guardrails: "Low Value · High Risk",
+  deprioritize: "Low Value · Low Risk",
 };
 const Q_BADGE_CSS = {
   critical: "q-badge-critical",

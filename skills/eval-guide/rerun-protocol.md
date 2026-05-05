@@ -30,17 +30,17 @@ Use the trigger as the prompt; the scope column tells you what subset to run, no
 | What changed | What to re-run | Priority order |
 |---|---|---|
 | Single test case (eval bug fix) | Only the affected test case | Run the one case |
-| Agent config change (instructions, settings) | Affected test cases + spot-check one unrelated set | Critical + Guardrails first, then targeted |
-| System prompt change | Full eval suite | Critical + Guardrails first, then full |
-| Knowledge source update | All knowledge-grounding and factual-accuracy cases | Critical + Guardrails first, then knowledge cases |
-| Tool / connector change | All cases that exercise the tool, plus capability-routing cases | Critical + Guardrails first, then tool cases |
-| Model upgrade | Full eval suite | Critical + Guardrails first, then full |
-| New feature added | New cases for the feature + full Critical + Guardrails to catch regressions | New + Critical + Guardrails minimum |
+| Agent config change (instructions, settings) | Affected test cases + spot-check one unrelated set | High Value · High Risk + Low Value · High Risk first, then targeted |
+| System prompt change | Full eval suite | High Value · High Risk + Low Value · High Risk first, then full |
+| Knowledge source update | All knowledge-grounding and factual-accuracy cases | High Value · High Risk + Low Value · High Risk first, then knowledge cases |
+| Tool / connector change | All cases that exercise the tool, plus capability-routing cases | High Value · High Risk + Low Value · High Risk first, then tool cases |
+| Model upgrade | Full eval suite | High Value · High Risk + Low Value · High Risk first, then full |
+| New feature added | New cases for the feature + full High Value · High Risk + Low Value · High Risk to catch regressions | New + High Value · High Risk + Low Value · High Risk minimum |
 | Scheduled cadence (no change) | Full suite at a defined interval (weekly + pre-release minimum) | Full suite |
 
 ## Run order rule
 
-Run **Critical** and **Guardrails** quadrant cases first, regardless of trigger. Two reasons: (1) if Critical or Guardrails fail, the rest is noise — fix those before interpreting Core or Deprioritize results; (2) Guardrails cases are short and run fast, so you get a fast signal on whether the change broke anything safety-related.
+Run **High Value · High Risk** and **Low Value · High Risk** quadrant cases first, regardless of trigger. Two reasons: (1) if High Value · High Risk or Low Value · High Risk fail, the rest is noise — fix those before interpreting High Value · Low Risk or Low Value · Low Risk results; (2) Low Value · High Risk cases are short and run fast, so you get a fast signal on whether the change broke anything safety-related.
 
 Never re-run only the failing cases from a previous run. Always include the previously-passing set so regressions surface. A "fix" that breaks two unrelated cases is worse than the original failure.
 
@@ -51,7 +51,7 @@ For every re-run, capture in your archive:
 - **Run date** (timestamp).
 - **Agent version or change description** — what's different from last run? "Updated PTO knowledge source", "switched to gpt-4o", "added empathy instruction".
 - **Eval set version** — which CSV files were used, with their date stamps.
-- **Pass rate per quadrant** — Critical, Valuable, Guardrails, Deprioritize.
+- **Pass rate per quadrant** — High Value · High Risk, High Value · Low Risk, Low Value · High Risk, Low Value · Low Risk.
 - **Pass/fail status per case** — exported from Copilot Studio's Evaluation tab as CSV.
 
 A spreadsheet, a markdown file in the repo, or `eval-results-<YYYY-MM-DD>.csv` per run is enough at L200. The discipline is logging, not tooling.

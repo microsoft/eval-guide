@@ -82,12 +82,11 @@
   color: var(--text-muted);
   cursor: pointer;
   padding: 0 0.2rem;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   line-height: 1;
-  opacity: 0;
-  transition: opacity 0.15s, color 0.15s;
+  opacity: 1;
+  transition: color 0.15s;
 }
-.method-chip:hover .chip-remove { opacity: 1; }
 .method-chip .chip-remove:hover { color: var(--red); }
 .add-method-select {
   font-family: var(--font);
@@ -197,6 +196,37 @@
 }
 .reference-note strong { color: var(--accent); }
 .reference-note em { font-style: italic; font-weight: 500; }
+
+/* ── Custom-rubric block (when method = Custom) ── */
+.rubric-block {
+  padding: 0.5rem 0.7rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.rubric-block label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 0.3rem;
+}
+.rubric-textarea {
+  width: 100%;
+  min-height: 4.2rem;
+  font-family: var(--font);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  resize: vertical;
+}
+.rubric-textarea.edited { background: var(--blue-bg); border-color: var(--blue); }
+.rubric-textarea:focus { outline: none; border-color: var(--accent); }
 </style>
 
 <!-- ── Eval Sets Overview (top, live-updated) ── -->
@@ -210,8 +240,9 @@
       <thead>
         <tr>
           <th>Quality Signal</th>
+          <th style="width:9rem"># Test Cases</th>
           <th>Test Methods</th>
-          <th>Priority Level</th>
+          <th style="width:9rem">Priority Level</th>
         </tr>
       </thead>
       <tbody id="overview-tbody"></tbody>
@@ -219,15 +250,15 @@
   </div>
 </div>
 
-<!-- ── Stacked per-signal sections (sorted Critical → Guardrails → Valuable → Deprioritize) ── -->
+<!-- ── Stacked per-signal sections (sorted High Value · High Risk → Low Value · High Risk → High Value · Low Risk → Low Value · Low Risk) ── -->
 <div id="signal-sections"></div>
 
 <script>
 const QUADRANT_LABELS = {
-  critical: "Critical",
-  valuable: "Valuable",
-  guardrails: "Guardrails",
-  deprioritize: "Deprioritize",
+  critical: "High Value · High Risk",
+  valuable: "High Value · Low Risk",
+  guardrails: "Low Value · High Risk",
+  deprioritize: "Low Value · Low Risk",
   mixed: "Mixed",
 };
 const Q_BADGE_CSS = {
@@ -245,11 +276,11 @@ const Q_SECTION_CSS = {
   mixed: "q-section-mixed",
 };
 
-// Section ordering: Critical first, Guardrails, Valuable (high-value/low-risk),
-// Deprioritize (low-value/low-risk), and any mixed at the end.
+// Section ordering: High Value · High Risk first, Low Value · High Risk,
+// High Value · Low Risk, Low Value · Low Risk, and any mixed at the end.
 const QUADRANT_DISPLAY_ORDER = { critical: 0, guardrails: 1, valuable: 2, deprioritize: 3, mixed: 4 };
 // "Dominant quadrant" weighting when a signal has criteria across multiple quadrants
-// — Critical wins ties over Guardrails > Valuable > Deprioritize.
+// — High Value · High Risk wins ties over Low Value · High Risk > High Value · Low Risk > Low Value · Low Risk.
 const QUADRANT_WEIGHT = { critical: 4, guardrails: 3, valuable: 2, deprioritize: 1 };
 
 const METHODS = ["Compare meaning", "General quality", "Keyword match", "Exact match", "Text similarity", "Capability use", "Custom"];
@@ -288,8 +319,25 @@ function normalizeCriterion(raw) {
     _originalMethod: raw.method || "Compare meaning",
     pass_condition: passCondition,
     fail_condition: failCondition,
+    custom_rubric: raw.custom_rubric || "",
     cases: (raw.cases || []).map((c, i) => ({...c, _idx: i, _deleted: false})),
   };
+}
+
+// Draft a Custom-method rubric from the criterion's pass/fail conditions.
+// The user is expected to refine this for their domain — it's a starting frame,
+// not a final rubric.
+function draftCustomRubric(c) {
+  if (c.custom_rubric) return c.custom_rubric;
+  const lines = [];
+  lines.push("Rate the agent's response Pass / Fail against the criterion below.");
+  lines.push("");
+  lines.push("Criterion: " + (c.statement || "").replace(/^the agent should /i, "The agent should "));
+  if (c.pass_condition) lines.push("Pass = " + c.pass_condition);
+  if (c.fail_condition) lines.push("Fail = " + c.fail_condition);
+  lines.push("");
+  lines.push("Output exactly one of: PASS or FAIL, followed by a one-sentence reason.");
+  return lines.join("\n");
 }
 
 function stageInit() {
@@ -336,7 +384,7 @@ function getDominantQuadrant(ts) {
   const entries = Object.entries(weighted);
   if (entries.length === 0) return "valuable";
   if (entries.length === 1) return entries[0][0];
-  // Sort by (case count × quadrant weight) so Critical wins ties when counts are similar
+  // Sort by (case count × quadrant weight) so High Value · High Risk wins ties when counts are similar
   entries.sort((a, b) => (b[1] * QUADRANT_WEIGHT[b[0]]) - (a[1] * QUADRANT_WEIGHT[a[0]]));
   const total = entries.reduce((s, e) => s + e[1], 0);
   // > 60% of cases → name the quadrant; otherwise "mixed"
@@ -439,16 +487,40 @@ function buildSignalSectionHTML(ts, tsIdx, quadrant) {
     }
 
     const needsReference = !REFERENCE_FREE_METHODS.includes(c.method);
+    const isKeywordMatch = c.method === "Keyword match";
+    const isCustom = c.method === "Custom";
 
-    if (!needsReference) {
+    // Custom: show editable rubric drafted from pass/fail conditions.
+    // Resolution order for textarea value: persisted edit → in-memory rubric → auto-draft.
+    // Persisting the edit means switching method away and back doesn't lose the user's rubric.
+    if (isCustom) {
+      const rubricFp = cPrefix + ".custom_rubric";
+      const persistedEdit = (typeof edits === "object" && edits && edits[rubricFp] !== undefined && edits[rubricFp] !== "__DELETE__")
+        ? edits[rubricFp] : null;
+      const rubricValue = persistedEdit !== null ? persistedEdit : draftCustomRubric(c);
+      const rubricEdited = persistedEdit !== null || (!!c.custom_rubric && c.custom_rubric !== "");
+      html += '<div class="rubric-block">' +
+        '<label>Custom rubric (LLM-judged) — edit for your domain</label>' +
+        '<textarea class="rubric-textarea' + (rubricEdited ? ' edited' : '') + '" ' +
+        'data-field="' + rubricFp + '" data-original="" ' +
+        'oninput="scheduleSave()">' + escapeHtml(rubricValue) + '</textarea>' +
+        '</div>';
+    } else if (!needsReference) {
+      // General quality / Capability use: keep the existing note, no reference column.
       html += '<div class="reference-note">' +
         '<strong>No expected response needed</strong> — <em>' + escapeHtml(c.method) + '</em> grades each response directly against the criterion\'s pass/fail conditions above, not against a reference answer.' +
         '</div>';
     }
 
+    // Column label for the second column when it's shown.
+    // - Keyword match → "Keywords" (comma-separated keyword list per case)
+    // - Anything else reference-needing → "Expected Response"
+    const secondColLabel = isKeywordMatch ? "Keywords" : "Expected Response";
+    const secondColPlaceholder = isKeywordMatch ? "comma-separated keywords (case-insensitive by default)" : "";
+
     html += '<div style="overflow-x:auto;"><table><thead><tr>' +
       '<th style="width:30px">#</th>' +
-      (needsReference ? '<th style="width:40%">Question</th><th style="width:50%">Expected Response</th>' : '<th>Question</th>') +
+      (needsReference ? '<th style="width:40%">Question</th><th style="width:50%">' + secondColLabel + '</th>' : '<th>Question</th>') +
       '<th style="width:40px"></th>' +
       '</tr></thead><tbody>';
 
@@ -457,14 +529,23 @@ function buildSignalSectionHTML(ts, tsIdx, quadrant) {
       const fp = cPrefix + ".cases[" + csIdx + "]";
       const questionCell =
         '<td class="editable"><textarea data-field="' + fp + '.question" data-original="' + escapeAttr(cs.question || "") + '" oninput="scheduleSave()">' + escapeHtml(cs.question || "") + '</textarea></td>';
-      const expectedCell = needsReference
-        ? '<td class="editable"><div class="verify-container" data-field-target="' + fp + '.expected_response">' + renderVerifyText(cs.expected_response || "") + '</div>' +
-          '<textarea data-field="' + fp + '.expected_response" data-original="' + escapeAttr(cs.expected_response || "") + '" oninput="onExpectedEdit(this);scheduleSave()" style="display:none;">' + escapeHtml(cs.expected_response || "") + '</textarea></td>'
-        : '';
+      let secondCell = "";
+      if (needsReference) {
+        if (isKeywordMatch) {
+          // Plain editable textarea for keywords — no [VERIFY] highlighting (keywords are not factual claims).
+          secondCell = '<td class="editable"><textarea data-field="' + fp + '.expected_response" ' +
+            'data-original="' + escapeAttr(cs.expected_response || "") + '" ' +
+            'placeholder="' + escapeAttr(secondColPlaceholder) + '" ' +
+            'oninput="scheduleSave()">' + escapeHtml(cs.expected_response || "") + '</textarea></td>';
+        } else {
+          secondCell = '<td class="editable"><div class="verify-container" data-field-target="' + fp + '.expected_response">' + renderVerifyText(cs.expected_response || "") + '</div>' +
+            '<textarea data-field="' + fp + '.expected_response" data-original="' + escapeAttr(cs.expected_response || "") + '" oninput="onExpectedEdit(this);scheduleSave()" style="display:none;">' + escapeHtml(cs.expected_response || "") + '</textarea></td>';
+        }
+      }
       html += '<tr>' +
         '<td class="text-muted">' + (csIdx + 1) + '</td>' +
         questionCell +
-        expectedCell +
+        secondCell +
         '<td><button class="btn btn-sm btn-danger" onclick="deleteCase(' + tsIdx + ',' + cIdx + ',' + csIdx + ')">&#x2715;</button></td>' +
         '</tr>';
     });
@@ -605,8 +686,8 @@ function updateOverview() {
     tr.innerHTML =
       '<td>' +
         '<a class="signal-link" href="#signal-anchor-' + tsIdx + '">' + escapeHtml(dimensionName) + '</a>' +
-        '<div class="signal-meta">' + dimCases + ' test cases · ' + ts.criteria.length + ' criteria</div>' +
       '</td>' +
+      '<td><span style="font-weight:600">' + dimCases + '</span></td>' +
       '<td>' + methodsHtml + '</td>' +
       '<td class="priority-cell"><span class="q-badge-sm ' + (Q_BADGE_CSS[quadrant] || "") + '">' +
         (QUADRANT_LABELS[quadrant] || quadrant) + '</span></td>';

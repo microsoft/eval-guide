@@ -73,7 +73,7 @@ Eval maturity has five pillars and five levels each — from `L100 Initial` (no 
   6. What's the cost of getting it wrong?
   7. Does behavior differ per user role?
 - **What you decide:**
-  - **Risk profile (low / medium / high)** — informs how much of your Stage 1 plan leans into the **Guardrails** quadrant and how strict the human-review gate should be. It does *not* prescribe numeric thresholds (those were intentionally dropped).
+  - **Risk profile (low / medium / high)** — informs how much of your Stage 1 plan leans into the **Low Value · High Risk** quadrant and how strict the human-review gate should be. It does *not* prescribe numeric thresholds (those were intentionally dropped).
   - **Role-based access (yes / no)** — if yes, Stage 2 generates separate test sets per role using Copilot Studio user profiles. *Note: multi-profile eval doesn't work with connectors and isn't available in GCC.*
 - **What you get back:** An **Agent Vision** block (name, purpose, users, knowledge sources, capabilities, boundaries, success criteria, role-based access, risk profile).
 
@@ -99,7 +99,7 @@ Eval maturity has five pillars and five levels each — from `L100 Initial` (no 
   - Which **functional families** apply (Information Retrieval, Request Submission, Troubleshooting, Process Navigation, Triage & Routing).
   - Which **capability families** apply (Knowledge Grounding, Tool Invocation, Trigger Routing, Safety, Compliance, Red-Teaming, Graceful Failure, Tone & Quality).
   - **Pass/fail conditions** for each criterion — explicit enough that a human or LLM judge can decide the outcome from the criterion alone.
-- **Coverage target:** ~50–70% focused on Critical + Guardrails, ~20–30% on expected-but-lower-priority behaviors, ~10–20% on exploratory/edge. Always include at least one adversarial / Red-Teaming criterion.
+- **Coverage target:** ~50–70% focused on High Value · High Risk + Low Value · High Risk, ~20–30% on expected-but-lower-priority behaviors, ~10–20% on exploratory/edge. Always include at least one adversarial / Red-Teaming criterion.
 - **What you get back:** A list of acceptance criteria printed in chat. Example:
   > "The agent should return the correct PTO days for the employee's office and tenure, with a citation to the source policy."
 
@@ -107,10 +107,10 @@ Eval maturity has five pillars and five levels each — from `L100 Initial` (no 
 
 - **Goal:** Assign each criterion to one of four quadrants so effort flows to what matters most.
 - **Quadrants** (two judgments: how much VALUE does getting this right deliver? how much COST does failure cause?):
-  - **Critical** (high value, high cost) — product-defining capabilities and high-harm behaviors. Invest heaviest.
-  - **Valuable** (high value, low cost) — expected capabilities; occasional misses tolerable.
-  - **Guardrails** (low value, high cost) — rarely triggered safety/compliance/refusal criteria. Zero tolerance for failure.
-  - **Deprioritize** (low value, low cost) — exploratory or rare. Test lightly.
+  - **High Value · High Risk** (high value, high cost) — product-defining capabilities and high-harm behaviors. Invest heaviest.
+  - **High Value · Low Risk** (high value, low cost) — expected capabilities; occasional misses tolerable.
+  - **Low Value · High Risk** (low value, high cost) — rarely triggered safety/compliance/refusal criteria. Zero tolerance for failure.
+  - **Low Value · Low Risk** (low value, low cost) — exploratory or rare. Test lightly.
 - **What to verify (per criterion)** — a decision-aid field that captures what the test must actually check. Picking one **sets the test method automatically**:
 
   | What to verify | Test method it sets | When to use |
@@ -160,7 +160,7 @@ Eval maturity has five pillars and five levels each — from `L100 Initial` (no 
 - **What happens:** The AI launches the generate dashboard from the eval-guide plugin install. Your browser opens `generate-dashboard.html`.
 - **What you do in the browser:**
   - **Eval Sets Overview at the top** — a 3-column table (Quality Signal · Test Methods · Priority Level) listing every signal the AI proposes. Edits below update this table in real time. Click a signal name to jump to its section.
-  - **Stacked signal sections, ordered by priority** — Critical first, then Guardrails, then Valuable, then Deprioritize. Each section has a colored top border matching its priority level. No tabs.
+  - **Stacked signal sections, ordered by priority** — High Value · High Risk first, then Low Value · High Risk, then High Value · Low Risk, then Low Value · Low Risk. Each section has a colored top border matching its priority level. No tabs.
   - **"Test Methods to Use:"** bar at the top of each signal section lists the methods in play. Hover a chip to reveal its **×** (remove). Use the **+ Add method** dropdown to add another method.
   - **Criterion groups** show the quadrant badge, the statement, the case count, and a **per-criterion method dropdown** — change the test method directly per criterion. Changes propagate to the overview and to whether the Expected Response column is shown.
   - **Pass = / Fail = conditions** are shown in green/red under each criterion header.
@@ -185,7 +185,7 @@ This session reaches **L200 Defined on Pillar 3** through the `rerun-protocol-<a
 If the agent IS running:
 
 - **What you provide:** DirectLine token endpoint, or access to `/chat-with-agent` via the Copilot Studio plugin.
-- **What you decide:** Which CSVs to run now vs. later. Run **Critical and Guardrails** criteria first — if those fail, the rest is noise.
+- **What you decide:** Which CSVs to run now vs. later. Run **High Value · High Risk and Low Value · High Risk** criteria first — if those fail, the rest is noise.
 - **What you get back:** `eval-results-YYYY-MM-DD.csv` and `.json`. **Export immediately** — Copilot Studio only retains results for 89 days.
 - **Checkpoint:** None. This stage executes; no dashboard.
 
@@ -211,7 +211,7 @@ If the agent IS running:
 
 - **What happens:** The AI launches the interpret dashboard from the eval-guide plugin install. Your browser opens `interpret-dashboard.html`.
 - **What you do in the browser:**
-  - Scan the **quadrant summary cards** — pass rate per quadrant (Critical / Valuable / Guardrails / Deprioritize). A Guardrails failure is more urgent than a Deprioritize failure at the same rate; the cards make that visible.
+  - Scan the **quadrant summary cards** — pass rate per quadrant (High Value · High Risk / High Value · Low Risk / Low Value · High Risk / Low Value · Low Risk). A Low Value · High Risk failure is more urgent than a Low Value · Low Risk failure at the same rate; the cards make that visible.
   - Expand criterion rows to see every test case with the LLM judge's explanation.
   - Click **Agree** / **Disagree** per case. Disagrees flip the case to an Eval Setup root cause — your human judgment overrides the LLM judge.
   - Reclassify root causes via the dropdown.
@@ -231,14 +231,14 @@ If the agent IS running:
 - **`eval-setup-guide-<agent>-<date>.docx`** — step-by-step walkthrough for setting up and running the CSVs in Copilot Studio's Evaluate tab. Per-method setup details (`General quality`, `Compare meaning`, `Keyword match`, `Custom`, etc.), threshold guidance tied to your quadrants, and a troubleshooting table for common import/run problems. Open it the first time you set up the run and any time someone new on the team picks it up.
 - **`rerun-protocol-<agent>-<date>.docx`** — Pillar 3 L200 Defined starter. Reference document — when to re-run evals after the agent changes, what scope to run, how to log results, exit criteria for L200, path to L300. Read it, share it with your team, keep it next to your eval set.
 - **`baseline-comparison-<agent>-<date>.xlsx`** — Pillar 5 L200 Defined starter. Fill-in Excel workbook — comparison table for Run 1 vs. Run 2 metrics, four case-level buckets (Pass-Pass / Fail-Pass / Pass-Fail / Fail-Fail), decision rules, capability-vs-regression cheat sheet. Open it each time you compare two eval runs.
-- The vocabulary to do the next round yourself: acceptance criteria (*"The agent should…"*), the four quadrants (**Critical / Valuable / Guardrails / Deprioritize**), quality dimensions, `[VERIFY]` discipline, pass/fail conditions, root-cause classification.
+- The vocabulary to do the next round yourself: acceptance criteria (*"The agent should…"*), the four quadrants (**High Value · High Risk / High Value · Low Risk / Low Value · High Risk / Low Value · Low Risk**), quality dimensions, `[VERIFY]` discipline, pass/fail conditions, root-cause classification.
 
 **How to push Pillars 3 and 5 from L200 Defined to L300 Systematic:**
 - **Pillar 3 (Run evals across the lifecycle)** — your `rerun-protocol-<agent>-<date>.docx` gets you to L200 Defined: a documented protocol you execute when triggered. L300 Systematic requires automation (CI hooks, scheduled runs) and production-quality tracking on a defined cadence. Come back when you have a DirectLine endpoint and want to codify the triggers and start sampling production traffic.
 - **Pillar 5 (Handle changes with confidence)** — your `baseline-comparison-<agent>-<date>.xlsx` gets you to L200 Defined: a fill-in workbook for comparing two runs. L300 Systematic requires per-change-type routing (a prompt edit triggers the prompt subset; a tool change triggers the tool-routing subset) and at least three changes' worth of comparison history. Come back when you've accumulated that history.
 
 **How to re-run as the agent evolves:**
-- Any change to knowledge, topics, or tools → follow the trigger table in your `rerun-protocol-<agent>-<date>.docx`. Critical + Guardrails first, then the prescribed scope.
+- Any change to knowledge, topics, or tools → follow the trigger table in your `rerun-protocol-<agent>-<date>.docx`. High Value · High Risk + Low Value · High Risk first, then the prescribed scope.
 - New feature → new `/eval-guide` session, jumping to Stage 1 with the existing Agent Vision as input.
 - Comparing two runs → open your `baseline-comparison-<agent>-<date>.xlsx`, fill in the Comparison sheet and Case-level delta sheet. Pass-Fail (regression) cases are highest priority.
 - Production signal (real user issues) → add cases to the relevant quality signal CSV, re-run, re-interpret.

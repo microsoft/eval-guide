@@ -46,10 +46,10 @@ Change description: [what's different — prompt edit, knowledge update, model s
 | Metric                         | Run 1 (Before) | Run 2 (After) | Delta |
 |--------------------------------|----------------|---------------|-------|
 | Overall pass rate              |                |               |       |
-| Critical quadrant pass rate    |                |               |       |
-| Critical quadrant pass rate        |                |               |       |
-| Guardrails quadrant pass rate  |                |               |       |
-| Deprioritize quadrant pass rate|                |               |       |
+| High Value · High Risk pass rate    |                |               |       |
+| High Value · Low Risk pass rate     |                |               |       |
+| Low Value · High Risk pass rate     |                |               |       |
+| Low Value · Low Risk pass rate      |                |               |       |
 ```
 
 ## Case-level delta (fill in)
@@ -87,8 +87,8 @@ Apply these to interpret the delta:
 
 The comparison answers one question: should this change ship?
 
-- **Ship** if Critical and Guardrails are stable or improving, regression count is zero or explainable, and net delta is positive.
-- **Hold** if any Critical or Guardrails case regressed. These are zero-tolerance. Investigate before shipping.
+- **Ship** if High Value · High Risk and Low Value · High Risk are stable or improving, regression count is zero or explainable, and net delta is positive.
+- **Hold** if any High Value · High Risk or Low Value · High Risk case regressed. These are zero-tolerance. Investigate before shipping.
 - **Hold** if regressions outnumber fixes regardless of quadrant — re-examine the change.
 - **Iterate** if Fail-Fail cases show the change didn't address what it was supposed to. Diagnose with `/eval-triage-and-improvement`.
 

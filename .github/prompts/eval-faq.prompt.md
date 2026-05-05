@@ -137,7 +137,7 @@ Per the Triage Playbook, score interpretation follows a 4-layer framework:
 **Layer 1 — Score Interpretation:** Apply risk-based thresholds and the readiness decision tree:
 - **SHIP** — Scores meet thresholds across all quality signals.
 - **ITERATE** — Some signals below threshold; targeted fixes needed.
-- **BLOCK** — Critical signals failing; do not ship.
+- **BLOCK** — High Value · High Risk signals failing; do not ship.
 
 **Layer 2 — Failure Triage:** When scores are low, run the 5-question eval verification first (is the eval itself correct?) before blaming the agent. Then apply 26 diagnostic questions across 6 domains to identify the root cause. Seven eval setup failure sub-types cover common grader/dataset bugs.
 

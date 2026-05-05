@@ -33,7 +33,7 @@ For each test case in `test-cases.json`:
 4. Score against `pass_conditions` and `fail_conditions` — both must hold to pass.
 5. Record verdict (pass / fail / unsure) + notes per case.
 
-This is gold-standard but slow. Use it for the **Critical** and **Guardrails** quadrant cases at minimum.
+This is gold-standard but slow. Use it for the **High Value · High Risk** and **Low Value · High Risk** quadrant cases at minimum.
 
 ### Mode 2 — LLM-judge (scalable)
 
@@ -49,7 +49,7 @@ LLM-judge is fast but non-deterministic (±5% variance per run). For borderline 
 
 The plan covers `/eval-guide`'s six stages plus cross-cutting invariants:
 
-| Stage / Group | Test count | Critical | Valuable | Guardrails | Deprioritize |
+| Stage / Group | Test count | High Value · High Risk | High Value · Low Risk | Low Value · High Risk | Low Value · Low Risk |
 |---|---|---|---|---|---|
 | Triggers | 4 | 1 | 1 | 2 | 0 |
 | Stage 0 — Discover | 4 | 2 | 1 | 1 | 0 |
@@ -60,11 +60,11 @@ The plan covers `/eval-guide`'s six stages plus cross-cutting invariants:
 | Cross-cutting | 4 | 0 | 1 | 3 | 0 |
 | **Total** | **30** | **8 (27%)** | **7 (23%)** | **14 (47%)** | **1 (3%)** |
 
-Distribution roughly matches `/eval-guide`'s own targets for HIGH-risk agents (25–40% Critical, 15–30% Valuable, 30–50% Guardrails, 0–10% Deprioritize). The Guardrails-heavy bias is intentional — most of the friction the skill addresses lives in failure modes (boundary skips, aspirational-language sneaks, adversarial inputs, rule violations).
+Distribution roughly matches `/eval-guide`'s own targets for HIGH-risk agents (25–40% High Value · High Risk, 15–30% High Value · Low Risk, 30–50% Low Value · High Risk, 0–10% Low Value · Low Risk). The Low-Value · High-Risk-heavy bias is intentional — most of the friction the skill addresses lives in failure modes (boundary skips, aspirational-language sneaks, adversarial inputs, rule violations).
 
 ## When to re-run
 
-- **Pre-merge** — every PR that touches `skills/eval-guide/SKILL.md`, `dashboard/templates/*.html`, `dashboard/serve.py`, or any reference doc. Run **all Critical + Guardrails cases**.
+- **Pre-merge** — every PR that touches `skills/eval-guide/SKILL.md`, `dashboard/templates/*.html`, `dashboard/serve.py`, or any reference doc. Run **all High Value · High Risk + Low Value · High Risk cases**.
 - **Post-deploy / pre-release** — full eval set on the published plugin version.
 - **After model upgrade** (Sonnet 4.5 → 4.6, etc.) — full eval set, expect a 5–10% pass-rate swing while re-grounding.
 - **On customer report** — if a customer says "the skill produced X weird behavior," add a regression test to the relevant quality signal before fixing.
@@ -72,10 +72,10 @@ Distribution roughly matches `/eval-guide`'s own targets for HIGH-risk agents (2
 ## Calibration baseline
 
 A green run on this eval set means:
-- **Critical ≥ 90%** (the skill does its core job correctly across kickoff styles)
-- **Valuable ≥ 80%**
-- **Guardrails ≥ 95%** — refusals, anti-patterns, and adversarial resistance hold
-- **Deprioritize** — not a release gate
+- **High Value · High Risk ≥ 90%** (the skill does its core job correctly across kickoff styles)
+- **High Value · Low Risk ≥ 80%**
+- **Low Value · High Risk ≥ 95%** — refusals, anti-patterns, and adversarial resistance hold
+- **Low Value · Low Risk** — not a release gate
 
 Below those, **don't ship**. Diagnose with `/eval-result-interpreter` (or just read the failure column in the test results CSV) and remediate.
 

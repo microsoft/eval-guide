@@ -82,8 +82,8 @@ If two methods feel equally right, prefer the cheaper, more deterministic one (`
   - If the UI exposes a **judge model** dropdown, leave it on the default unless your tenant requires a specific one.
 - **Threshold (how to set it):** the judge returns a 1–5 score per case.
   - Default Pass threshold: **score ≥ 4**.
-  - Stricter (Critical / Guardrails quadrant): **score ≥ 4.5** (effectively requires a 5).
-  - Looser (Deprioritize quadrant): **score ≥ 3** is acceptable.
+  - Stricter (High Value · High Risk / Low Value · High Risk quadrants): **score ≥ 4.5** (effectively requires a 5).
+  - Looser (Low Value · Low Risk quadrant): **score ≥ 3** is acceptable.
   - Decide once per quality signal and apply uniformly — don't set per-row thresholds; they're impossible to maintain.
 - **Pitfalls:**
   - Vague rubrics produce inconsistent scores. "Helpful and clear" is a bad pass condition; "Names the specific policy and links to it" is a good one.
@@ -95,7 +95,7 @@ If two methods feel equally right, prefer the cheaper, more deterministic one (`
 - **Setup in the UI:**
   - **Expected response** must be filled in with the canonical correct answer. No `[VERIFY: …]` placeholders left over.
   - The judge compares meaning, not wording — paraphrase is OK; contradiction or omission is not.
-- **Threshold:** typically returned as a binary Pass/Fail by the judge, not a numeric score. If your tenant exposes a numeric similarity score instead, default Pass at **≥ 0.75**, tighten to **≥ 0.85** for Critical/Guardrails.
+- **Threshold:** typically returned as a binary Pass/Fail by the judge, not a numeric score. If your tenant exposes a numeric similarity score instead, default Pass at **≥ 0.75**, tighten to **≥ 0.85** for High Value · High Risk / Low Value · High Risk.
 - **Pitfalls:**
   - If the expected response embeds dates, prices, IDs, or anything time-sensitive, the judge will mark stale-but-close answers as Fail. Use `Keyword match` for the time-sensitive piece and split it into two criteria.
   - Same ±5% variance as `General quality`. Median of three runs for borderline cases.
@@ -164,7 +164,7 @@ If two methods feel equally right, prefer the cheaper, more deterministic one (`
 
 For LLM-judge and similarity methods, the threshold is the only knob you control after import. Three rules:
 
-1. **Tie thresholds to quadrants, not to individual cases.** Critical and Guardrails get the strictest threshold; Valuable gets the default; Deprioritize gets the loosest. This is what makes the Value × Cost matrix actually do work for you.
+1. **Tie thresholds to quadrants, not to individual cases.** High Value · High Risk and Low Value · High Risk get the strictest threshold; High Value · Low Risk gets the default; Low Value · Low Risk gets the loosest. This is what makes the Value × Risk matrix actually do work for you.
 2. **Calibrate on 10 cases before locking.** Run a small subset, sample 10 verdicts at your candidate threshold, and ask: "If I were grading this myself, would I have come to the same Pass/Fail?" If agreement is below 80%, the threshold is wrong (or the rubric is).
 3. **Document the threshold next to the eval plan.** Write the threshold per quality signal into your `eval-plan-<agent>-<date>.docx` so future runs use the same bar. Drifting thresholds are the silent killer of run-to-run comparability.
 
@@ -184,7 +184,7 @@ The Evaluate tab uses the agent you have open by default. You don't normally con
 1. Click **Run evaluation**.
 2. Watch the run banner — for 100 single-response cases against an LLM-judge method, expect 5–15 minutes depending on agent latency. Conversation evals take longer because each case is a multi-turn exchange.
 3. **Don't close the tab during the run.** Closing usually does not cancel the run, but it does break your live progress view.
-4. **Run order rule (from `rerun-protocol`):** start with **Critical** and **Guardrails** quadrant test sets first. If those fail, fix and re-run before bothering with Valuable/Deprioritize sets — the rest is noise until the high-stakes cases pass.
+4. **Run order rule (from `rerun-protocol`):** start with **High Value · High Risk** and **Low Value · High Risk** quadrant test sets first. If those fail, fix and re-run before bothering with the Low-Risk quadrants — the rest is noise until the high-stakes cases pass.
 
 ## Step 7 — Read the results
 
@@ -197,7 +197,7 @@ When the run completes, the Evaluate tab shows:
 Two things to do *before* you trust the headline number:
 
 1. **Skim the judge's explanations** for 5–10 random cases. If the judge consistently mis-grades (e.g., calling a correct answer wrong because the wording doesn't match yours), that's an *eval setup* problem, not an *agent* problem — see the 20% rule in `/eval-result-interpreter`.
-2. **Apply the quadrant lens** before reacting to the pass rate. A 70% overall pass rate where every Guardrails case failed is a *worse* outcome than 60% overall where all Guardrails passed and the failures are in Deprioritize.
+2. **Apply the quadrant lens** before reacting to the pass rate. A 70% overall pass rate where every Low Value · High Risk case failed is a *worse* outcome than 60% overall where all Low Value · High Risk cases passed and the failures are in Low Value · Low Risk.
 
 When you're ready for triage, hand the results to `/eval-result-interpreter` (Stage 4 of `/eval-guide`).
 
