@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# eval-guide-sync-dev — copy the dev checkout into the user-global skills install
+# so that `/eval-guide` invocations pick up local edits.
+#
+# Use after editing files in this checkout. Re-run after each iteration.
+#
+# Source: this repo's skills/eval-guide/ folder
+# Destination: ~/.claude/skills/eval-guide/
+#
+# Backs up the destination SKILL.md as SKILL.md.backup-pre-sync-<date>
+# before overwriting, so you can revert one step.
+#
+# Excludes: dev-only preview files (stage-N-preview.html), the bin/ folder
+# (because the user-global install isn't a plugin and doesn't need bin/), and
+# any *.backup-* files.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SRC="$REPO_ROOT/skills/eval-guide"
+DST="$HOME/.claude/skills/eval-guide"
+
+if [[ ! -d "$SRC" ]]; then
+  echo "ERROR: source not found: $SRC" >&2
+  exit 1
+fi
+
+if [[ ! -d "$DST" ]]; then
+  echo "Creating destination: $DST"
+  mkdir -p "$DST"
+fi
+
+# Backup current SKILL.md if it exists
+if [[ -f "$DST/SKILL.md" ]]; then
+  BACKUP="$DST/SKILL.md.backup-pre-sync-$(date +%Y%m%d-%H%M%S)"
+  cp "$DST/SKILL.md" "$BACKUP"
+  echo "✓ Backup: $BACKUP"
+fi
+
+# Copy top-level files
+for f in SKILL.md USAGE.md maturity-model.md rerun-protocol.md baseline-comparison-template.md; do
+  if [[ -f "$SRC/$f" ]]; then
+    cp "$SRC/$f" "$DST/$f"
+    echo "✓ $f"
+  fi
+done
+
+# Copy dashboard contents (templates, examples, serve.py)
+mkdir -p "$DST/dashboard/templates" "$DST/dashboard/examples"
+cp "$SRC/dashboard/serve.py" "$DST/dashboard/serve.py" && echo "✓ dashboard/serve.py"
+cp -r "$SRC/dashboard/templates/." "$DST/dashboard/templates/" && echo "✓ dashboard/templates/"
+cp -r "$SRC/dashboard/examples/." "$DST/dashboard/examples/" && echo "✓ dashboard/examples/"
+
+# Copy scripts/ if present
+if [[ -d "$SRC/scripts" ]]; then
+  mkdir -p "$DST/scripts"
+  cp -r "$SRC/scripts/." "$DST/scripts/" && echo "✓ scripts/"
+fi
+
+echo "---"
+echo "Sync complete. /eval-guide will now use your dev edits."
+echo "Source:      $SRC"
+echo "Destination: $DST"

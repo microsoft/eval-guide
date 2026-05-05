@@ -1,0 +1,43 @@
+# Test artifacts produced by /eval-guide sessions (these land in the customer's
+# CWD, never in the repo). Anchored to repo root with leading `/` so that
+# legitimate examples under skills/eval-guide/dashboard/examples/ aren't ignored.
+/stage-*-data.json
+/*-dashboard.html
+/*-feedback.json
+# Dev-time preview snapshots checked into dashboard/ — never commit these
+skills/eval-guide/dashboard/stage-*-preview.html
+
+# Customer deliverables (per-session, never committed)
+eval-plan-*.docx
+eval-plan-*.xlsx
+eval-test-cases-*.docx
+eval-results-*.csv
+eval-results-*.json
+eval-*-for-import.csv
+eval-*-with-methods.csv
+rerun-protocol-*.docx
+baseline-comparison-*.xlsx
+triage-report-*.docx
+
+# Local working files / drafts unrelated to the skill
+*.pptx
+*.docx
+strategy-deck.html
+phase1-plan.html
+generate-phase1-doc.js
+research-zh.md
+research-zone-model-original.md
+research-zone-model-zh.md
+Phase1-Validation-Plan.docx
+
+# gstack workspace
+.gstack/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# User-global install backups (created by bin/eval-guide-sync-dev)
+*.backup-pre-sync-*
