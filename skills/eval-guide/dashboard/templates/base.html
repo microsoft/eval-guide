@@ -719,18 +719,18 @@ input[type="number"].threshold-input:focus { border-color: var(--accent); outlin
 <div class="overlay" id="confirm-overlay">
   <div class="overlay-card">
     <h2 id="overlay-title">Approve this stage?</h2>
-    <p id="overlay-message">This will save your feedback and move on to the next stage.</p>
+    <p id="overlay-message">Your edits will be applied and the AI will move on to the next stage.</p>
     <button class="btn" onclick="closeOverlay()">Cancel</button>
-    <button class="btn btn-primary" onclick="doConfirm()">Confirm</button>
+    <button class="btn btn-primary" onclick="doConfirm()">Approve &amp; Continue</button>
   </div>
 </div>
 
 <div class="overlay" id="changes-overlay">
   <div class="overlay-card">
-    <h2>Regenerate this plan</h2>
-    <p>Your edits and comments will be incorporated into a new iteration.</p>
+    <h2>Regenerate this stage</h2>
+    <p>Your edits and comments will be incorporated, and a fresh version of this dashboard will open.</p>
     <button class="btn" onclick="closeOverlay()">Cancel</button>
-    <button class="btn btn-primary" onclick="doRequestChanges()">Send Feedback</button>
+    <button class="btn btn-primary" onclick="doRequestChanges()">Send Edits &amp; Regenerate</button>
   </div>
 </div>
 
@@ -823,7 +823,7 @@ function saveFeedback() {
   } else {
     fetch("/api/feedback", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
       .then(() => { document.getElementById("save-status").textContent = "Saved"; })
-      .catch(() => { document.getElementById("save-status").textContent = "Will download on confirm"; });
+      .catch(() => { document.getElementById("save-status").textContent = "Server unreachable"; });
   }
 }
 
@@ -839,31 +839,31 @@ function doRequestChanges() { submitFeedback("changes_requested"); }
 function submitFeedback(status) {
   const feedback = buildFeedback(status);
   const payload = JSON.stringify(feedback, null, 2);
-  const filename = (EMBEDDED_DATA.data && EMBEDDED_DATA.data.__feedback_filename__)
-    || EMBEDDED_DATA.stage + "-feedback.json";
   const isOffline = window.location.protocol === "file:";
 
-  function downloadFeedback(msg) {
-    const blob = new Blob([payload], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename; a.click();
-    URL.revokeObjectURL(url);
-    try { localStorage.setItem("eval-dashboard-" + EMBEDDED_DATA.stage, payload); } catch(e) {}
+  // No JSON download — feedback flows back to the AI via the localhost
+  // server's stdout. If the page is being served from disk (no server),
+  // we surface an error rather than silently dumping a file the customer
+  // would have to manage.
+  if (isOffline) {
     closeOverlay();
-    showToast(msg);
+    showToast("This dashboard must be opened via the eval-guide server. Restart with `python serve.py --stage <name> --serve --data <file>.json`.");
+    return;
   }
 
-  if (isOffline) {
-    const msg = status === "confirmed"
-      ? "Confirmed — feedback file downloaded. Save it next to your data file."
-      : "Feedback downloaded — save it next to your data file for the next iteration.";
-    downloadFeedback(msg);
-  } else {
-    fetch("/api/feedback", { method: "POST", headers: {"Content-Type": "application/json"}, body: payload })
-      .then(() => { closeOverlay(); showToast(status === "confirmed" ? "Confirmed — you can close this tab." : "Feedback sent — waiting for next iteration…"); })
-      .catch(() => { downloadFeedback("Downloaded feedback file."); });
-  }
+  fetch("/api/feedback", { method: "POST", headers: {"Content-Type": "application/json"}, body: payload })
+    .then(r => {
+      if (!r.ok) throw new Error("server " + r.status);
+      closeOverlay();
+      const msg = status === "confirmed"
+        ? "Confirmed — your changes have been sent. You can close this tab."
+        : "Edits sent — the AI will regenerate the dashboard with your changes.";
+      showToast(msg);
+    })
+    .catch(() => {
+      closeOverlay();
+      showToast("Couldn't reach the eval-guide server. Restart the dashboard from the terminal and try again.");
+    });
 }
 
 function showToast(msg) {

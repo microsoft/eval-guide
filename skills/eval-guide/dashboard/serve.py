@@ -270,16 +270,17 @@ def main() -> None:
 
         # Poll the feedback file: the POST handler writes it on every save
         # (including in_progress auto-saves), but we only exit on a terminal
-        # status — confirmed or changes_requested.
+        # status — confirmed or changes_requested. When that happens we ALSO
+        # print the feedback JSON to stdout between markers so the AI can
+        # pick it up directly from bash output — no disk read required.
+        terminal_feedback = None
         try:
             while True:
                 if feedback_path.exists():
                     try:
                         fb = json.loads(feedback_path.read_text(encoding="utf-8"))
                         if fb.get("status") in ("confirmed", "changes_requested"):
-                            status = fb["status"]
-                            print(f"  Feedback received: {status}")
-                            print(f"  File: {feedback_path}\n")
+                            terminal_feedback = fb
                             break
                     except (json.JSONDecodeError, OSError):
                         pass
@@ -289,6 +290,15 @@ def main() -> None:
         finally:
             server.shutdown()
             server.server_close()
+        if terminal_feedback is not None:
+            status = terminal_feedback["status"]
+            print(f"  Feedback received: {status}\n")
+            # The marker block is what the orchestrating skill parses. The
+            # disk file at feedback_path is kept as a backup but is not the
+            # primary channel anymore.
+            print("===EVAL_GUIDE_FEEDBACK_BEGIN===")
+            print(json.dumps(terminal_feedback, indent=2, ensure_ascii=False))
+            print("===EVAL_GUIDE_FEEDBACK_END===")
         return
     elif args.serve:
         print(f"  Note: --serve does not apply to read-only stage '{stage}'.")

@@ -58,18 +58,24 @@ This skill is grounded in Microsoft's **Eval Scenario Library**, **Triage & Impr
 
 ## Interactive Dashboard Workflow
 
-Each stage produces an **interactive HTML dashboard** that opens directly in the browser. The dashboard runs against a tiny localhost HTTP server (`serve.py --serve`) so the customer never has to download or move files manually — the browser POSTs feedback directly back to disk and the AI reads it.
+Each stage produces an **interactive HTML dashboard** that opens directly in the browser. The dashboard runs against a tiny localhost HTTP server (`serve.py --serve`); the customer never sees, downloads, or moves a JSON file. Feedback flows from the browser → server → the AI's `bash` stdout, in one step.
 
 **Flow at each review-stage dashboard (Plan, Generate, Interpret):**
-1. Complete the stage's analysis
-2. Write stage data to a JSON file (e.g., `stage-1-data.json`)
-3. Launch with `--serve` mode (the AI's bash will block until the customer confirms in the browser):
+1. Complete the stage's analysis.
+2. Write stage data to a JSON file (e.g., `stage-1-data.json`).
+3. Launch with `--serve` mode. The AI's bash blocks until the customer clicks Approve or Regenerate:
    `python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage <name> --serve --data <file>.json`
-4. The customer reviews in the browser at `http://localhost:3118`: edits fields inline, drags between quadrants, adds comments
-5. When the customer clicks **Confirm** or **Request Changes**, the browser POSTs the feedback to `/api/feedback`. `serve.py` writes `<stage>-feedback.json` next to the data file and auto-shuts the server down. The AI's bash command returns.
-6. Read the feedback JSON file (`<stage>-feedback.json`)
-7. If confirmed → generate final deliverables (docx, CSV) and proceed to next stage
-8. If changes requested → apply feedback, regenerate, re-launch dashboard
+4. The customer reviews in the browser at `http://localhost:3118`: edits fields inline, drags between quadrants, adds comments. Edits auto-save to the localhost server.
+5. When the customer clicks **Approve & Continue** or **Incorporate Changes & Regenerate**, the browser POSTs the feedback to `/api/feedback`. The server captures it, prints the feedback JSON to stdout between marker lines, and shuts down. **No file is downloaded; the customer never moves anything.**
+6. **Parse the feedback from the bash command's stdout** — look for the block:
+   ```
+   ===EVAL_GUIDE_FEEDBACK_BEGIN===
+   { "stage": "...", "status": "confirmed" | "changes_requested", "edits": {...}, "comments": "..." }
+   ===EVAL_GUIDE_FEEDBACK_END===
+   ```
+   Decode the JSON between those markers — that's the customer's feedback. (`<stage>-feedback.json` is also written next to the data file as a debugging backup, but stdout is the primary channel — read from there.)
+7. If `status: "confirmed"` → apply the edits, generate final deliverables (docx, CSV), proceed to next stage.
+8. If `status: "changes_requested"` → apply the edits, regenerate the stage data file, re-launch the dashboard. Same loop.
 
 The **orient stage is a pre-built static HTML** (`dashboard/orient-dashboard.html`) — agent-agnostic, no `serve.py`, no JSON write, no feedback file. The skill simply opens the file in the customer's browser and continues the conversation. See *Session Start: Orient* below.
 
@@ -585,7 +591,7 @@ Before generating any deliverable documents, launch the plan dashboard for revie
    python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage plan --serve --data stage-1-data.json
    ```
 3. The user reviews criteria (add/remove/edit), drags criteria between quadrants on the 2×2 matrix, and changes methods in the browser.
-4. When the user confirms, read `plan-feedback.json` and **apply every edit it contains, faithfully and without question**. The customer's choices are final — do NOT re-litigate, do NOT suggest reverting, do NOT ask for confirmation again, do NOT partially apply. Every key in `edits` and every change implied by the diff against `stage-1-data.json` flows into the in-memory plan.
+4. When the user confirms, **parse the feedback from the bash stdout** between the `===EVAL_GUIDE_FEEDBACK_BEGIN===` / `===EVAL_GUIDE_FEEDBACK_END===` markers. **Apply every edit it contains, faithfully and without question.** The customer's choices are final — do NOT re-litigate, do NOT suggest reverting, do NOT ask for confirmation again, do NOT partially apply. Every key in `edits` and every change implied by the diff against `stage-1-data.json` flows into the in-memory plan. (`plan-feedback.json` is also on disk as a backup, but stdout is the primary channel.)
 
    This applies to ALL edit types:
    - Statement edits, pass/fail condition edits, method changes
@@ -795,7 +801,7 @@ Before generating final CSV and report files, launch the test cases dashboard fo
    python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage generate --serve --data stage-2-data.json
    ```
 3. The user reviews the **Eval Sets Overview** at the top, then walks the stacked signal sections (High Value · High Risk → Low Value · High Risk → High Value · Low Risk → Low Value · Low Risk). Per signal: edits the **Test Methods to Use** chips (signal-level — applies to every criterion). Per criterion: reviews pass/fail conditions, edits the Custom rubric callout if Custom is in the signal's methods, edits the per-method columns in the cases table (one column per reference-needing method in the signal), checks VERIFY-highlighted factual content, adds/removes test cases.
-4. When the user confirms, read `generate-feedback.json` and **apply every edit it contains, faithfully and without question**. The customer's choices are final — do NOT re-litigate, do NOT suggest reverting, do NOT ask for confirmation again, do NOT partially apply.
+4. When the user confirms, **parse the feedback from the bash stdout** between the `===EVAL_GUIDE_FEEDBACK_BEGIN===` / `===EVAL_GUIDE_FEEDBACK_END===` markers. **Apply every edit it contains, faithfully and without question.** The customer's choices are final — do NOT re-litigate, do NOT suggest reverting, do NOT ask for confirmation again, do NOT partially apply. (`generate-feedback.json` is also on disk as a backup, but stdout is the primary channel.)
 
    This applies to ALL edit types:
    - [VERIFY] span corrections (the customer fact-checked your draft against their real knowledge sources — their version wins)
@@ -1060,7 +1066,7 @@ Before generating the final triage report, launch the interpret dashboard for re
    python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage interpret --serve --data stage-4-data.json
    ```
 3. The user reviews pass rates per quadrant, expands criterion rows to see test case details, uses Human Judgement (Agree/Disagree) to override LLM judge assessments, and re-classifies root causes.
-4. When the user confirms, read `interpret-feedback.json` and **apply every edit it contains, faithfully and without question**. The customer's choices are final — do NOT re-litigate, do NOT suggest reverting, do NOT ask for confirmation again, do NOT partially apply.
+4. When the user confirms, **parse the feedback from the bash stdout** between the `===EVAL_GUIDE_FEEDBACK_BEGIN===` / `===EVAL_GUIDE_FEEDBACK_END===` markers. **Apply every edit it contains, faithfully and without question.** The customer's choices are final — do NOT re-litigate, do NOT suggest reverting, do NOT ask for confirmation again, do NOT partially apply. (`interpret-feedback.json` is also on disk as a backup, but stdout is the primary channel.)
 
    This applies to ALL edit types:
    - **`human_disagrees`** — every Disagree is the customer overriding the LLM judge. Each disagreed case flips to `Eval Setup Issue` root cause and stops counting against the agent. The customer's domain expertise wins; do not override their override.

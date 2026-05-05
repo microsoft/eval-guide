@@ -135,7 +135,7 @@ Eval maturity has five pillars and five levels each — from `L100 Initial` (no 
   - **Quality Dimensions:** Drag criterion chips between dimension groups, or add a new dimension.
   - **General Comments** box at the bottom for anything not captured by the fields above.
   - Click **Approve & Continue to Next Stage** to accept (your inline edits flow into Stage 2), or **Incorporate Changes & Generate New Plan** to send it back to the AI for another pass.
-- **What happens when you click:** The browser sends your feedback directly to the localhost dashboard server. `plan-feedback.json` is written next to your data file automatically — no download or manual file move. The server shuts down and the AI continues.
+- **What happens when you click:** Your edits go straight from the browser to the localhost dashboard server, which forwards them to the AI's terminal output and shuts down. **No download, no file to move.** The AI applies your edits and either generates the next stage (Approve) or re-launches a fresh dashboard with the changes already incorporated (Regenerate).
 - **What you get back (after Approve):**
   - **`.docx` eval plan** (`eval-plan-<agent>-<date>.docx`) — narrative report: Agent Vision summary, Value × Cost matrix overview, quadrant assignment (visual 2×2 + grouped criterion table), quality dimensions, method mapping. For sharing and team alignment.
 
@@ -168,7 +168,7 @@ Eval maturity has five pillars and five levels each — from `L100 Initial` (no 
   - **Test cases table** has columns driven by the signal's reference-needing methods: one column for `Question`, then one column per method that needs a per-case reference (`Compare meaning`, `Text similarity`, `Exact match`, `Keyword match`). Each cell is editable. `[VERIFY: …]` spans in `Compare meaning` / `Text similarity` cells are highlighted yellow — fact-check before approving.
   - Add or delete test cases with the per-row buttons.
   - Click **Approve & Continue to Next Stage** or **Incorporate Changes & Generate New Plan**.
-- **What happens when you click:** Browser POSTs to the localhost server, `generate-feedback.json` is written next to `stage-2-data.json` automatically. No download.
+- **What happens when you click:** Your edits go straight from the browser to the localhost dashboard server, which forwards them to the AI's terminal output and shuts down. **No download, no file to move.** The AI applies your edits and either generates the deliverables (Approve) or re-launches a fresh dashboard with the changes already incorporated (Regenerate).
 - **What you get back (after Approve):**
   - **One CSV per quality signal** — e.g. `eval-knowledge-accuracy-<date>.csv`, `eval-safety-compliance-<date>.csv`, etc. Three columns: `Question`, `Expected response`, `Testing method`. Each test case is repeated once per method in that signal's method set, with the `Testing method` column distinguishing the rows. Paste directly into Copilot Studio's Evaluation tab.
   - For methods that grade against pass/fail (`General quality`, `Capability use`, `Custom`), the `Expected response` cell is empty — Copilot Studio uses the criterion's pass/fail (and for `Custom`, the rubric you set in the test-set configuration).
@@ -215,7 +215,7 @@ If the agent IS running:
   - Reclassify root causes via the dropdown.
   - Edit the Top 3 actions if the AI missed context.
   - Click **Approve & Continue to Next Stage** or **Incorporate Changes & Generate New Plan**.
-- **What happens when you click:** Browser POSTs to the localhost server, `interpret-feedback.json` is written next to `stage-4-data.json` automatically. No download.
+- **What happens when you click:** Your edits go straight from the browser to the localhost dashboard server, which forwards them to the AI's terminal output and shuts down. **No download, no file to move.** The AI applies your edits and either generates the triage report (Approve) or re-launches a fresh dashboard with the changes already incorporated (Regenerate).
 - **What you get back:** A **`.docx` triage report** — pass rates per quadrant, failure triage table with human-disagreed entries flagged as *"Eval Setup — Human Disagrees"*, Top Actions, quadrant-aware pattern analysis, and next steps.
 
 ## 9. After the session
