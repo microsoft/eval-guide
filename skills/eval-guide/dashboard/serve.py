@@ -7,6 +7,7 @@ User feedback is saved to a JSON file on disk (via a lightweight background
 server) that Claude reads to iterate or proceed.
 
 Usage:
+    python serve.py --stage orient --data stage-orient-data.json   # read-only, exits after open
     python serve.py --stage discover --data stage-0-data.json
     python serve.py --stage plan --data stage-1-data.json
     python serve.py --stage generate --data stage-2-data.json
@@ -27,6 +28,7 @@ import os
 import signal
 import subprocess
 import sys
+import threading
 import time
 import webbrowser
 from functools import partial
@@ -34,6 +36,9 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 
 STAGES = {
+    # `wait_for_feedback: False` marks an informational stage that doesn't gate
+    # the rest of the session — serve.py opens the browser and exits immediately.
+    "orient": {"label": "Orient: Maturity Snapshot", "number": 0, "wait_for_feedback": False},
     "discover": {"label": "Stage 0: Discover", "number": 0},
     "plan": {"label": "Stage 1: Plan", "number": 1},
     "generate": {"label": "Stage 2: Generate", "number": 2},
@@ -228,8 +233,10 @@ def main() -> None:
         except (json.JSONDecodeError, OSError):
             pass
 
-    # --- Legacy server mode ---
-    if args.serve:
+    # --- HTTP server mode ---
+    # Read-only stages (no feedback gate) ignore --serve and use the static-HTML
+    # path below — running a server with no Confirm button would hang forever.
+    if args.serve and STAGES[stage].get("wait_for_feedback", True):
         port = args.port
         _kill_port(port)
 
@@ -249,16 +256,43 @@ def main() -> None:
         print(f"  Feedback:  {feedback_path}")
         if previous_feedback:
             print(f"  Previous:  {args.previous_feedback}")
-        print(f"\n  Press Ctrl+C to stop.\n")
+        print()
+
+        # Run the HTTP server in a daemon thread so the main thread can poll
+        # for terminal feedback status and shut down cleanly.
+        server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+        server_thread.start()
 
         webbrowser.open(url)
 
+        print(f"  Server running at {url} — waiting for customer to confirm in browser...")
+        print(f"  (Server will auto-shutdown when feedback is submitted.)\n")
+
+        # Poll the feedback file: the POST handler writes it on every save
+        # (including in_progress auto-saves), but we only exit on a terminal
+        # status — confirmed or changes_requested.
         try:
-            server.serve_forever()
+            while True:
+                if feedback_path.exists():
+                    try:
+                        fb = json.loads(feedback_path.read_text(encoding="utf-8"))
+                        if fb.get("status") in ("confirmed", "changes_requested"):
+                            status = fb["status"]
+                            print(f"  Feedback received: {status}")
+                            print(f"  File: {feedback_path}\n")
+                            break
+                    except (json.JSONDecodeError, OSError):
+                        pass
+                time.sleep(0.5)
         except KeyboardInterrupt:
             print("\nStopped.")
+        finally:
+            server.shutdown()
             server.server_close()
         return
+    elif args.serve:
+        print(f"  Note: --serve does not apply to read-only stage '{stage}'.")
+        print(f"  Generating static HTML and opening in browser instead.\n")
 
     # --- Default: generate static HTML, open in browser, wait for feedback ---
     out_path = args.out or args.static or (data_path.parent / f"{stage}-dashboard.html")
@@ -279,6 +313,13 @@ def main() -> None:
     print()
 
     webbrowser.open(str(out_path))
+
+    # Informational stages (no feedback gate) open the browser and exit immediately —
+    # the AI continues the conversation without waiting for the user to confirm.
+    if not STAGES[stage].get("wait_for_feedback", True):
+        print(f"  Read-only stage. Browser opened for review; no confirmation required.")
+        print(f"  Continue the conversation in the terminal.\n")
+        return
 
     # Wait for the feedback file to appear (user confirms in the browser)
     print(f"  Waiting for feedback... (user reviews in browser)")
