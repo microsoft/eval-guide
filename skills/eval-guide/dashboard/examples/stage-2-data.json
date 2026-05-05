@@ -18,7 +18,7 @@
         {
           "criterion_id": 2,
           "statement": "The agent should answer parental-leave eligibility questions accurately.",
-          "quadrant": "core",
+          "quadrant": "valuable",
           "method": "Compare meaning",
           "pass_condition": "Response states correct paid-leave duration and tenure eligibility.",
           "fail_condition": "Incorrect duration or tenure requirement.",
@@ -29,7 +29,7 @@
         {
           "criterion_id": 3,
           "statement": "The agent should direct employees to the correct enrollment channel with exact URL.",
-          "quadrant": "core",
+          "quadrant": "valuable",
           "method": "Keyword match",
           "pass_condition": "Response includes the URL benefits.company.com and mentions the open-enrollment window.",
           "fail_condition": "Missing URL or wrong enrollment window.",
@@ -89,7 +89,7 @@
         {
           "criterion_id": 7,
           "statement": "The agent should respond empathetically to emotional signals before citing policy.",
-          "quadrant": "core",
+          "quadrant": "valuable",
           "method": "Custom",
           "pass_condition": "Pass if the response contains an empathetic sentence acknowledging the user's emotional context (e.g., 'I'm sorry to hear that,' 'That sounds difficult,' 'I understand this is hard') BEFORE any policy details.",
           "fail_condition": "Fail if the response leads directly with policy or contains no empathetic acknowledgment at all.",

@@ -24,7 +24,7 @@
     {
       "id": 3,
       "statement": "The agent should return the correct carryover limit for the user's office.",
-      "quadrant": "core",
+      "quadrant": "valuable",
       "quality_dimension": "Policy Accuracy",
       "signal_type": "Factual content",
       "method": "Compare meaning",
@@ -34,7 +34,7 @@
     {
       "id": 4,
       "statement": "The agent should return the correct sick-leave allotment for the user's country.",
-      "quadrant": "core",
+      "quadrant": "valuable",
       "quality_dimension": "Policy Accuracy",
       "signal_type": "Factual content",
       "method": "Compare meaning",
@@ -74,7 +74,7 @@
     {
       "id": 8,
       "statement": "The agent should respond empathetically to emotional signals before citing policy.",
-      "quadrant": "core",
+      "quadrant": "valuable",
       "quality_dimension": "Tone",
       "signal_type": "Custom rubric / style",
       "method": "Custom",

@@ -11,7 +11,7 @@
   text-transform: capitalize;
 }
 .q-badge-sm-critical   { background: var(--red-bg); color: var(--red); }
-.q-badge-sm-core       { background: var(--blue-bg); color: var(--blue); }
+.q-badge-sm-valuable       { background: var(--blue-bg); color: var(--blue); }
 .q-badge-sm-guardrails { background: var(--yellow-bg); color: #996600; }
 .q-badge-sm-deprioritize { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
 
@@ -52,7 +52,7 @@
 .quadrant-summary-card .qsc-stat  { font-size: 1.3rem; font-weight: 700; margin: 0.2rem 0; }
 .quadrant-summary-card .qsc-detail { font-size: 0.72rem; opacity: 0.85; }
 .qsc-critical   { background: var(--red-bg); color: var(--red); }
-.qsc-core       { background: var(--blue-bg); color: var(--blue); }
+.qsc-valuable       { background: var(--blue-bg); color: var(--blue); }
 .qsc-guardrails { background: var(--yellow-bg); color: #996600; }
 .qsc-deprioritize { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
 
@@ -178,22 +178,22 @@
 </div>
 
 <script>
-const QUADRANTS_ORDER = ["critical", "core", "guardrails", "deprioritize"];
+const QUADRANTS_ORDER = ["critical", "valuable", "guardrails", "deprioritize"];
 const QUADRANT_LABELS = {
   critical: "Critical",
-  core: "Core",
+  valuable: "Valuable",
   guardrails: "Guardrails",
   deprioritize: "Deprioritize",
 };
 const Q_BADGE_CSS = {
   critical: "q-badge-sm-critical",
-  core: "q-badge-sm-core",
+  valuable: "q-badge-sm-valuable",
   guardrails: "q-badge-sm-guardrails",
   deprioritize: "q-badge-sm-deprioritize",
 };
 const Q_CARD_CSS = {
   critical: "qsc-critical",
-  core: "qsc-core",
+  valuable: "qsc-valuable",
   guardrails: "qsc-guardrails",
   deprioritize: "qsc-deprioritize",
 };
@@ -205,9 +205,9 @@ let evalResults = [];
 function zoneToQuadrant(zone) {
   const z = String(zone || "");
   if (z === "1") return "critical";
-  if (z === "2") return "core";
+  if (z === "2") return "valuable";
   if (z === "3") return "deprioritize";
-  return "core";
+  return "valuable";
 }
 
 function normalizeCriterionMetric(raw) {
@@ -282,7 +282,7 @@ function renderMetricsStatus(metrics) {
   cardContainer.innerHTML = cardsHtml;
 
   // Metrics table — sorted by quadrant importance, then by lowest pass rate first
-  const QUADRANT_SORT = { critical: 0, guardrails: 1, core: 2, deprioritize: 3 };
+  const QUADRANT_SORT = { critical: 0, guardrails: 1, valuable: 2, deprioritize: 3 };
   const sorted = [...metrics].sort((a, b) => {
     const qd = QUADRANT_SORT[a.quadrant] - QUADRANT_SORT[b.quadrant];
     if (qd !== 0) return qd;
@@ -425,7 +425,7 @@ function renderFailures(failures) {
 
   allFailures.forEach((f, i) => {
     const fp = f._from_disagree ? "disagree_" + i : "failures[" + i + "]";
-    const q = f.quadrant || "core";
+    const q = f.quadrant || "valuable";
     const tr = document.createElement("tr");
     if (f._from_disagree) tr.style.background = "var(--yellow-bg)";
 

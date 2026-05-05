@@ -3,7 +3,7 @@
 <style>
 /* Quadrant-colored tabs */
 .tab.q-critical   { border-left: 3px solid var(--red); }
-.tab.q-core       { border-left: 3px solid var(--blue); }
+.tab.q-valuable       { border-left: 3px solid var(--blue); }
 .tab.q-guardrails { border-left: 3px solid var(--yellow); }
 .tab.q-deprioritize { border-left: 3px solid var(--text-muted); }
 .tab.q-mixed      { border-left: 3px solid var(--text-muted); }
@@ -15,7 +15,7 @@
   vertical-align: middle;
 }
 .tab-q-dot.dot-critical   { background: var(--red); }
-.tab-q-dot.dot-core       { background: var(--blue); }
+.tab-q-dot.dot-valuable       { background: var(--blue); }
 .tab-q-dot.dot-guardrails { background: var(--yellow); }
 .tab-q-dot.dot-deprioritize { background: var(--text-muted); }
 
@@ -91,7 +91,7 @@
   text-transform: capitalize;
 }
 .q-badge-sm-critical   { background: var(--red-bg); color: var(--red); }
-.q-badge-sm-core       { background: var(--blue-bg); color: var(--blue); }
+.q-badge-sm-valuable       { background: var(--blue-bg); color: var(--blue); }
 .q-badge-sm-guardrails { background: var(--yellow-bg); color: #996600; }
 .q-badge-sm-deprioritize { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
 
@@ -159,31 +159,31 @@
 <script>
 const QUADRANT_LABELS = {
   critical: "Critical",
-  core: "Core",
+  valuable: "Valuable",
   guardrails: "Guardrails",
   deprioritize: "Deprioritize",
 };
 const Q_BADGE_CSS = {
   critical: "q-badge-sm-critical",
-  core: "q-badge-sm-core",
+  valuable: "q-badge-sm-valuable",
   guardrails: "q-badge-sm-guardrails",
   deprioritize: "q-badge-sm-deprioritize",
 };
 const Q_DOT_CSS = {
   critical: "dot-critical",
-  core: "dot-core",
+  valuable: "dot-valuable",
   guardrails: "dot-guardrails",
   deprioritize: "dot-deprioritize",
 };
 const Q_TAB_CSS = {
   critical: "q-critical",
-  core: "q-core",
+  valuable: "q-valuable",
   guardrails: "q-guardrails",
   deprioritize: "q-deprioritize",
 };
 
-// Quadrant importance for "dominant quadrant" logic on tabs: critical > guardrails > core > deprioritize
-const QUADRANT_WEIGHT = { critical: 4, guardrails: 3, core: 2, deprioritize: 1 };
+// Quadrant importance for "dominant quadrant" logic on tabs: critical > guardrails > valuable > deprioritize
+const QUADRANT_WEIGHT = { critical: 4, guardrails: 3, valuable: 2, deprioritize: 1 };
 const METHODS = ["Compare meaning", "General quality", "Keyword match", "Exact match", "Text similarity", "Capability use", "Custom"];
 
 let testSets = [];
@@ -192,9 +192,9 @@ let activeTab = 0;
 function zoneToQuadrant(zone) {
   const z = String(zone || "");
   if (z === "1") return "critical";
-  if (z === "2") return "core";
+  if (z === "2") return "valuable";
   if (z === "3") return "deprioritize";
-  return "core";
+  return "valuable";
 }
 
 function normalizeCriterion(raw) {
@@ -256,7 +256,7 @@ function getDominantQuadrant(ts) {
     weighted[q] = (weighted[q] || 0) + count;
   });
   const entries = Object.entries(weighted);
-  if (entries.length === 0) return "core";
+  if (entries.length === 0) return "valuable";
   if (entries.length === 1) return entries[0][0];
   // Sort by (case count * quadrant weight) so Critical wins ties over Core when counts are similar
   entries.sort((a, b) => (b[1] * QUADRANT_WEIGHT[b[0]]) - (a[1] * QUADRANT_WEIGHT[a[0]]));

@@ -27,7 +27,7 @@
 }
 .matrix-legend-item b { display: block; margin-bottom: 0.15rem; }
 .legend-critical   { background: var(--red-bg);    color: var(--red); }
-.legend-core       { background: var(--blue-bg);   color: var(--blue);   border: 1px solid var(--border); }
+.legend-valuable       { background: var(--blue-bg);   color: var(--blue);   border: 1px solid var(--border); }
 .legend-guardrails { background: var(--yellow-bg); color: #996600; }
 .legend-deprioritize { background: var(--bg);      color: var(--text-muted); border: 1px solid var(--border); }
 
@@ -105,7 +105,7 @@
   justify-content: space-between;
 }
 .quadrant-header-critical   { background: var(--red-bg);    color: var(--red); }
-.quadrant-header-core       { background: var(--blue-bg);   color: var(--blue); }
+.quadrant-header-valuable   { background: var(--blue-bg);   color: var(--blue); }
 .quadrant-header-guardrails { background: var(--yellow-bg); color: #996600; }
 .quadrant-header-deprioritize { background: var(--bg);      color: var(--text-muted); border: 1px solid var(--border); }
 .quadrant-subtitle {
@@ -165,7 +165,7 @@
   text-transform: capitalize;
 }
 .q-badge-critical   { background: var(--red-bg);    color: var(--red); }
-.q-badge-core       { background: var(--blue-bg);   color: var(--blue); }
+.q-badge-valuable       { background: var(--blue-bg);   color: var(--blue); }
 .q-badge-guardrails { background: var(--yellow-bg); color: #996600; }
 .q-badge-deprioritize { background: var(--bg);      color: var(--text-muted); border: 1px solid var(--border); }
 
@@ -184,6 +184,29 @@
   align-items: center;
   justify-content: space-between;
 }
+.dim-name-editable {
+  outline: none;
+  padding: 0.1rem 0.3rem;
+  border-radius: 2px;
+  cursor: text;
+  border: 1px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+.dim-name-editable:hover { border-color: var(--rule-fine); background: var(--surface); }
+.dim-name-editable:focus { border-color: var(--accent); background: var(--surface); }
+.dim-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 0.1rem 0.3rem;
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+.dim-group-header:hover .dim-delete-btn { opacity: 1; }
+.dim-delete-btn:hover { color: var(--red); background: var(--red-bg); }
 .dim-group-chips {
   display: flex;
   flex-wrap: wrap;
@@ -198,8 +221,9 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 0.2rem 0.5rem 0.2rem 0.4rem;
-  font-size: 0.75rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.55rem;
+  font-size: 0.8rem;
+  line-height: 1.35;
   color: var(--text);
 }
 .dim-chip .chip-dot {
@@ -209,7 +233,7 @@
   flex-shrink: 0;
 }
 .chip-dot-critical   { background: var(--red); }
-.chip-dot-core       { background: var(--blue); }
+.chip-dot-valuable       { background: var(--blue); }
 .chip-dot-guardrails { background: var(--yellow); }
 .chip-dot-deprioritize { background: var(--text-muted); }
 .dim-chip .chip-delete {
@@ -278,8 +302,8 @@
           <b>Critical (high value, high cost)</b>
           Product-defining capabilities. Most test cases, strictest review.
         </div>
-        <div class="matrix-legend-item legend-core">
-          <b>Core (high value, low cost)</b>
+        <div class="matrix-legend-item legend-valuable">
+          <b>Valuable (high value, low cost)</b>
           Expected capabilities users rely on. Occasional misses tolerable.
         </div>
         <div class="matrix-legend-item legend-guardrails">
@@ -301,14 +325,14 @@
 
       <!-- Row 2: HIGH VALUE row -->
       <div class="matrix-y-label">High value</div>
-      <!-- Top-left: Core (high value, low cost) -->
-      <div class="quadrant" id="quadrant-core" data-quadrant="core">
-        <div class="quadrant-header quadrant-header-core">
-          <span data-tooltip="Core: high value, low cost of failure. The agent's expected capabilities — users rely on these and notice when they're off, but a miss isn't catastrophic. Invest in solid coverage.">Core</span>
-          <span class="quadrant-subtitle" id="quadrant-core-count"></span>
+      <!-- Top-left: Valuable (high value, low cost) -->
+      <div class="quadrant" id="quadrant-valuable" data-quadrant="valuable">
+        <div class="quadrant-header quadrant-header-valuable">
+          <span data-tooltip="Valuable: high value, low cost of failure. The agent's expected capabilities — users rely on these and notice when they're off, but a miss isn't catastrophic. Invest in solid coverage.">Valuable</span>
+          <span class="quadrant-subtitle" id="quadrant-valuable-count"></span>
         </div>
-        <div class="quadrant-items" id="quadrant-items-core"></div>
-        <input class="quadrant-add-input" placeholder="+ The agent should..." data-quadrant="core" onkeydown="onAddKeydown(event)">
+        <div class="quadrant-items" id="quadrant-items-valuable"></div>
+        <input class="quadrant-add-input" placeholder="+ The agent should..." data-quadrant="valuable" onkeydown="onAddKeydown(event)">
       </div>
       <!-- Top-right: Critical (high value, high cost) -->
       <div class="quadrant" id="quadrant-critical" data-quadrant="critical">
@@ -367,33 +391,36 @@
   </div>
 </div>
 
-<!-- Section 3: Quality Dimensions to Test -->
+<!-- Section 3: Quality Dimensions = Eval Set Split -->
 <div class="section">
   <div class="section-header flex-between">
-    <span data-tooltip="Quality dimensions are the aspects you're measuring (e.g., Policy Accuracy, Grounding, Tone). Each dimension groups related criteria and becomes a separate tab of test cases in the Generate stage, ensuring coverage across all quality aspects.">Quality Dimensions to Test</span>
+    <span data-tooltip="Each quality dimension becomes one eval set in Stage 2 — its criteria get grouped into a single CSV file you import into Copilot Studio. Splitting by dimension keeps coverage explicit and lets you run/track each aspect of quality independently.">Quality Dimensions — one eval set per dimension</span>
     <button class="btn btn-sm" onclick="addQualityDimension()" style="color:#fff;border-color:rgba(255,255,255,0.4);">+ Add dimension</button>
+  </div>
+  <div style="padding:0.5rem 1rem;border-bottom:1px solid var(--border);background:var(--blue-bg);font-size:0.8rem;color:var(--text);line-height:1.45;">
+    <strong style="color:var(--accent);">How this maps to your eval sets:</strong> each dimension below produces one CSV file in Stage 2 (e.g., <code>eval-accuracy-&lt;date&gt;.csv</code>, <code>eval-grounding-&lt;date&gt;.csv</code>). Criteria assigned to a dimension share the same CSV. Aim for <strong>4–6 broad dimensions</strong> — fewer, larger groups beat many narrow ones. Click a dimension name to rename; rename to an existing one to merge.
   </div>
   <div style="padding:0.6rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;flex-wrap:wrap;gap:0.3rem;" id="metrics-dim-bar"></div>
   <div class="section-body" id="dimensions-body"></div>
 </div>
 
 <script>
-const QUADRANTS = ["critical", "core", "guardrails", "deprioritize"];
+const QUADRANTS = ["critical", "valuable", "guardrails", "deprioritize"];
 const QUADRANT_LABELS = {
   critical: "Critical",
-  core: "Core",
+  valuable: "Valuable",
   guardrails: "Guardrails",
   deprioritize: "Deprioritize",
 };
 const Q_BADGE_CSS = {
   critical: "q-badge-critical",
-  core: "q-badge-core",
+  valuable: "q-badge-valuable",
   guardrails: "q-badge-guardrails",
   deprioritize: "q-badge-deprioritize",
 };
 const Q_DOT_CSS = {
   critical: "chip-dot-critical",
-  core: "chip-dot-core",
+  valuable: "chip-dot-valuable",
   guardrails: "chip-dot-guardrails",
   deprioritize: "chip-dot-deprioritize",
 };
@@ -469,7 +496,7 @@ function normalizeCriterion(c) {
 function zoneToQuadrant(zone) {
   const z = String(zone || "1");
   if (z === "1") return "critical";
-  if (z === "2") return "core";
+  if (z === "2") return "valuable";
   return "deprioritize";
 }
 
@@ -482,6 +509,7 @@ function renderAll() {
 // ── Value × Cost matrix (drag-and-drop) ──
 
 function renderQuadrants() {
+  const totalActive = criteria.filter(c => !c._deleted).length;
   QUADRANTS.forEach(q => {
     const container = document.getElementById("quadrant-items-" + q);
     container.innerHTML = "";
@@ -496,7 +524,9 @@ function renderQuadrants() {
         '<span class="actions"><button class="btn-icon" onclick="deleteCriterion(' + c.id + ')" title="Remove">&#x2715;</button></span>';
       container.appendChild(el);
     });
-    document.getElementById("quadrant-" + q + "-count").textContent = items.length;
+    const pct = totalActive > 0 ? Math.round((items.length / totalActive) * 100) : 0;
+    document.getElementById("quadrant-" + q + "-count").textContent =
+      items.length + " · " + pct + "%";
   });
 }
 
@@ -644,7 +674,7 @@ function buildSignalTypeSelect(c) {
 }
 
 function addCriterionFromTable() {
-  addNewCriterion("The agent should ", "core");
+  addNewCriterion("The agent should ", "valuable");
   const textareas = document.querySelectorAll('#criteria-tbody textarea[data-prop="statement"]');
   if (textareas.length > 0) {
     const last = textareas[textareas.length - 1];
@@ -734,11 +764,49 @@ function renderDimensions() {
       }
     });
 
-    group.innerHTML =
-      '<div class="dim-group-header">' +
-        '<span>' + escapeHtml(dim) + '</span>' +
-        '<span class="text-sm text-muted">' + items.length + '</span>' +
-      '</div>';
+    // Editable dimension header — click the name to rename; rename to an
+    // existing dimension to merge; click × to delete the dimension (criteria
+    // get reassigned to the first remaining dimension or "Uncategorized").
+    const header = document.createElement("div");
+    header.className = "dim-group-header";
+
+    const nameEl = document.createElement("span");
+    nameEl.className = "dim-name-editable";
+    nameEl.contentEditable = "true";
+    nameEl.spellcheck = false;
+    nameEl.textContent = dim;
+    nameEl.title = "Click to rename. Rename to an existing dimension to merge.";
+    nameEl.addEventListener("focus", () => { nameEl.dataset.original = nameEl.textContent; });
+    nameEl.addEventListener("keydown", e => {
+      if (e.key === "Enter") { e.preventDefault(); nameEl.blur(); }
+      if (e.key === "Escape") { nameEl.textContent = nameEl.dataset.original || dim; nameEl.blur(); }
+    });
+    nameEl.addEventListener("blur", () => {
+      const newName = nameEl.textContent.trim();
+      const oldName = nameEl.dataset.original || dim;
+      if (!newName) { nameEl.textContent = oldName; return; }
+      if (newName === oldName) return;
+      renameQualityDimension(oldName, newName);
+    });
+
+    const countEl = document.createElement("span");
+    countEl.className = "text-sm text-muted dim-count";
+    countEl.textContent = items.length;
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn-icon dim-delete-btn";
+    delBtn.innerHTML = "&#x2715;";
+    delBtn.title = "Delete this dimension (criteria reassigned)";
+    delBtn.onclick = () => deleteQualityDimension(dim);
+
+    header.appendChild(nameEl);
+    const right = document.createElement("span");
+    right.style.cssText = "display:inline-flex;gap:0.5rem;align-items:center;";
+    right.appendChild(countEl);
+    right.appendChild(delBtn);
+    header.appendChild(right);
+
+    group.appendChild(header);
     group.appendChild(chipsDiv);
     container.appendChild(group);
   });
@@ -771,6 +839,47 @@ function addQualityDimension() {
   }
 }
 
+function renameQualityDimension(oldName, newName) {
+  const trimmed = newName.trim();
+  if (!trimmed || trimmed === oldName) { renderDimensions(); return; }
+  // If the new name matches an existing dimension, this is a merge.
+  const isMerge = qualityDimensions.includes(trimmed) && trimmed !== oldName;
+  // Update all criteria using the old name to point at the new name.
+  criteria.forEach(c => { if (c.quality_dimension === oldName) c.quality_dimension = trimmed; });
+  // Update the qualityDimensions array — replace oldName with trimmed (or remove if merging).
+  if (isMerge) {
+    qualityDimensions = qualityDimensions.filter(d => d !== oldName);
+  } else {
+    qualityDimensions = qualityDimensions.map(d => d === oldName ? trimmed : d);
+  }
+  renderDimensions();
+  renderCriteriaTable();
+  scheduleSave();
+}
+
+function deleteQualityDimension(dim) {
+  const orphaned = criteria.filter(c => c.quality_dimension === dim && !c._deleted);
+  const remainingDims = qualityDimensions.filter(d => d !== dim);
+  let target = "Uncategorized";
+  if (remainingDims.length > 0) {
+    target = remainingDims[0];
+  } else if (orphaned.length > 0) {
+    qualityDimensions = ["Uncategorized"];
+  }
+  const msg = orphaned.length > 0
+    ? "Delete dimension \"" + dim + "\"? Its " + orphaned.length + " criterion/criteria will be reassigned to \"" + target + "\"."
+    : "Delete dimension \"" + dim + "\"?";
+  if (!confirm(msg)) return;
+  criteria.forEach(c => { if (c.quality_dimension === dim) c.quality_dimension = target; });
+  qualityDimensions = qualityDimensions.filter(d => d !== dim);
+  if (orphaned.length > 0 && !qualityDimensions.includes(target)) {
+    qualityDimensions.push(target);
+  }
+  renderDimensions();
+  renderCriteriaTable();
+  scheduleSave();
+}
+
 function addCriterionToDimension(dim) {
   const statement = prompt("New criterion for '" + dim + "' (will be prefixed with 'The agent should…' if not present):");
   if (statement && statement.trim()) {
@@ -782,7 +891,7 @@ function addCriterionToDimension(dim) {
     criteria.push({
       id: id,
       statement: s,
-      quadrant: "core",
+      quadrant: "valuable",
       quality_dimension: dim,
       signal_type: "",
       method: "Compare meaning",
