@@ -150,12 +150,47 @@
   .orient-deliverables {
     margin-top: 1.4rem;
   }
-  .orient-deliverables ol {
-    margin-left: 1.4rem;
-    color: var(--ink);
+  .orient-phase {
+    margin-top: 1.1rem;
+    padding-left: 0.4rem;
+    border-left: 3px solid var(--accent);
   }
-  .orient-deliverables li {
-    padding: 0.25rem 0;
+  .orient-phase:first-child {
+    margin-top: 0;
+  }
+  .orient-phase-header {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.4rem;
+    padding-left: 0.6rem;
+  }
+  .orient-phase-header .phase-num {
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    margin-right: 0.4rem;
+  }
+  .orient-phase ul {
+    list-style: none;
+    padding: 0;
+    margin-left: 0.6rem;
+  }
+  .orient-phase li {
+    padding: 0.3rem 0;
+    color: var(--ink);
+    font-size: 0.92rem;
+    line-height: 1.45;
+    position: relative;
+    padding-left: 1.1rem;
+  }
+  .orient-phase li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--ink-faint);
   }
 
   .orient-close {
@@ -218,7 +253,7 @@
 <div class="section orient-deliverables">
   <div class="section-header">What you'll walk away with</div>
   <div class="section-body">
-    <ol id="orient-deliverables-list"></ol>
+    <div id="orient-deliverables-list"></div>
   </div>
 </div>
 
@@ -235,7 +270,7 @@ function stageInit() {
   const data = EMBEDDED_DATA.data || {};
   const pillars = data.pillars || [];
   const levels = data.levels || [];
-  const deliverables = data.deliverables || [];
+  const deliverablePhases = data.deliverable_phases || [];
 
   // Hide the stage badge for orient — it's an orientation, not a numbered stage
   const badge = document.getElementById("stage-badge");
@@ -287,13 +322,26 @@ function stageInit() {
     sumList.appendChild(li);
   });
 
-  // Build the deliverables list
+  // Build the phased deliverables list
   const delList = document.getElementById("orient-deliverables-list");
   delList.innerHTML = "";
-  deliverables.forEach(d => {
-    const li = document.createElement("li");
-    li.textContent = d;
-    delList.appendChild(li);
+  deliverablePhases.forEach((p, idx) => {
+    const phaseDiv = document.createElement("div");
+    phaseDiv.className = "orient-phase";
+    const header = document.createElement("div");
+    header.className = "orient-phase-header";
+    header.innerHTML =
+      '<span class="phase-num">Phase ' + (idx + 1) + '</span>' +
+      escapeHtml(p.phase || "");
+    phaseDiv.appendChild(header);
+    const ul = document.createElement("ul");
+    (p.items || []).forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = item;
+      ul.appendChild(li);
+    });
+    phaseDiv.appendChild(ul);
+    delList.appendChild(phaseDiv);
   });
 }
 </script>

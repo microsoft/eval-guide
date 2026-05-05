@@ -71,7 +71,7 @@ Each stage produces an **interactive HTML dashboard** that opens directly in the
 7. If confirmed → generate final deliverables (docx, CSV) and proceed to next stage
 8. If changes requested → apply feedback, regenerate, re-launch dashboard
 
-The **orient stage is read-only** (no `--serve`, no feedback file) — it opens the matrix snapshot and exits immediately.
+The **orient stage is a pre-built static HTML** (`dashboard/orient-dashboard.html`) — agent-agnostic, no `serve.py`, no JSON write, no feedback file. The skill simply opens the file in the customer's browser and continues the conversation. See *Session Start: Orient* below.
 
 **Stages with dashboards:** Discover (0), Plan (1), Generate (2), Interpret (4). Stage 3 (Run) executes tests directly.
 
@@ -97,29 +97,28 @@ Once the customer has described their agent in one or two sentences, give them a
 
 ### What to do
 
-1. **Get the agent name.** Look at what the customer just told you. If they named the agent ("Contoso HR Bot," "Workplace Assistant"), use it. If they only described it categorically ("an HR bot," "an ESS agent," "a customer support bot"), ask one short question:
+The orient dashboard is **pre-built and shipped with the skill** — `dashboard/orient-dashboard.html`. It is identical for every agent (the maturity model and "what you walk away with" are agent-agnostic), so there is no per-session JSON write and no Python launch. Don't ask for the agent name yet — Stage 0 captures it where it's actually needed for deliverable filenames.
 
-   > *"Quick — what should I call it in the deliverables? The name shows up in your file outputs (e.g., `eval-plan-<name>-<date>.docx`, `rerun-protocol-<name>-<date>.docx`). If you don't have a preferred name, I'll default to something tidy from what you just told me — for example, "ESS Agent" or "HR Policy Bot.""*
-
-   Don't make this question feel heavy — it's a 5-second exchange. If the customer says "use the default" or doesn't engage, pick a sensible Title-Case version of their description and move on. Don't block the session on this.
-
-   Then write `stage-orient-data.json` next to the working directory using `dashboard/examples/stage-orient-data.json` as the template. Update `agent_name` and `session_date`. The pillar/level data is canonical — copy it as-is from the example.
-
-2. Launch the orient dashboard:
+1. Open the static dashboard in the customer's default browser. Use the OS launcher and the install-resolved path:
    ```bash
-   python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage orient --data stage-orient-data.json
+   ORIENT_HTML="$(ls ~/.claude/skills/eval-guide/dashboard/orient-dashboard.html 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/orient-dashboard.html 2>/dev/null | head -1)"
+   case "$(uname -s 2>/dev/null)" in
+     Darwin) open "$ORIENT_HTML" ;;
+     Linux)  xdg-open "$ORIENT_HTML" ;;
+     *)      cmd.exe /C start "" "$ORIENT_HTML" ;;  # Windows / Git Bash
+   esac
    ```
-   The `ls ... | head -1` pattern resolves the dashboard script regardless of install location — user-global skills first (`~/.claude/skills/eval-guide/`), plugin-cache second (`~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/`). The `--data` JSON lives in the customer's current working directory; the dashboard HTML and any feedback file are written next to it.
+   The `ls ... | head -1` fallback resolves the file regardless of install location — user-global skills first (`~/.claude/skills/eval-guide/`), plugin-cache second.
 
-   **All `dashboard/serve.py` invocations in this skill use the same install-resolving pattern.** Never write the path as a bare relative `dashboard/serve.py` — the customer is almost never sitting inside the plugin folder.
+   **For dev installs** (skill checked out at an arbitrary path, not in `~/.claude/`), the AI should know the absolute path of the SKILL.md it's reading and substitute `<SKILL.md-dir>/dashboard/orient-dashboard.html`.
 
-   **For dev installs** (skill checked out at an arbitrary path, not in `~/.claude/`), the AI should know the absolute path of the SKILL.md it's reading and substitute `<SKILL.md-dir>/dashboard/serve.py`.
+   This is a **read-only stage**. There is no feedback file, no confirmation gate, and no `serve.py` involvement. The customer reviews the snapshot in the browser while the conversation continues in chat.
 
-   This is a **read-only stage** — `serve.py` opens the browser and exits immediately. There is no feedback file and no confirmation gate. The customer reviews the snapshot in the browser while the conversation continues in chat.
+2. While the dashboard is open, narrate one sentence in chat: *"This is the eval maturity model — five pillars of eval practice, five levels each. Today's session takes Pillars 1, 2, and 4 to L300 Systematic; Pillars 3 and 5 reach L200 Defined via the reference protocols you'll get at the end."*
 
-3. While the dashboard is open, narrate one sentence in chat: *"This is the eval maturity model — five pillars of eval practice, five levels each. Today's session takes Pillars 1, 2, and 4 to L300 Systematic; Pillars 3 and 5 reach L200 Defined via the reference protocols you'll get at the end."*
+3. Proceed to Stage 0 (Discover) without waiting. The dashboard is informational.
 
-4. Proceed to Stage 0 (Discover) without waiting. The dashboard is informational.
+**When to rebuild the static HTML:** if `templates/orient.html`, `templates/base.html`, or `examples/stage-orient-data.json` change, run `python dashboard/build-orient.py` once and check in the regenerated `orient-dashboard.html`. The build script reuses `serve.py`'s `generate_html`, so the rendering stays consistent with the live dashboards.
 
 **Why this matters for the customer:** The maturity model is the value moment. Without it, the customer sees a series of stages with no map. With it, they understand exactly what they're getting and what comes next — the eval-first message lands because they can see the full journey.
 
@@ -287,7 +286,6 @@ Using the Agent Vision, produce a structured eval suite plan. This works whether
 - **Each criterion placed on a Value × Cost matrix** — Critical (highest investment), Valuable (expected behavior, occasional misses tolerable), Guardrails (low traffic, zero tolerance for failure), Deprioritize (light coverage). The matrix is what keeps the plan tractable.
 - **Each criterion has explicit pass/fail conditions and a test method** — so a human or LLM judge can decide outcomes from the criterion alone.
 - **A `.docx` eval plan** for stakeholder review (PM, security, business owner). The artifact for sign-off.
-- **An `.xlsx` workbook** for offline editing, sorting, or import into your tracker. The artifact for iteration.
 
 ### When this stage is wrong for you
 
@@ -587,12 +585,23 @@ Before generating any deliverable documents, launch the plan dashboard for revie
    python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage plan --serve --data stage-1-data.json
    ```
 3. The user reviews criteria (add/remove/edit), drags criteria between quadrants on the 2×2 matrix, and changes methods in the browser.
-4. When the user confirms, read `plan-feedback.json` and apply edits. **Narrate the edits back so the customer sees their changes were captured** — e.g., *"Got it — moved criterion #6 from Standard to Core, edited #7's pass condition. Updated distribution: 6 Critical (33%) / 4 Valuable (22%) / 8 Guardrails (44%)."* Don't just say "applied" — name what changed. If the customer's edits trip the distribution sanity-check thresholds, flag that before generating deliverables. If changes requested, regenerate and re-launch.
-5. **After confirmation, automatically generate TWO deliverables — do not wait for the user to ask:**
+4. When the user confirms, read `plan-feedback.json` and **apply every edit it contains, faithfully and without question**. The customer's choices are final — do NOT re-litigate, do NOT suggest reverting, do NOT ask for confirmation again, do NOT partially apply. Every key in `edits` and every change implied by the diff against `stage-1-data.json` flows into the in-memory plan.
 
-   **A. Customer-ready `.docx` eval plan report** using the `/docx` skill. This is the customer's narrative deliverable.
+   This applies to ALL edit types:
+   - Statement edits, pass/fail condition edits, method changes
+   - Quadrant moves (drag-and-drop between Critical / Valuable / Guardrails / Deprioritize)
+   - Quality-dimension renames, merges (rename to existing name), deletes
+   - Criterion additions and deletions
+   - General Comments box content (treat as Vision-level customer note)
 
-   **B. Editable `.xlsx` workbook** using the `/xlsx` skill, named `eval-plan-<agent-name>-<YYYY-MM-DD>.xlsx`. This is the customer's machine-readable deliverable — every piece of data on the Stage 1 dashboard lives here, ready for Excel filtering, import into other tools, or collaborative edit offline.
+   **Then narrate the edits back so the customer sees their changes were captured** — e.g., *"Got it — moved criterion #6 from Valuable to Critical, edited #7's pass condition, renamed 'Benefits Accuracy' → 'Accuracy' (merged with existing dimension). Updated distribution: 6 Critical (33%) / 4 Valuable (22%) / 8 Guardrails (44%)."* Don't just say "applied" — name what changed. The narration is for confirmation that you parsed the edits correctly, NOT an invitation for the customer to re-decide.
+
+   **Only push back on the explicit red-flag distribution patterns** (0 Guardrails, 0 Critical, >70% Critical, HIGH-risk + <30% Guardrails — see the Distribution sanity-check section earlier in this stage). Marginal deviations after a customer-initiated move are NOT red flags. Lock and proceed.
+
+   If changes requested instead of confirmed, regenerate and re-launch.
+5. **After confirmation, automatically generate the eval plan deliverable — do not wait for the user to ask:**
+
+   **Customer-ready `.docx` eval plan report** using the `/docx` skill, named `eval-plan-<agent-name>-<YYYY-MM-DD>.docx`. This is the customer's narrative deliverable.
 
 The report must be:
 - **Concise** — no filler, no walls of text. Tables over paragraphs.
@@ -606,16 +615,7 @@ Report structure:
 4. Quality Dimensions to Test — list dimensions with grouped criteria under each
 5. Method mapping explanation — which methods apply to which criteria and why (reference the `signal_type` → method guidance)
 
-XLSX workbook structure (all sheets auto-size columns; freeze header row):
-
-| Sheet name | Contents |
-|---|---|
-| **Criteria** | One row per criterion. Columns: ID, Quadrant, Quality Dimension, Statement (The agent should…), What to verify (signal_type), Method, Pass condition, Fail condition. Color-code Quadrant column (Critical=red, Valuable=blue, Guardrails=yellow, Deprioritize=gray). |
-| **Quadrant Summary** | Quadrant × count of criteria + brief description of what belongs there. One row per quadrant, four rows total. |
-| **Quality Dimensions** | Quality dimension × count of criteria × comma-separated criterion IDs. One row per dimension. |
-| **Agent Vision** | Key-value layout of the Agent Vision from Stage 0 (Purpose, Users, Knowledge, Capabilities, Boundaries, Success Criteria, Role-Based Access, Risk Profile). Spans two columns. |
-
-Tell the customer: "Here's your eval plan in two formats — the `.docx` is for sharing and narrative alignment; the `.xlsx` is for offline editing, sorting, or import into your tracking tools. Both reflect the same data. Share them with your team — business and dev should agree on the quadrant assignments before we generate test cases. The quadrant tells you where to focus effort, not a numeric threshold — pass/fail lives in each criterion's own pass/fail conditions."
+Tell the customer: "Here's your eval plan as a `.docx` — share it with your team. Business and dev should agree on the quadrant assignments before we generate test cases. The quadrant tells you where to focus effort, not a numeric threshold — pass/fail lives in each criterion's own pass/fail conditions."
 
 ---
 
@@ -782,7 +782,18 @@ Before generating final CSV and report files, launch the test cases dashboard fo
    python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage generate --serve --data stage-2-data.json
    ```
 3. The user reviews test cases per quality dimension tab (quadrant-colored), reviews pass/fail conditions per criterion group, checks VERIFY-highlighted factual content, and edits expected responses inline.
-4. When the user confirms, read `generate-feedback.json` and apply all edits. **Narrate the edits back so the customer sees their changes were captured** — count [VERIFY] corrections, count test case additions/deletions, list significant pass/fail edits, restate updated total case count. Example: *"Got it — 8 [VERIFY] corrections captured, 2 new test cases for criterion #14, total now 56 cases across 7 quality signals."* Don't just say "applied." If changes requested, regenerate and re-launch.
+4. When the user confirms, read `generate-feedback.json` and **apply every edit it contains, faithfully and without question**. The customer's choices are final — do NOT re-litigate, do NOT suggest reverting, do NOT ask for confirmation again, do NOT partially apply.
+
+   This applies to ALL edit types:
+   - [VERIFY] span corrections (the customer fact-checked your draft against their real knowledge sources — their version wins)
+   - Question edits, expected-response edits, method changes per case
+   - Test case additions and deletions
+   - Method-bar additions / removals per quality dimension
+   - General Comments box content
+
+   **Then narrate the edits back so the customer sees their changes were captured** — count [VERIFY] corrections, count test case additions/deletions, list significant pass/fail edits, restate updated total case count. Example: *"Got it — 8 [VERIFY] corrections captured, 2 new test cases for criterion #14, total now 56 cases across 7 quality signals."* Don't just say "applied." The narration confirms you parsed correctly; it is NOT an invitation to re-decide.
+
+   If changes requested instead of confirmed, regenerate and re-launch.
 5. **After confirmation**, generate the final deliverables:
 
 **A. CSV files** — For each quality signal, write **TWO CSV variants** (so the customer has both a lean import artifact AND a working copy with method guidance):
@@ -1027,7 +1038,17 @@ Before generating the final triage report, launch the interpret dashboard for re
    python "$(ls ~/.claude/skills/eval-guide/dashboard/serve.py 2>/dev/null || ls ~/.claude/plugins/cache/*/eval-guide/*/skills/eval-guide/dashboard/serve.py 2>/dev/null | head -1)" --stage interpret --serve --data stage-4-data.json
    ```
 3. The user reviews pass rates per quadrant, expands criterion rows to see test case details, uses Human Judgement (Agree/Disagree) to override LLM judge assessments, and re-classifies root causes.
-4. When the user confirms, read `interpret-feedback.json` and apply edits (including human disagrees which become eval_setup root causes). **Narrate the edits back** — count Disagrees applied, list re-classified root causes, name any Top-3-actions edits. Example: *"Got it — 4 Disagrees flipped to Eval Setup, root cause for failure #7 reclassified from Agent Config to Platform Limitation, Top action #2 edited to scope to Critical only. Updated pass rate per quadrant: Critical 78% → 82% after Disagrees applied."* Don't just say "applied." If changes requested, regenerate and re-launch.
+4. When the user confirms, read `interpret-feedback.json` and **apply every edit it contains, faithfully and without question**. The customer's choices are final — do NOT re-litigate, do NOT suggest reverting, do NOT ask for confirmation again, do NOT partially apply.
+
+   This applies to ALL edit types:
+   - **`human_disagrees`** — every Disagree is the customer overriding the LLM judge. Each disagreed case flips to `Eval Setup Issue` root cause and stops counting against the agent. The customer's domain expertise wins; do not override their override.
+   - Root cause reclassifications per failure (Eval Setup / Agent Config / Platform Limitation)
+   - Top-3-action edits
+   - General Comments box content
+
+   **Then narrate the edits back** — count Disagrees applied, list re-classified root causes, name any Top-3-action edits. Example: *"Got it — 4 Disagrees flipped to Eval Setup, root cause for failure #7 reclassified from Agent Config to Platform Limitation, Top action #2 edited to scope to Critical only. Updated pass rate per quadrant: Critical 78% → 82% after Disagrees applied."* Don't just say "applied." The narration confirms you parsed correctly; it is NOT an invitation to re-decide.
+
+   If changes requested instead of confirmed, regenerate and re-launch.
 5. **After confirmation**, generate the customer-ready .docx triage report using the `/docx` skill. Same principles: concise, presentable, self-contained. Structure:
    1. Quadrant performance — quadrant summary cards (pass rate per quadrant) + full criterion table (quadrant, criterion, quality dimension, actual pass rate, status)
    2. Failure triage table (quadrant, criterion, question, expected, actual, root cause) — include human-disagreed entries as "Eval Setup — Human Disagrees"

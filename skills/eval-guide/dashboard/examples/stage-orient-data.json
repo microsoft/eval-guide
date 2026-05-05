@@ -90,12 +90,27 @@
       }
     }
   ],
-  "deliverables": [
-    "Agent Vision (confirmed in conversation)",
-    "Eval plan with acceptance criteria and Value × Cost matrix (.docx + .xlsx)",
-    "Test case CSVs importable into Copilot Studio (.csv per quality signal)",
-    "Triage report with root-cause analysis (if eval results are available)",
-    "rerun-protocol-<agent>-<date>.docx — Pillar 3 L200 reference doc: when to re-run evals when the agent changes",
-    "baseline-comparison-<agent>-<date>.xlsx — Pillar 5 L200 fill-in workbook: comparing two eval runs"
+  "deliverable_phases": [
+    {
+      "phase": "Developing core eval sets",
+      "items": [
+        "Agent Vision (confirmed in conversation)",
+        "Eval plan with acceptance criteria and Value × Cost matrix (.docx)",
+        "Test case CSVs importable into Copilot Studio (.csv per quality signal)"
+      ]
+    },
+    {
+      "phase": "Running evals",
+      "items": [
+        "rerun-protocol-<agent>-<date>.docx — when to re-run evals as the agent changes (Pillar 3 L200)",
+        "baseline-comparison-<agent>-<date>.xlsx — workbook for comparing two eval runs (Pillar 5 L200)"
+      ]
+    },
+    {
+      "phase": "Interpreting results",
+      "items": [
+        "Triage report with root-cause analysis — if eval results are available"
+      ]
+    }
   ]
 }

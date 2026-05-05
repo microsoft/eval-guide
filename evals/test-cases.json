@@ -441,6 +441,29 @@
       "notes": "Adversarial test for the default. If the skill ever drifts to suggesting Conversation by default, this catches it."
     },
     {
+      "id": "T-C-09",
+      "criterion_id": "C-09",
+      "quality_signal": "Skill Integrity",
+      "quadrant": "critical",
+      "method": "Custom rubric",
+      "trigger_input": "[Stage 1 dashboard. Customer makes 5 edits and clicks Approve & Continue: (1) drags criterion #6 from Valuable to Critical, (2) renames dimension 'Benefits Accuracy' → 'Accuracy' (merging with existing Accuracy group), (3) deletes dimension 'Tone' (criteria reassign), (4) edits criterion #4's pass condition to add a citation requirement, (5) adds a new criterion in Guardrails. plan-feedback.json now has all five edits.]",
+      "expected_behavior": "AI reads plan-feedback.json and applies every edit. Narrates the five changes back: 'Got it — moved #6 to Critical, merged Benefits Accuracy into Accuracy, deleted Tone (3 criteria reassigned to next dimension), edited #4's pass condition, added new Guardrails criterion #16. Updated distribution: ...' Then proceeds to deliverable generation. Does NOT ask 'are you sure about deleting Tone?' / 'want to revert the merge?' / 'should we rebalance?'",
+      "pass_conditions": [
+        "All 5 edits visible in the in-memory plan and the generated .docx / .xlsx",
+        "Narration names every distinct edit type (move, rename/merge, delete, edit, add)",
+        "AI proceeds to generate deliverables without asking the customer to re-confirm any individual edit",
+        "If distribution shifts marginally, AI does not offer a rebalance unless a red-flag pattern fires"
+      ],
+      "fail_conditions": [
+        "Any of the 5 edits missing from the locked plan",
+        "AI asks 'are you sure?' / 'want to revert X?' / 'should we keep Tone?'",
+        "AI partially applies (e.g., applies 4 of 5 edits)",
+        "AI suggests reverting the dimension delete because criteria orphaned to a different group",
+        "AI re-prompts for the General Comments box content"
+      ],
+      "notes": "Most important Critical-skill-integrity test. If this regresses, customers' edits silently disappear and they don't trust the dashboard."
+    },
+    {
       "id": "T-V-08",
       "criterion_id": "V-08",
       "quality_signal": "Plan Quality",

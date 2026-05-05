@@ -39,5 +39,9 @@ Thumbs.db
 *.swp
 *~
 
+# Python bytecode from running dashboard helpers locally
+__pycache__/
+*.pyc
+
 # User-global install backups (created by bin/eval-guide-sync-dev)
 *.backup-pre-sync-*

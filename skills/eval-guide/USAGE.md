@@ -136,9 +136,8 @@ Eval maturity has five pillars and five levels each — from `L100 Initial` (no 
   - **General Comments** box at the bottom for anything not captured by the fields above.
   - Click **Approve & Continue to Next Stage** to accept (your inline edits flow into Stage 2), or **Incorporate Changes & Generate New Plan** to send it back to the AI for another pass.
 - **What happens when you click:** The browser sends your feedback directly to the localhost dashboard server. `plan-feedback.json` is written next to your data file automatically — no download or manual file move. The server shuts down and the AI continues.
-- **What you get back (after Approve) — two deliverables:**
-  - **`.docx` eval plan** — narrative report: Agent Vision summary, Value × Cost matrix overview, quadrant assignment (visual 2×2 + grouped criterion table), quality dimensions, method mapping. For sharing and team alignment.
-  - **`.xlsx` workbook** (`eval-plan-<agent>-<date>.xlsx`) — machine-readable, filterable/sortable Excel. Sheets: Criteria (color-coded by quadrant) • Quadrant Summary • Quality Dimensions • Agent Vision. For offline editing or import into other tools.
+- **What you get back (after Approve):**
+  - **`.docx` eval plan** (`eval-plan-<agent>-<date>.docx`) — narrative report: Agent Vision summary, Value × Cost matrix overview, quadrant assignment (visual 2×2 + grouped criterion table), quality dimensions, method mapping. For sharing and team alignment.
 
 ## 6. Stage 2 — Generate *(advances Pillar 2)*
 
@@ -224,7 +223,6 @@ If the agent IS running:
 **You walk away with:**
 - `stage-0-data.json` — confirmed Agent Vision.
 - `.docx` eval plan (Stage 1) with Value × Cost matrix and acceptance criteria.
-- `.xlsx` eval plan workbook (Stage 1) — same data in filterable form (Criteria / Quadrant Summary / Quality Dimensions / Agent Vision sheets).
 - Two CSV variants per quality signal (Stage 2): `-for-import` (2 cols, paste into Copilot Studio) and `-with-methods` (3 cols, working copy).
 - `.docx` test case report (Stage 2).
 - *If Stage 3 ran:* results CSV/JSON and `.docx` triage report (Stage 4).

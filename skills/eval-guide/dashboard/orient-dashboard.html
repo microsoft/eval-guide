@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eval Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* ── Paper & ink ─────────────────────────────────────── */
+  --paper: #f5f1ea;
+  --paper-darker: #efeadf;
+  --surface: #fbf8f2;
+  --surface-warm: #f7f2e7;
+  --rule: #ded6c6;
+  --rule-fine: #e8e0cf;
+  --ink: #1a1614;
+  --ink-soft: #4a403a;
+  --ink-muted: #6b5f54;
+  --ink-faint: #9b8f82;
+
+  /* ── Signature accent (deep petrol teal) ─────────────── */
+  --accent: #0f4c5c;
+  --accent-hover: #0a3845;
+  --accent-soft: #d9e3e6;
+  --accent-wash: #e8eef0;
+
+  /* ── Quadrant & semantic palette (journal-earthy) ────── */
+  --critical: #b84a39;          /* deep vermilion */
+  --critical-wash: #f3dfd9;
+  --valuable: #3e6c78;              /* petrol teal companion */
+  --valuable-wash: #dee7eb;
+  --guardrails: #b88a2e;        /* aged mustard */
+  --guardrails-wash: #f3e8cf;
+  --deprioritize: #8b7d6b;      /* warm taupe */
+  --deprioritize-wash: #e8e2d6;
+
+  /* ── Pass / Fail (shared semantics) ──────────────────── */
+  --green: #3d6b47;
+  --green-wash: #dde9dd;
+  --red: var(--critical);
+  --red-wash: var(--critical-wash);
+  --yellow: var(--guardrails);
+  --yellow-wash: var(--guardrails-wash);
+  --blue: var(--valuable);
+  --blue-wash: var(--valuable-wash);
+
+  /* ── Aliases (keep old variable names working in stage CSS) ── */
+  --bg: var(--paper);
+  --border: var(--rule);
+  --text: var(--ink);
+  --text-muted: var(--ink-muted);
+  --header-bg: var(--ink);
+  --red-bg: var(--critical-wash);
+  --green-bg: var(--green-wash);
+  --blue-bg: var(--valuable-wash);
+  --yellow-bg: var(--guardrails-wash);
+
+  --radius: 2px;
+  --radius-lg: 4px;
+
+  /* ── Type system ─────────────────────────────────────── */
+  --serif: "Fraunces", "Source Serif 4", "Georgia", serif;
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
+  --font: var(--sans);               /* body default */
+
+  /* ── Rhythm ─────────────────────────────────────────── */
+  --measure-max: 78rem;
+  --rule-hairline: 0.5px;
+  --shadow-card: 0 1px 2px rgba(26,22,20,0.04), 0 0 0 1px rgba(26,22,20,0.04);
+  --shadow-lift: 0 6px 24px -8px rgba(26,22,20,0.18), 0 2px 6px rgba(26,22,20,0.06);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  font-family: var(--sans);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.5;
+  font-feature-settings: "ss01", "cv11", "tnum" 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  /* very faint paper grain — breaks the flatness without dominating */
+  background-image:
+    radial-gradient(rgba(107, 95, 84, 0.045) 1px, transparent 1px),
+    radial-gradient(rgba(107, 95, 84, 0.035) 1px, transparent 1px);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 1.5px 1.5px;
+}
+
+/* ── Header: serif masthead with Roman stage-numeral ─── */
+
+.header {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 1.1rem 2.4rem 0.95rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--ink);
+  position: relative;
+}
+.header::after {
+  content: "";
+  position: absolute;
+  left: 2.4rem; right: 2.4rem; bottom: -4px;
+  height: 1px;
+  background: var(--ink);
+}
+.header h1 {
+  font-family: var(--serif);
+  font-size: 1.28rem;
+  font-weight: 500;
+  font-variation-settings: "opsz" 36, "SOFT" 20;
+  letter-spacing: -0.005em;
+  line-height: 1.1;
+}
+.header h1 em {
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(245, 241, 234, 0.75);
+}
+.header .stage-badge {
+  font-family: var(--mono);
+  background: transparent;
+  color: rgba(245, 241, 234, 0.85);
+  padding: 0.15rem 0.55rem;
+  border: 1px solid rgba(245, 241, 234, 0.35);
+  border-radius: 2px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.header .agent-name {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: rgba(245, 241, 234, 0.6);
+  margin-left: 1rem;
+  font-weight: 400;
+}
+.header .agent-name::before {
+  content: "— ";
+  color: rgba(245, 241, 234, 0.35);
+}
+
+/* ── Instructions strip: editorial lede ──────────────── */
+
+.instructions {
+  background: var(--surface-warm);
+  border-bottom: 1px solid var(--rule);
+  padding: 0.75rem 2.4rem;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.92rem;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+  line-height: 1.5;
+  font-variation-settings: "opsz" 14;
+}
+
+/* ── Main canvas ─────────────────────────────────────── */
+
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem 2.4rem 3rem;
+  max-width: var(--measure-max);
+  width: 100%;
+  margin: 0 auto;
+  align-self: center;
+}
+
+/* ── Section: journal article block ──────────────────── */
+
+.section {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.section-header {
+  position: relative;
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  font-weight: 500;
+  font-variation-settings: "opsz" 24, "SOFT" 30;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  padding: 1rem 1.3rem 0.9rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  line-height: 1.25;
+}
+.section-header::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--accent);
+}
+/* Double-rule beneath section header (classic print) */
+.section-header::after {
+  content: "";
+  position: absolute;
+  left: 1.3rem; right: 1.3rem; bottom: -4px;
+  height: 1px;
+  background: var(--rule);
+}
+
+.section-body { padding: 1.2rem 1.3rem; }
+.section-body + .section-body { padding-top: 0; }
+
+/* ── Form fields ─────────────────────────────────────── */
+
+.field-group { margin-bottom: 1.1rem; }
+.field-group:last-child { margin-bottom: 0; }
+.field-label {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+  margin-bottom: 0.4rem;
+  display: block;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--accent);
+  line-height: 1.2;
+}
+.field-input, .field-textarea, .field-select {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-family: var(--sans);
+  font-size: 0.92rem;
+  color: var(--ink);
+  background: var(--surface);
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+}
+.field-input:focus, .field-textarea:focus, .field-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+.field-textarea { min-height: 60px; resize: vertical; line-height: 1.5; }
+
+/* ── Tables: editorial data grid ─────────────────────── */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+}
+th {
+  text-align: left;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+  padding: 0.65rem 0.85rem;
+  background: var(--surface-warm);
+  border-bottom: 1px solid var(--rule);
+  vertical-align: bottom;
+}
+td {
+  padding: 0.65rem 0.85rem;
+  border-bottom: var(--rule-hairline) solid var(--rule-fine);
+  vertical-align: top;
+  line-height: 1.5;
+}
+tr:last-child td { border-bottom: none; }
+tbody tr { transition: background 0.12s; }
+tbody tr:hover { background: rgba(15, 76, 92, 0.03); }
+
+td.editable { position: relative; }
+td.editable textarea {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 0.35rem 0.5rem;
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: transparent;
+  resize: vertical;
+  min-height: 2.4em;
+  line-height: 1.5;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+td.editable textarea:focus {
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px var(--accent-wash);
+  outline: none;
+}
+td.editable textarea.edited {
+  background: var(--accent-wash);
+  border-color: var(--accent);
+}
+
+/* ── Badges: small-caps journal tags ─────────────────── */
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 2px;
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.badge-green { background: var(--green-wash); color: var(--green); }
+.badge-red { background: var(--critical-wash); color: var(--critical); }
+.badge-blue { background: var(--valuable-wash); color: var(--valuable); }
+.badge-yellow { background: var(--guardrails-wash); color: var(--guardrails); }
+
+/* Legacy verdict pill (kept for any older reference) */
+.verdict {
+  display: inline-block;
+  padding: 0.4rem 1.2rem;
+  border-radius: var(--radius);
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.verdict-ship { background: var(--green-wash); color: var(--green); border: 1px solid var(--green); }
+.verdict-iterate { background: var(--guardrails-wash); color: var(--guardrails); border: 1px solid var(--guardrails); }
+.verdict-block { background: var(--critical-wash); color: var(--critical); border: 1px solid var(--critical); }
+
+/* ── Buttons ─────────────────────────────────────────── */
+
+.btn {
+  padding: 0.55rem 1.15rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  background: var(--surface);
+  color: var(--ink);
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+.btn:hover { border-color: var(--ink-soft); background: #fff; }
+.btn-primary {
+  background: var(--accent);
+  color: var(--surface);
+  border-color: var(--accent);
+  box-shadow: 0 1px 0 rgba(26,22,20,0.08);
+}
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
+.btn-sm { padding: 0.3rem 0.65rem; font-size: 0.78rem; }
+.btn-danger { color: var(--critical); }
+.btn-danger:hover { background: var(--critical-wash); border-color: var(--critical); color: var(--critical); }
+.btn-add {
+  border-style: dashed;
+  color: var(--ink-muted);
+  width: 100%;
+  padding: 0.55rem;
+  margin-top: 0.5rem;
+  background: transparent;
+  font-family: var(--sans);
+  font-style: italic;
+}
+.btn-add:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-wash); font-style: normal; }
+
+select.inline-select {
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 0.3rem 0.45rem;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+select.inline-select:hover { border-color: var(--rule); background: var(--surface); }
+select.inline-select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-wash); }
+select.inline-select.edited { background: var(--accent-wash); border-color: var(--accent); }
+
+/* ── Comments section: manuscript margin note ────────── */
+
+.comments-section {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+.comments-section .section-header { display: flex; align-items: center; gap: 0.5rem; }
+.comments-textarea {
+  width: 100%;
+  min-height: 90px;
+  padding: 1rem 1.3rem;
+  border: none;
+  font-family: var(--serif);
+  font-size: 0.98rem;
+  font-style: italic;
+  color: var(--ink-soft);
+  resize: vertical;
+  background: transparent;
+  line-height: 1.55;
+  font-variation-settings: "opsz" 14;
+}
+.comments-textarea:focus { outline: none; color: var(--ink); font-style: normal; background: #fff; }
+.comments-textarea::placeholder { color: var(--ink-faint); font-style: italic; }
+
+.previous-feedback {
+  background: var(--accent-wash);
+  border: 1px solid var(--accent);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.88rem;
+  font-family: var(--serif);
+  font-style: italic;
+  line-height: 1.55;
+}
+.previous-feedback-label {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: 0.35rem;
+  font-style: normal;
+}
+
+/* ── Nav bar: bottom plate ───────────────────────────── */
+
+.nav {
+  flex-shrink: 0;
+  border-top: 1px solid var(--rule);
+  background: var(--surface-warm);
+  padding: 0.85rem 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 -1px 0 var(--rule-fine);
+}
+.nav-left { display: flex; align-items: center; gap: 0.5rem; }
+.nav-right { display: flex; align-items: center; gap: 0.7rem; }
+.save-status {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--ink-muted);
+  min-height: 1.1em;
+  letter-spacing: 0.02em;
+}
+
+/* ── Tabs: minimal underline ─────────────────────────── */
+
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 0;
+  flex-shrink: 0;
+  background: var(--surface);
+}
+.tab {
+  padding: 0.65rem 1.1rem;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  letter-spacing: 0.01em;
+}
+.tab:hover { color: var(--ink); background: var(--surface-warm); }
+.tab.active {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+  background: var(--surface);
+  font-weight: 600;
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: fade-in 0.25s ease-out; }
+
+input[type="number"].threshold-input {
+  width: 64px;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  text-align: right;
+  font-feature-settings: "tnum" 1;
+  background: var(--surface);
+}
+input[type="number"].threshold-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-wash); }
+
+/* ── Toast & overlay ─────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  bottom: 5.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.7rem 1.4rem;
+  border-radius: var(--radius);
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  transition: transform 0.22s, opacity 0.22s;
+  z-index: 100;
+  box-shadow: var(--shadow-lift);
+}
+.toast.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26,22,20,0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.overlay.visible { opacity: 1; pointer-events: auto; }
+.overlay-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 2.2rem 2.2rem 1.8rem;
+  max-width: 440px;
+  width: 90%;
+  text-align: center;
+  box-shadow: var(--shadow-lift);
+}
+.overlay-card h2 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 1.4rem;
+  font-variation-settings: "opsz" 36;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.6rem;
+  color: var(--ink);
+}
+.overlay-card p {
+  color: var(--ink-muted);
+  margin-bottom: 1.6rem;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.overlay-card .btn { margin: 0 0.3rem; }
+
+/* ── Utilities ───────────────────────────────────────── */
+
+.text-muted { color: var(--ink-muted); }
+.text-sm { font-size: 0.8rem; }
+.mono { font-family: var(--mono); }
+.serif { font-family: var(--serif); }
+.smallcaps {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+}
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mb-1 { margin-bottom: 0.5rem; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.gap-1 { gap: 0.5rem; }
+
+/* ── Tooltips ────────────────────────────────────────── */
+
+[data-tooltip] {
+  position: relative;
+  cursor: help;
+}
+.section-header [data-tooltip] {
+  border-bottom: 1px dashed var(--rule);
+}
+.field-label [data-tooltip] {
+  border-bottom: 1px dashed var(--ink-faint);
+}
+.tooltip-bubble {
+  position: fixed;
+  min-width: 280px;
+  max-width: 400px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.5;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.15s, transform 0.15s;
+}
+.tooltip-bubble.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.tooltip-bubble::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 16px;
+  width: 10px;
+  height: 10px;
+  background: var(--ink);
+  transform: rotate(45deg);
+}
+
+/* ── Page-load animation: staggered editorial reveal ── */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.main > .section,
+.main > .comments-section,
+.main > .previous-feedback {
+  animation: reveal 0.5s cubic-bezier(.2,.7,.3,1) both;
+}
+.main > .previous-feedback { animation-delay: 0.04s; }
+.main > .section:nth-of-type(1) { animation-delay: 0.08s; }
+.main > .section:nth-of-type(2) { animation-delay: 0.14s; }
+.main > .section:nth-of-type(3) { animation-delay: 0.20s; }
+.main > .section:nth-of-type(4) { animation-delay: 0.26s; }
+.main > .section:nth-of-type(5) { animation-delay: 0.32s; }
+.main > .comments-section { animation-delay: 0.38s; }
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:baseline;gap:0.85rem;">
+    <h1 id="stage-title">Eval Dashboard</h1>
+    <span class="agent-name" id="agent-name"></span>
+  </div>
+  <span class="stage-badge" id="stage-badge"></span>
+</div>
+
+<div class="instructions" id="instructions">
+  Review the output below. Edit any fields that need changes, add comments, then confirm to proceed or request changes for another iteration.
+</div>
+
+<div id="previous-feedback-banner"></div>
+
+<div class="main" id="main-content">
+  <!-- Orient: Per-Agent Eval Maturity Snapshot — read-only session orientation -->
+
+<style>
+  /* Read-only stage: hide the comments section and nav buttons inherited from base.html */
+  .comments-section,
+  .nav { display: none !important; }
+
+  .orient-intro {
+    margin-bottom: 1.4rem;
+  }
+  .orient-intro p {
+    margin-bottom: 0.6rem;
+  }
+  .orient-intro .lede {
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  .orient-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-top: 1rem;
+  }
+  .orient-grid th,
+  .orient-grid td {
+    border: 1px solid var(--rule);
+    padding: 0.55rem 0.7rem;
+    vertical-align: top;
+    text-align: left;
+  }
+  .orient-grid thead th {
+    background: var(--surface-warm);
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .orient-grid thead th .level-name {
+    display: block;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--ink);
+    margin-top: 0.15rem;
+  }
+  .orient-grid .pillar-label {
+    width: 14%;
+    background: var(--surface-warm);
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .orient-grid .pillar-label .pillar-num {
+    display: inline-block;
+    width: 1.3rem;
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+  }
+  .orient-grid td.level-cell {
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+  .orient-grid td.is-baseline {
+    background: var(--rule-fine);
+    border-left: 3px solid var(--ink-muted);
+    color: var(--ink);
+  }
+  .orient-grid td.is-target {
+    background: var(--accent-wash);
+    border-left: 3px solid var(--accent);
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .orient-grid td.is-next {
+    background: transparent;
+    border-left: 3px dashed var(--ink-faint);
+    color: var(--ink-soft);
+  }
+  .orient-grid td.is-target::after {
+    content: " ✓";
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .orient-legend {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: var(--ink-muted);
+    margin-top: 0.8rem;
+  }
+  .orient-legend .swatch {
+    display: inline-block;
+    width: 14px; height: 14px;
+    margin-right: 0.4rem;
+    vertical-align: middle;
+    border: 1px solid var(--rule);
+  }
+  .orient-legend .swatch-baseline { background: var(--rule-fine); border-left: 3px solid var(--ink-muted); }
+  .orient-legend .swatch-target   { background: var(--accent-wash); border-left: 3px solid var(--accent); }
+  .orient-legend .swatch-next     { background: transparent; border-left: 3px dashed var(--ink-faint); }
+
+  .orient-summary {
+    margin-top: 1.6rem;
+    padding: 1rem 1.2rem;
+    background: var(--accent-wash);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+  }
+  .orient-summary h3 {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 1.05rem;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+  }
+  .orient-summary ul {
+    list-style: none;
+    padding: 0;
+  }
+  .orient-summary li {
+    padding: 0.35rem 0;
+    border-bottom: 1px dashed var(--rule-fine);
+    color: var(--ink);
+    font-size: 0.9rem;
+  }
+  .orient-summary li:last-child { border-bottom: none; }
+  .orient-summary li .pillar-name { font-weight: 600; }
+  .orient-summary li .arrow { color: var(--ink-faint); margin: 0 0.4rem; }
+  .orient-summary li .delivered { color: var(--accent); font-weight: 600; }
+  .orient-summary li .starter { color: var(--guardrails); font-weight: 600; }
+  .orient-summary li .mechanism {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--ink-muted);
+    margin-top: 0.15rem;
+    padding-left: 0.8rem;
+  }
+
+  .orient-deliverables {
+    margin-top: 1.4rem;
+  }
+  .orient-phase {
+    margin-top: 1.1rem;
+    padding-left: 0.4rem;
+    border-left: 3px solid var(--accent);
+  }
+  .orient-phase:first-child {
+    margin-top: 0;
+  }
+  .orient-phase-header {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.4rem;
+    padding-left: 0.6rem;
+  }
+  .orient-phase-header .phase-num {
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    margin-right: 0.4rem;
+  }
+  .orient-phase ul {
+    list-style: none;
+    padding: 0;
+    margin-left: 0.6rem;
+  }
+  .orient-phase li {
+    padding: 0.3rem 0;
+    color: var(--ink);
+    font-size: 0.92rem;
+    line-height: 1.45;
+    position: relative;
+    padding-left: 1.1rem;
+  }
+  .orient-phase li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--ink-faint);
+  }
+
+  .orient-close {
+    margin-top: 1.6rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--surface-warm);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    color: var(--ink-soft);
+    font-style: italic;
+    font-family: var(--serif);
+    font-size: 0.95rem;
+    text-align: center;
+  }
+</style>
+
+<div class="section">
+  <div class="section-header">Where this agent stands today — and where this session takes it</div>
+  <div class="section-body">
+    <div class="orient-intro">
+      <p class="lede">
+        This is the Per-Agent Eval Maturity Model: <strong>five pillars of eval practice, five levels each</strong>.
+        Your starting baseline is highlighted in grey; this session's target is highlighted in teal.
+        Pillars 1, 2, and 4 advance to <strong>L300 Systematic</strong> through the Stage 0–4 deliverables.
+        Pillars 3 and 5 advance to <strong>L200 Defined</strong> through reference protocols you can run after the session.
+      </p>
+    </div>
+
+    <table class="orient-grid">
+      <thead>
+        <tr>
+          <th class="pillar-label">Pillar</th>
+          <th><span>L100</span><span class="level-name">Initial</span></th>
+          <th><span>L200</span><span class="level-name">Defined</span></th>
+          <th><span>L300</span><span class="level-name">Systematic</span></th>
+          <th><span>L400</span><span class="level-name">Managed</span></th>
+          <th><span>L500</span><span class="level-name">Optimized</span></th>
+        </tr>
+      </thead>
+      <tbody id="orient-tbody"></tbody>
+    </table>
+
+    <div class="orient-legend">
+      <span><span class="swatch swatch-baseline"></span>Where you start (L100 Initial on every pillar)</span>
+      <span><span class="swatch swatch-target"></span>Where this session takes you</span>
+      <span><span class="swatch swatch-next"></span>Next-session target (after this session)</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">What this session moves</div>
+  <div class="section-body">
+    <div class="orient-summary">
+      <ul id="orient-summary-list"></ul>
+    </div>
+  </div>
+</div>
+
+<div class="section orient-deliverables">
+  <div class="section-header">What you'll walk away with</div>
+  <div class="section-body">
+    <div id="orient-deliverables-list"></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-body">
+    <div class="orient-close">
+      Close this tab when you've reviewed the snapshot. The conversation continues in the terminal.
+    </div>
+  </div>
+</div>
+
+<script>
+function stageInit() {
+  const data = EMBEDDED_DATA.data || {};
+  const pillars = data.pillars || [];
+  const levels = data.levels || [];
+  const deliverablePhases = data.deliverable_phases || [];
+
+  // Hide the stage badge for orient — it's an orientation, not a numbered stage
+  const badge = document.getElementById("stage-badge");
+  if (badge) badge.textContent = "Orient";
+
+  // Override the instructions banner to match the read-only nature of this stage
+  const instr = document.getElementById("instructions");
+  if (instr) instr.textContent =
+    "Read the snapshot below. No editing or confirmation needed — this is an orientation. " +
+    "When you've reviewed it, close this tab and continue in the terminal.";
+
+  // Build the 5x5 grid
+  const tbody = document.getElementById("orient-tbody");
+  tbody.innerHTML = "";
+  pillars.forEach(p => {
+    const tr = document.createElement("tr");
+    const labelTd = document.createElement("td");
+    labelTd.className = "pillar-label";
+    labelTd.innerHTML = '<span class="pillar-num">' + p.id + '.</span> ' + escapeHtml(p.name);
+    tr.appendChild(labelTd);
+
+    levels.forEach(lv => {
+      const td = document.createElement("td");
+      td.className = "level-cell";
+      const def = (p.definitions && p.definitions[lv.code]) || "";
+      td.textContent = def;
+      if (lv.code === p.baseline) td.classList.add("is-baseline");
+      if (lv.code === p.session_target) td.classList.add("is-target");
+      if (lv.code === p.next_session_target) td.classList.add("is-next");
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  // Build the "what this session moves" summary list
+  const sumList = document.getElementById("orient-summary-list");
+  sumList.innerHTML = "";
+  pillars.forEach(p => {
+    const target = (levels.find(lv => lv.code === p.session_target) || {}).label || p.session_target;
+    const tagClass = p.delivered_in_session ? "delivered" : "starter";
+    const tagText = p.delivered_in_session ? "delivered in-session" : "starter artifact";
+    const li = document.createElement("li");
+    li.innerHTML =
+      '<span class="pillar-name">' + p.id + '. ' + escapeHtml(p.name) + '</span>' +
+      '<span class="arrow">→</span>' +
+      '<span>' + escapeHtml(target) + '</span> ' +
+      '<span class="' + tagClass + '">(' + tagText + ')</span>' +
+      '<span class="mechanism">via ' + escapeHtml(p.mechanism || "") + '</span>';
+    sumList.appendChild(li);
+  });
+
+  // Build the phased deliverables list
+  const delList = document.getElementById("orient-deliverables-list");
+  delList.innerHTML = "";
+  deliverablePhases.forEach((p, idx) => {
+    const phaseDiv = document.createElement("div");
+    phaseDiv.className = "orient-phase";
+    const header = document.createElement("div");
+    header.className = "orient-phase-header";
+    header.innerHTML =
+      '<span class="phase-num">Phase ' + (idx + 1) + '</span>' +
+      escapeHtml(p.phase || "");
+    phaseDiv.appendChild(header);
+    const ul = document.createElement("ul");
+    (p.items || []).forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = item;
+      ul.appendChild(li);
+    });
+    phaseDiv.appendChild(ul);
+    delList.appendChild(phaseDiv);
+  });
+}
+</script>
+
+
+  <div class="comments-section">
+    <div class="section-header">General Comments</div>
+    <textarea class="comments-textarea" id="general-comments" placeholder="Any additional feedback, requests, or notes…"></textarea>
+  </div>
+</div>
+
+<div class="nav">
+  <div class="nav-left">
+    <span class="save-status" id="save-status"></span>
+  </div>
+  <div class="nav-right">
+    <button class="btn" onclick="requestChanges()">Incorporate Changes &amp; Regenerate</button>
+    <button class="btn btn-primary" onclick="confirmStage()">Approve &amp; Continue</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="confirm-overlay">
+  <div class="overlay-card">
+    <h2 id="overlay-title">Approve this stage?</h2>
+    <p id="overlay-message">This will save your feedback and move on to the next stage.</p>
+    <button class="btn" onclick="closeOverlay()">Cancel</button>
+    <button class="btn btn-primary" onclick="doConfirm()">Confirm</button>
+  </div>
+</div>
+
+<div class="overlay" id="changes-overlay">
+  <div class="overlay-card">
+    <h2>Regenerate this plan</h2>
+    <p>Your edits and comments will be incorporated into a new iteration.</p>
+    <button class="btn" onclick="closeOverlay()">Cancel</button>
+    <button class="btn btn-primary" onclick="doRequestChanges()">Send Feedback</button>
+  </div>
+</div>
+
+<script>
+const EMBEDDED_DATA = {"stage": "orient", "stage_label": "Orient: Maturity Snapshot", "stage_number": 0, "total_stages": 4, "data": {"agent_name": "HR Policy Bot", "session_date": "2026-05-04", "levels": [{"code": "L100", "name": "Initial", "label": "L100 Initial"}, {"code": "L200", "name": "Defined", "label": "L200 Defined"}, {"code": "L300", "name": "Systematic", "label": "L300 Systematic"}, {"code": "L400", "name": "Managed", "label": "L400 Managed"}, {"code": "L500", "name": "Optimized", "label": "L500 Optimized"}], "pillars": [{"id": 1, "name": "Define what \"good\" means", "baseline": "L100", "session_target": "L300", "next_session_target": null, "delivered_in_session": true, "mechanism": "Stage 0 (Discover) + Stage 1 (Plan)", "definitions": {"L100": "No written criteria. \"Good\" lives in the builder's head or stakeholder opinion.", "L200": "Initial criteria drafted, typically cover basic capabilities, not tied to eval metrics.", "L300": "Written acceptance criteria covered capabilities and output quality, tied to eval metrics with thresholds. Reviewed by human experts.", "L400": "Criteria embedded in the release workflow \u2014 ship decisions can't proceed without referencing them. Used consistently across versions.", "L500": "Criteria evolve based on production signals \u2014 user complaints, new failure modes, shifting context feed back into updates."}}, {"id": 2, "name": "Build your eval sets", "baseline": "L100", "session_target": "L300", "next_session_target": null, "delivered_in_session": true, "mechanism": "Stage 2 (Generate)", "definitions": {"L100": "No established eval set. Quality checks are informal \u2014 demos, spot-checks, occasional manual review.", "L200": "A handful of test cases, written once based on key scenarios and what came to mind. Used occasionally.", "L300": "Versioned eval set, coverage purposefully targeted at what matters \u2014 quality dimensions, edge cases, failure modes. Mapped to risk and value.", "L400": "Eval set maintained as an artifact \u2014 new cases added when production issues surface, scope expands, or new failure modes emerge.", "L500": "Eval set's coverage itself is measured \u2014 gaps hunted, production data mined for missing cases, false pass/fail rates tracked."}}, {"id": 3, "name": "Run evals across the lifecycle", "baseline": "L100", "session_target": "L200", "next_session_target": "L300", "delivered_in_session": false, "mechanism": "rerun-protocol-<agent>-<date>.docx (starter artifact)", "definitions": {"L100": "No routine evals. Quality is assessed through demos or occasional manual checks when something seems off.", "L200": "Evals run on changes. Results are logged.", "L300": "Offline evals run at defined trigger points (pre-deploy, post-change, regular cadence). Production quality tracked across multiple eval dimensions on a defined cadence.", "L400": "Evals embedded in deployment workflow \u2014 triggered by change events. Results block deploys or surface clear signals for review.", "L500": "Offline and production eval form a single closed loop. Production traces continuously sample into the offline eval set; offline regressions trigger production investigation."}}, {"id": 4, "name": "Improve and iterate", "baseline": "L100", "session_target": "L300", "next_session_target": null, "delivered_in_session": true, "mechanism": "Stage 4 (Interpret) \u2014 only if eval results are available", "definitions": {"L100": "Improvements are reactive \u2014 driven by noticed issues. Fixes are intuition-based; nothing confirms they worked or whether they introduced new problems.", "L200": "Failing cases are logged, triaged, and prioritized. Fixes tracked to closure.", "L300": "Failure categories analyzed for root cause. Fixes validated with before/after eval runs. Regression-proofing built in.", "L400": "Improvement prioritization is eval-driven \u2014 weakest dimensions addressed first. Fix velocity and fix quality both tracked.", "L500": "Improvements prioritized, validated, and measured entirely through eval evidence. When alternatives exist, better scores win. Gut feel no longer drives decisions."}}, {"id": 5, "name": "Handle changes with confidence", "baseline": "L100", "session_target": "L200", "next_session_target": "L300", "delivered_in_session": false, "mechanism": "baseline-comparison-<agent>-<date>.xlsx (starter artifact)", "definitions": {"L100": "Changes ship on spot-checks and intuition. Regressions surface via user complaints. All changes \u2014 prompts, tools, models, architecture \u2014 feel risky. Team delays or pushes through blindly.", "L200": "Before any change ships, eval set is rerun and compared to the prior baseline. Evidence, not intuition, decides whether to proceed.", "L300": "Each change type \u2014 prompt tweaks, tool swaps, model upgrades, architecture changes \u2014 triggers the right eval subset. Baseline comparison required \u2014 both to validate improvements and to catch regressions.", "L400": "Change workflows are eval-driven: proposed changes trigger the right eval protocol, and evidence decides \u2014 block regressions, accept improvements. No change ships unvalidated; good changes aren't held back by caution.", "L500": "Eval is used not just to validate changes, but to actively scan for them. Team runs new explorations through the eval set to find improvement opportunities."}}], "deliverable_phases": [{"phase": "Developing core eval sets", "items": ["Agent Vision (confirmed in conversation)", "Eval plan with acceptance criteria and Value \u00d7 Cost matrix (.docx)", "Test case CSVs importable into Copilot Studio (.csv per quality signal)"]}, {"phase": "Running evals", "items": ["rerun-protocol-<agent>-<date>.docx \u2014 when to re-run evals as the agent changes (Pillar 3 L200)", "baseline-comparison-<agent>-<date>.xlsx \u2014 workbook for comparing two eval runs (Pillar 5 L200)"]}, {"phase": "Interpreting results", "items": ["Triage report with root-cause analysis \u2014 if eval results are available"]}]}, "previous_feedback": {}};
+
+let edits = {};
+let saveTimeout = null;
+
+function init() {
+  const d = EMBEDDED_DATA;
+  // Stage title with italic serif for the stage name portion (e.g., "Stage 1: Plan")
+  const titleEl = document.getElementById("stage-title");
+  const label = d.stage_label || "Eval Dashboard";
+  // Split on the first colon for "Stage N:" prefix + italic name, if present
+  const colonIdx = label.indexOf(":");
+  if (colonIdx > 0) {
+    const prefix = label.slice(0, colonIdx).trim();
+    const name = label.slice(colonIdx + 1).trim();
+    titleEl.innerHTML = escapeHtml(prefix) + ' <em>' + escapeHtml(name) + '</em>';
+  } else {
+    titleEl.textContent = label;
+  }
+  document.getElementById("stage-badge").textContent = "§ " + (d.stage_number + 1) + " / " + d.total_stages;
+  const agentName = d.data.agent_name || "";
+  if (agentName) document.getElementById("agent-name").textContent = agentName;
+  document.title = (d.stage_label || "Eval Dashboard") + (agentName ? " — " + agentName : "") + " | Eval Dashboard";
+
+  const prev = d.previous_feedback;
+  if (prev && (prev.comments || (prev.edits && Object.keys(prev.edits).length > 0))) {
+    const banner = document.getElementById("previous-feedback-banner");
+    let html = '<div class="previous-feedback"><div class="previous-feedback-label">Previous Feedback</div>';
+    if (prev.comments) html += '<div>' + escapeHtml(prev.comments) + '</div>';
+    if (prev.edits && Object.keys(prev.edits).length > 0) html += '<div class="mt-1 text-sm text-muted">' + Object.keys(prev.edits).length + ' field edit(s) applied</div>';
+    html += '</div>';
+    banner.innerHTML = html;
+  }
+
+  const isOffline = window.location.protocol === "file:";
+  if (isOffline) {
+    try {
+      const key = "eval-dashboard-" + EMBEDDED_DATA.stage;
+      const saved = JSON.parse(localStorage.getItem(key) || "{}");
+      if (saved && saved.edits) edits = saved.edits;
+      if (saved && saved.comments) document.getElementById("general-comments").value = saved.comments;
+    } catch(e) {}
+    if (typeof stageInit === "function") stageInit();
+  } else {
+    fetch("/api/feedback").then(r => r.json()).then(saved => {
+      if (saved && saved.edits) edits = saved.edits;
+      if (saved && saved.comments) document.getElementById("general-comments").value = saved.comments;
+      if (typeof stageInit === "function") stageInit();
+    }).catch(() => { if (typeof stageInit === "function") stageInit(); });
+  }
+
+  document.getElementById("general-comments").addEventListener("input", scheduleSave);
+}
+
+function collectEdits() {
+  if (typeof stageCollectEdits === "function") edits = stageCollectEdits();
+  return edits;
+}
+
+function buildFeedback(status) {
+  return {
+    stage: EMBEDDED_DATA.stage,
+    status: status,
+    timestamp: new Date().toISOString(),
+    edits: collectEdits(),
+    comments: document.getElementById("general-comments").value.trim(),
+  };
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(saveFeedback, 800);
+}
+
+function saveFeedback() {
+  const payload = buildFeedback("in_progress");
+  const isOffline = window.location.protocol === "file:";
+  if (isOffline) {
+    try {
+      const key = "eval-dashboard-" + EMBEDDED_DATA.stage;
+      localStorage.setItem(key, JSON.stringify(payload));
+      document.getElementById("save-status").textContent = "Saved";
+    } catch(e) {
+      document.getElementById("save-status").textContent = "Auto-save unavailable";
+    }
+  } else {
+    fetch("/api/feedback", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
+      .then(() => { document.getElementById("save-status").textContent = "Saved"; })
+      .catch(() => { document.getElementById("save-status").textContent = "Will download on confirm"; });
+  }
+}
+
+function confirmStage() { document.getElementById("confirm-overlay").classList.add("visible"); }
+function requestChanges() { document.getElementById("changes-overlay").classList.add("visible"); }
+function closeOverlay() {
+  document.getElementById("confirm-overlay").classList.remove("visible");
+  document.getElementById("changes-overlay").classList.remove("visible");
+}
+function doConfirm() { submitFeedback("confirmed"); }
+function doRequestChanges() { submitFeedback("changes_requested"); }
+
+function submitFeedback(status) {
+  const feedback = buildFeedback(status);
+  const payload = JSON.stringify(feedback, null, 2);
+  const filename = (EMBEDDED_DATA.data && EMBEDDED_DATA.data.__feedback_filename__)
+    || EMBEDDED_DATA.stage + "-feedback.json";
+  const isOffline = window.location.protocol === "file:";
+
+  function downloadFeedback(msg) {
+    const blob = new Blob([payload], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+    try { localStorage.setItem("eval-dashboard-" + EMBEDDED_DATA.stage, payload); } catch(e) {}
+    closeOverlay();
+    showToast(msg);
+  }
+
+  if (isOffline) {
+    const msg = status === "confirmed"
+      ? "Confirmed — feedback file downloaded. Save it next to your data file."
+      : "Feedback downloaded — save it next to your data file for the next iteration.";
+    downloadFeedback(msg);
+  } else {
+    fetch("/api/feedback", { method: "POST", headers: {"Content-Type": "application/json"}, body: payload })
+      .then(() => { closeOverlay(); showToast(status === "confirmed" ? "Confirmed — you can close this tab." : "Feedback sent — waiting for next iteration…"); })
+      .catch(() => { downloadFeedback("Downloaded feedback file."); });
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("visible");
+  setTimeout(() => t.classList.remove("visible"), 4000);
+}
+
+function escapeHtml(text) { const d = document.createElement("div"); d.textContent = text; return d.innerHTML; }
+
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  if (el.dataset.field) {
+    scheduleSave();
+    if (el.classList) {
+      const orig = el.dataset.original || "";
+      if (el.value !== orig) el.classList.add("edited");
+      else el.classList.remove("edited");
+    }
+  }
+});
+
+// Tooltip hover — appends to body to avoid overflow clipping
+(function() {
+  let activeBubble = null;
+  let activeEl = null;
+  document.addEventListener("mouseenter", function(e) {
+    const el = e.target.closest("[data-tooltip]");
+    if (!el) return;
+    if (activeBubble) { activeBubble.remove(); activeBubble = null; }
+    const rect = el.getBoundingClientRect();
+    const bubble = document.createElement("div");
+    bubble.className = "tooltip-bubble";
+    bubble.textContent = el.dataset.tooltip;
+    document.body.appendChild(bubble);
+    bubble.style.left = rect.left + "px";
+    bubble.style.top = (rect.bottom + 8) + "px";
+    requestAnimationFrame(() => {
+      const bRect = bubble.getBoundingClientRect();
+      if (bRect.right > window.innerWidth - 12) {
+        bubble.style.left = (window.innerWidth - bRect.width - 12) + "px";
+      }
+      bubble.classList.add("visible");
+    });
+    activeBubble = bubble;
+    activeEl = el;
+  }, true);
+  document.addEventListener("mouseleave", function(e) {
+    const el = e.target.closest("[data-tooltip]");
+    if (!el || el !== activeEl || !activeBubble) return;
+    activeBubble.classList.remove("visible");
+    const b = activeBubble;
+    activeBubble = null;
+    activeEl = null;
+    setTimeout(() => b.remove(), 150);
+  }, true);
+})();
+
+window.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>

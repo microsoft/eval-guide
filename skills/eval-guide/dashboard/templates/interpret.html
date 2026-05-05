@@ -384,8 +384,11 @@ function onJudgementChange(select) {
 
   const d = EMBEDDED_DATA.data;
   renderFailures((d.failures || []).map(normalizeFailure));
-  scheduleSave();
+  // Set human_disagrees BEFORE scheduleSave so the saved snapshot includes it.
+  // Reverse order would save first (without disagrees) then write to a stale
+  // edits object that gets overwritten on the next collectEdits() call.
   edits["human_disagrees"] = JSON.stringify(humanDisagrees);
+  scheduleSave();
 }
 
 function escapeAttr(text) {
@@ -490,6 +493,11 @@ function stageCollectEdits() {
       result[el.dataset.field] = el.value;
     }
   });
+  // Preserve edits set programmatically (e.g., human_disagrees populated in
+  // onJudgementChange). Without this merge, the next collectEdits() call
+  // overwrites those keys with a fresh object that has only [data-field]
+  // divergences — silently losing Agree/Disagree decisions before submit.
+  Object.assign(result, edits);
   return result;
 }
 </script>
