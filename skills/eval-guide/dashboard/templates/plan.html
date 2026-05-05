@@ -8,7 +8,7 @@
   line-height: 1.55;
   margin-bottom: 1rem;
   padding: 0.8rem 1rem;
-  background: var(--blue-bg);
+  background: var(--surface-warm);
   border-radius: var(--radius);
   border-left: 3px solid var(--accent);
 }
@@ -26,10 +26,10 @@
   line-height: 1.4;
 }
 .matrix-legend-item b { display: block; margin-bottom: 0.15rem; }
-.legend-critical   { background: var(--red-bg);    color: var(--red); }
-.legend-valuable       { background: var(--blue-bg);   color: var(--blue);   border: 1px solid var(--border); }
-.legend-guardrails { background: var(--yellow-bg); color: #996600; }
-.legend-deprioritize { background: var(--bg);      color: var(--text-muted); border: 1px solid var(--border); }
+.legend-critical     { background: var(--critical-wash);   color: var(--red); }
+.legend-valuable     { background: var(--green-wash);      color: var(--green); }
+.legend-guardrails   { background: var(--guardrails-wash); color: #7a5a16; }
+.legend-deprioritize { background: var(--valuable-wash);   color: var(--valuable); }
 
 /* Matrix grid: 2x2 with unambiguous per-row / per-column axis labels.
    Outer grid: [y-label col | left quadrant col | right quadrant col]
@@ -80,34 +80,39 @@
 .condition-label-pass { color: var(--green); }
 .condition-label-fail { color: var(--red); }
 .condition-row textarea { flex: 1; min-height: 2.5em; }
+/* Whole-quadrant color tint (body wash) — set per data-quadrant attribute.
+   Header sits on top with a stronger band of the same color. */
 .quadrant {
   min-height: 160px;
-  background: var(--bg);
-  border: 2px dashed var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: 0.6rem;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
   display: flex;
   flex-direction: column;
 }
+.quadrant[data-quadrant="critical"]     { background: var(--critical-wash);   border-color: var(--red); }
+.quadrant[data-quadrant="valuable"]     { background: var(--green-wash);      border-color: var(--green); }
+.quadrant[data-quadrant="guardrails"]   { background: var(--guardrails-wash); border-color: var(--guardrails); }
+.quadrant[data-quadrant="deprioritize"] { background: var(--valuable-wash);   border-color: var(--valuable); }
 .quadrant.drag-over {
-  border-color: var(--accent);
-  background: var(--blue-bg);
+  box-shadow: 0 0 0 3px var(--accent-wash);
 }
 .quadrant-header {
   font-size: 0.85rem;
   font-weight: 600;
-  margin-bottom: 0.5rem;
-  padding: 0.4rem 0.6rem;
-  border-radius: 3px;
+  margin: -0.6rem -0.6rem 0.5rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius) var(--radius) 0 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  letter-spacing: 0.01em;
 }
-.quadrant-header-critical   { background: var(--red-bg);    color: var(--red); }
-.quadrant-header-valuable   { background: var(--blue-bg);   color: var(--blue); }
-.quadrant-header-guardrails { background: var(--yellow-bg); color: #996600; }
-.quadrant-header-deprioritize { background: var(--bg);      color: var(--text-muted); border: 1px solid var(--border); }
+.quadrant-header-critical     { background: var(--red);        color: #fff; }
+.quadrant-header-valuable     { background: var(--green);      color: #fff; }
+.quadrant-header-guardrails   { background: var(--guardrails); color: #fff; }
+.quadrant-header-deprioritize { background: var(--valuable);   color: #fff; }
 .quadrant-subtitle {
   font-size: 0.7rem;
   font-weight: 400;
@@ -164,10 +169,10 @@
   white-space: nowrap;
   text-transform: capitalize;
 }
-.q-badge-critical   { background: var(--red-bg);    color: var(--red); }
-.q-badge-valuable       { background: var(--blue-bg);   color: var(--blue); }
-.q-badge-guardrails { background: var(--yellow-bg); color: #996600; }
-.q-badge-deprioritize { background: var(--bg);      color: var(--text-muted); border: 1px solid var(--border); }
+.q-badge-critical     { background: var(--critical-wash);   color: var(--red); }
+.q-badge-valuable     { background: var(--green-wash);      color: var(--green); }
+.q-badge-guardrails   { background: var(--guardrails-wash); color: #7a5a16; }
+.q-badge-deprioritize { background: var(--valuable-wash);   color: var(--valuable); }
 
 /* Quality dimension grouping — horizontal chips */
 .dim-group { margin-bottom: 0.8rem; }
@@ -232,10 +237,10 @@
   border-radius: 50%;
   flex-shrink: 0;
 }
-.chip-dot-critical   { background: var(--red); }
-.chip-dot-valuable       { background: var(--blue); }
-.chip-dot-guardrails { background: var(--yellow); }
-.chip-dot-deprioritize { background: var(--text-muted); }
+.chip-dot-critical     { background: var(--red); }
+.chip-dot-valuable     { background: var(--green); }
+.chip-dot-guardrails   { background: var(--guardrails); }
+.chip-dot-deprioritize { background: var(--valuable); }
 .dim-chip .chip-delete {
   background: none; border: none; cursor: pointer;
   color: var(--text-muted); font-size: 0.65rem; padding: 0 0.15rem;
@@ -368,19 +373,18 @@
   </div>
 </div>
 
-<!-- Section 2: Acceptance Criteria & Conditions -->
+<!-- Section 2: Acceptance Criteria & Pass/Fail Conditions -->
 <div class="section">
   <div class="section-header flex-between">
-    <span data-tooltip="Every acceptance criterion starts with 'The agent should…' (or 'should NOT…'). Pass/fail conditions must be specific enough that two reviewers independently agree on outcomes.">Acceptance Criteria & Conditions</span>
+    <span data-tooltip="Every acceptance criterion starts with 'The agent should…' (or 'should NOT…'). Pass/fail conditions must be specific enough that two reviewers independently agree on outcomes.">Acceptance Criteria & Pass/Fail Conditions</span>
     <span class="text-sm text-muted" id="criterion-count"></span>
   </div>
   <div class="section-body" style="padding:0;overflow-x:auto;">
     <table id="criteria-table">
       <thead>
         <tr>
-          <th style="width:90px">Quadrant</th>
-          <th style="width:28%">Statement (The agent should...)</th>
-          <th style="width:165px"><span data-tooltip="What the test case must actually verify. This determines the test method automatically: Factual content → Compare meaning. Semantic match → Compare meaning. Response quality → General quality. Custom rubric → Custom grader. Topic / tool invocation → Capability use. Exact string → Exact match.">What to verify</span></th>
+          <th style="width:165px">Quadrant</th>
+          <th style="width:32%">Statement (The agent should...)</th>
           <th>Pass / Fail conditions</th>
           <th style="width:40px"></th>
         </tr>
@@ -627,7 +631,6 @@ function renderCriteriaTable() {
         'data-criterion-id="' + c.id + '" data-prop="statement" ' +
         'oninput="onCriterionEdit(this);scheduleSave()" style="font-weight:500;">' +
         escapeHtml(c.statement) + '</textarea></td>' +
-      '<td>' + buildSignalTypeSelect(c) + '</td>' +
       '<td class="editable">' +
         '<div class="condition-row">' +
           '<span class="condition-label condition-label-pass">Pass =</span>' +
