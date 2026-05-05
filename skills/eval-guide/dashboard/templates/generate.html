@@ -1,248 +1,507 @@
-<!-- Stage 2: Generate — Test Cases Review (Editable, linear-by-quadrant) -->
+<!-- Stage 2: Generate — Test Cases Review (editorial card layout) -->
 
 <style>
-/* ── Eval Sets Overview (top of page) ── */
-.eval-overview .priority-cell { white-space: nowrap; }
-.eval-overview .signal-link {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 600;
+/* ════════════════════════════════════════════════════════════════
+   STAGE 2 LAYOUT — keep existing color palette, restructure form
+   The page reads top-down as: overview → signal sections →
+   criterion cards → test cases. Each criterion is one cohesive card
+   so meta and content stop feeling like loose horizontal slabs.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Eval Sets Overview ─────────────────────────────── */
+
+.eval-overview table {
+  font-size: 0.92rem;
 }
-.eval-overview .signal-link:hover { text-decoration: underline; }
+.eval-overview th {
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  padding: 0.7rem 1rem;
+}
+.eval-overview td {
+  padding: 0.85rem 1rem;
+  vertical-align: middle;
+}
+.eval-overview .signal-link {
+  font-family: var(--serif);
+  font-variation-settings: "opsz" 18;
+  font-weight: 500;
+  font-size: 1.02rem;
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: -0.005em;
+  border-bottom: 1px dotted var(--ink-faint);
+  padding-bottom: 1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.eval-overview .signal-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.eval-overview .case-count-num {
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--ink);
+}
 .eval-overview .method-pill {
   display: inline-block;
-  padding: 0.05rem 0.4rem;
-  margin: 0.1rem 0.2rem 0.1rem 0;
-  border-radius: 10px;
-  font-size: 0.7rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.eval-overview .signal-meta {
+  padding: 0.18rem 0.55rem;
+  margin: 0.15rem 0.25rem 0.15rem 0;
+  border-radius: 999px;
   font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-top: 0.15rem;
+  font-family: var(--mono);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  letter-spacing: 0;
+  white-space: nowrap;
 }
-.eval-overview td { vertical-align: top; }
+.eval-overview .priority-cell { white-space: nowrap; text-align: right; }
 
-/* ── Per-signal section heading (linear layout, no tabs) ── */
+/* ── Per-signal section: chapter break ──────────────── */
+
 .signal-section {
-  margin-top: 1.4rem;
-  border-top: 3px solid var(--rule);
-  padding-top: 0.4rem;
+  margin-top: 2.2rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--rule);
+  position: relative;
 }
-.signal-section.q-section-critical { border-top-color: var(--red); }
-.signal-section.q-section-valuable { border-top-color: var(--blue); }
-.signal-section.q-section-guardrails { border-top-color: var(--yellow); }
-.signal-section.q-section-deprioritize { border-top-color: var(--text-muted); }
-.signal-section.q-section-mixed { border-top-color: var(--text-muted); }
+.signal-section:first-of-type { margin-top: 1.4rem; }
+.signal-section::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 4rem;
+  height: 3px;
+  background: var(--ink-muted);
+}
+.signal-section.q-section-critical::before     { background: var(--critical); }
+.signal-section.q-section-valuable::before     { background: var(--valuable); }
+.signal-section.q-section-guardrails::before   { background: var(--guardrails); }
+.signal-section.q-section-deprioritize::before { background: var(--deprioritize); }
+.signal-section.q-section-mixed::before        { background: var(--ink-faint); }
+
+.signal-headline {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.7rem 1rem;
+  margin-bottom: 0.3rem;
+}
 .signal-title {
-  font-family: var(--serif, var(--font));
-  font-size: 1.15rem;
-  font-weight: 700;
-  margin-bottom: 0.15rem;
-  color: var(--text);
+  font-family: var(--serif);
+  font-variation-settings: "opsz" 36, "SOFT" 30;
+  font-size: 1.55rem;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  line-height: 1.12;
 }
-.signal-title .q-badge-sm { margin-left: 0.5rem; vertical-align: middle; }
-.signal-subtitle {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin-bottom: 0.4rem;
+.signal-meta {
+  font-family: var(--serif);
+  font-style: italic;
+  font-variation-settings: "opsz" 14;
+  font-size: 0.92rem;
+  color: var(--ink-muted);
+  letter-spacing: 0;
+}
+.signal-meta .meta-sep {
+  display: inline-block;
+  width: 0.45rem;
+  text-align: center;
+  color: var(--ink-faint);
 }
 
-/* ── Dimension-level method bar (still editable) ── */
+/* ── Dimension-level method bar — annotation strip ──── */
+
 .dim-methods-bar {
-  padding: 0.5rem 1rem;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  margin-bottom: 0.6rem;
+  margin: 0.6rem 0 1.4rem;
+  padding: 0.5rem 0.9rem;
+  background: transparent;
+  border-left: 2px solid var(--accent);
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
   font-size: 0.8rem;
 }
-.dim-methods-bar label { font-weight: 600; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.dim-methods-bar .bar-label {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-muted);
+  margin-right: 0.3rem;
+}
 .method-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.15rem 0.3rem 0.15rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.72rem;
+  gap: 0.35rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-family: var(--mono);
   background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  transition: border-color 0.15s, background 0.15s;
 }
+.method-chip:hover { border-color: var(--ink-soft); }
 .method-chip .chip-remove {
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--ink-faint);
   cursor: pointer;
-  padding: 0 0.2rem;
+  padding: 0 0.1rem;
   font-size: 0.85rem;
   line-height: 1;
   opacity: 1;
   transition: color 0.15s;
 }
-.method-chip .chip-remove:hover { color: var(--red); }
+.method-chip .chip-remove:hover { color: var(--critical); }
 .add-method-select {
-  font-family: var(--font);
-  font-size: 0.72rem;
-  padding: 0.15rem 0.4rem;
-  border: 1px dashed var(--border);
-  border-radius: 12px;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  padding: 0.22rem 0.55rem;
+  border: 1px dashed var(--ink-faint);
+  border-radius: 999px;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--ink-muted);
   cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
-.add-method-select:hover { border-color: var(--accent); color: var(--accent); }
+.add-method-select:hover { border-color: var(--accent); color: var(--accent); border-style: solid; }
 
-/* ── Criterion group header ── */
-.criterion-group-header {
-  background: var(--bg);
-  padding: 0.5rem 0.7rem;
-  border-bottom: 1px solid var(--border);
+/* ── Criterion card: cohesive unit ──────────────────── */
+
+.criterion-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.1rem;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: box-shadow 0.18s, border-color 0.18s;
+}
+.criterion-card:hover { box-shadow: var(--shadow-lift); }
+.criterion-card.q-card-critical     { border-top: 2px solid var(--critical); }
+.criterion-card.q-card-valuable     { border-top: 2px solid var(--valuable); }
+.criterion-card.q-card-guardrails   { border-top: 2px solid var(--guardrails); }
+.criterion-card.q-card-deprioritize { border-top: 2px solid var(--deprioritize); }
+
+/* The card's interior is one padded canvas, not horizontal bands */
+.criterion-card-body {
+  padding: 1.05rem 1.2rem 0.4rem;
+}
+
+.criterion-statement {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-family: var(--serif);
+  font-variation-settings: "opsz" 18;
+  font-size: 1.04rem;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+  margin-bottom: 0.6rem;
+}
+.criterion-statement .q-tag {
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+/* Pass/fail conditions: side-by-side, color-keyed left rules */
+.conditions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+  margin-bottom: 0.85rem;
+}
+.condition-block {
+  padding: 0.5rem 0.8rem;
+  background: var(--surface-warm);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--ink);
+  position: relative;
+}
+.condition-block.pass { border-left: 3px solid var(--green); }
+.condition-block.fail { border-left: 3px solid var(--critical); }
+.condition-block .condition-label {
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 0.2rem;
+  display: block;
+}
+.condition-block.pass .condition-label { color: var(--green); }
+.condition-block.fail .condition-label { color: var(--critical); }
+@media (max-width: 720px) {
+  .conditions-grid { grid-template-columns: 1fr; }
+}
+
+/* Meta row: method dropdown + case count */
+.criterion-meta {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.55rem 0;
+  border-top: 1px dashed var(--rule-fine);
+  margin-bottom: 0.85rem;
+  font-size: 0.78rem;
+}
+.criterion-meta .meta-left {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
   flex-wrap: wrap;
 }
-.criterion-group-header .criterion-statement {
-  font-weight: 600;
-  font-size: 0.82rem;
-  color: var(--text);
-  flex: 1 1 60%;
-}
-.criterion-group-header .case-count {
-  font-size: 0.75rem;
-  color: var(--text-muted);
+.criterion-meta .meta-label {
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-muted);
 }
 .criterion-method-select {
-  font-family: var(--font);
-  font-size: 0.72rem;
-  padding: 0.1rem 0.3rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
-  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  padding: 0.25rem 0.55rem;
+  padding-right: 1.4rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
   cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
-.criterion-method-select:hover,
+.criterion-method-select:hover { border-color: var(--ink-soft); background: #fff; }
 .criterion-method-select:focus {
   border-color: var(--accent);
   outline: none;
+  box-shadow: 0 0 0 3px var(--accent-wash);
+  background: #fff;
 }
 .criterion-method-select.edited {
-  background: var(--blue-bg);
-  border-color: var(--blue);
+  background: var(--accent-wash);
+  border-color: var(--accent);
 }
-.q-badge-sm {
-  display: inline-block;
-  padding: 0.05rem 0.4rem;
-  border-radius: 3px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  white-space: nowrap;
-  text-transform: capitalize;
+.criterion-meta .case-count {
+  font-family: var(--serif);
+  font-style: italic;
+  font-variation-settings: "opsz" 14;
+  color: var(--ink-muted);
 }
-.q-badge-sm-critical   { background: var(--red-bg); color: var(--red); }
-.q-badge-sm-valuable       { background: var(--blue-bg); color: var(--blue); }
-.q-badge-sm-guardrails { background: var(--yellow-bg); color: #996600; }
-.q-badge-sm-deprioritize { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
-.q-badge-sm-mixed { background: var(--bg); color: var(--text-muted); border: 1px dashed var(--border); }
-
-/* ── Pass/Fail conditions row ── */
-.conditions-row {
-  background: var(--blue-bg);
-  border-bottom: 1px solid var(--border);
-  padding: 0.4rem 0.7rem;
-  font-size: 0.78rem;
-  color: var(--text);
-  line-height: 1.45;
-}
-.conditions-row .c-label {
-  font-weight: 600;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--accent);
-  margin-bottom: 0.15rem;
-}
-.conditions-row .c-pass { color: var(--green); }
-.conditions-row .c-fail { color: var(--red); }
-
-/* ── VERIFY highlight ── */
-.verify-highlight {
-  background: #fff3cd;
-  border: 1px solid #ffc107;
-  border-radius: 2px;
-  padding: 0 0.2rem;
+.criterion-meta .case-count strong {
+  font-style: normal;
+  font-family: var(--mono);
+  color: var(--ink);
   font-weight: 500;
-  color: #856404;
-  cursor: help;
 }
 
-/* ── Reference-free note ── */
+/* ── Reference-free note + Custom rubric block ──────── */
+
 .reference-note {
-  padding: 0.5rem 0.7rem;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  font-size: 0.77rem;
-  color: var(--text-muted);
-  line-height: 1.45;
+  padding: 0.7rem 0.95rem;
+  background: var(--surface-warm);
+  border-radius: var(--radius);
+  font-family: var(--serif);
+  font-style: italic;
+  font-variation-settings: "opsz" 12;
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  line-height: 1.5;
+  margin-bottom: 0.85rem;
 }
-.reference-note strong { color: var(--accent); }
-.reference-note em { font-style: italic; font-weight: 500; }
-
-/* ── Custom-rubric block (when method = Custom) ── */
-.rubric-block {
-  padding: 0.5rem 0.7rem;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-}
-.rubric-block label {
-  display: block;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.reference-note strong {
+  font-style: normal;
+  font-family: var(--sans);
   font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--accent);
-  margin-bottom: 0.3rem;
+  display: inline-block;
+  margin-right: 0.3rem;
+}
+.reference-note em {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.rubric-block {
+  padding: 0.85rem 0.95rem 0.95rem;
+  background: var(--accent-wash);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+.rubric-block .rubric-label {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 0.45rem;
+}
+.rubric-block .rubric-help {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 0.5rem;
 }
 .rubric-textarea {
   width: 100%;
-  min-height: 4.2rem;
-  font-family: var(--font);
+  min-height: 5rem;
+  font-family: var(--mono);
   font-size: 0.82rem;
-  line-height: 1.45;
-  padding: 0.45rem 0.55rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
-  color: var(--text);
+  line-height: 1.55;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
   resize: vertical;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
-.rubric-textarea.edited { background: var(--blue-bg); border-color: var(--blue); }
-.rubric-textarea:focus { outline: none; border-color: var(--accent); }
+.rubric-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+.rubric-textarea.edited { background: #fff; border-color: var(--accent); }
+
+/* ── Test cases area: nested but visually contained ─── */
+
+.cases-block {
+  margin: 0 -1.2rem;
+  padding: 0.9rem 1.2rem 0.6rem;
+  background: var(--paper);
+  border-top: 1px solid var(--rule-fine);
+}
+.cases-block .cases-label {
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-muted);
+  margin-bottom: 0.55rem;
+}
+
+.cases-block table {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+  font-size: 0.86rem;
+}
+.cases-block th {
+  background: var(--paper-darker);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  padding: 0.5rem 0.7rem;
+}
+.cases-block td {
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--rule-fine);
+}
+.cases-block tr:last-child td { border-bottom: none; }
+.cases-block .row-num {
+  font-family: var(--mono);
+  color: var(--ink-faint);
+  font-size: 0.78rem;
+  text-align: right;
+  vertical-align: top;
+  padding-top: 0.85rem;
+}
+.cases-block td.editable textarea {
+  background: transparent;
+  font-size: 0.88rem;
+  padding: 0.35rem 0.45rem;
+}
+.cases-block td.editable textarea:focus {
+  background: #fff;
+}
+.cases-block .row-actions {
+  text-align: center;
+  vertical-align: top;
+  padding-top: 0.7rem;
+}
+.cases-block .btn-add {
+  margin-top: 0.55rem;
+  margin-bottom: 0;
+  font-size: 0.8rem;
+}
+
+/* ── VERIFY highlight (kept) ─────────────────────────── */
+
+.verify-highlight {
+  background: var(--guardrails-wash);
+  border: 1px solid var(--guardrails);
+  border-radius: 2px;
+  padding: 0 0.25rem;
+  font-weight: 500;
+  color: #6e5a1f;
+  cursor: help;
+  font-style: normal;
+}
+
+/* ── Quadrant tag (used inline in statement) ─────────── */
+
+.q-tag {
+  display: inline-block;
+  padding: 0.12rem 0.55rem;
+  border-radius: 2px;
+  font-family: var(--sans);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.q-tag-critical     { background: var(--critical-wash); color: var(--critical); }
+.q-tag-valuable     { background: var(--valuable-wash); color: var(--valuable); }
+.q-tag-guardrails   { background: var(--guardrails-wash); color: #7a5a16; }
+.q-tag-deprioritize { background: var(--deprioritize-wash); color: var(--deprioritize); }
+.q-tag-mixed        { background: var(--surface-warm); color: var(--ink-muted); border: 1px dashed var(--rule); }
+
+/* Smaller variant used in the overview table */
+.q-tag-sm { font-size: 0.58rem; padding: 0.1rem 0.45rem; }
 </style>
 
-<!-- ── Eval Sets Overview (top, live-updated) ── -->
+<!-- ── Eval Sets Overview (top, live-updated) ──────────────────── -->
 <div class="section eval-overview">
   <div class="section-header flex-between">
     <span data-tooltip="Live overview of every quality signal you'll generate test cases for. Edits below (adding cases, changing methods) update this table in real time. Use it to verify coverage before approving.">Eval Sets Overview</span>
     <span class="text-sm text-muted" id="total-count"></span>
   </div>
-  <div class="section-body">
+  <div class="section-body" style="padding:0;">
     <table>
       <thead>
         <tr>
           <th>Quality Signal</th>
-          <th style="width:9rem"># Test Cases</th>
+          <th style="width:6.5rem; text-align:right;">Test Cases</th>
           <th>Test Methods</th>
-          <th style="width:9rem">Priority Level</th>
+          <th style="width:11rem; text-align:right;">Priority Level</th>
         </tr>
       </thead>
       <tbody id="overview-tbody"></tbody>
@@ -261,12 +520,12 @@ const QUADRANT_LABELS = {
   deprioritize: "Low Value · Low Risk",
   mixed: "Mixed",
 };
-const Q_BADGE_CSS = {
-  critical: "q-badge-sm-critical",
-  valuable: "q-badge-sm-valuable",
-  guardrails: "q-badge-sm-guardrails",
-  deprioritize: "q-badge-sm-deprioritize",
-  mixed: "q-badge-sm-mixed",
+const Q_TAG_CSS = {
+  critical: "q-tag-critical",
+  valuable: "q-tag-valuable",
+  guardrails: "q-tag-guardrails",
+  deprioritize: "q-tag-deprioritize",
+  mixed: "q-tag-mixed",
 };
 const Q_SECTION_CSS = {
   critical: "q-section-critical",
@@ -274,6 +533,12 @@ const Q_SECTION_CSS = {
   guardrails: "q-section-guardrails",
   deprioritize: "q-section-deprioritize",
   mixed: "q-section-mixed",
+};
+const Q_CARD_CSS = {
+  critical: "q-card-critical",
+  valuable: "q-card-valuable",
+  guardrails: "q-card-guardrails",
+  deprioritize: "q-card-deprioritize",
 };
 
 // Section ordering: High Value · High Risk first, Low Value · High Risk,
@@ -359,9 +624,7 @@ function stageInit() {
   renderAllSections();
   updateOverview();
 
-  // Replay any persisted edits onto inputs (data-field elements). Method-select
-  // re-application happens in buildSignalSectionHTML via the `c.method` value
-  // and the .edited class set when method !== _originalMethod.
+  // Replay any persisted edits onto inputs (data-field elements).
   if (edits && Object.keys(edits).length > 0) {
     document.querySelectorAll("[data-field]").forEach(el => {
       if (edits[el.dataset.field] !== undefined && edits[el.dataset.field] !== "__DELETE__") {
@@ -384,16 +647,12 @@ function getDominantQuadrant(ts) {
   const entries = Object.entries(weighted);
   if (entries.length === 0) return "valuable";
   if (entries.length === 1) return entries[0][0];
-  // Sort by (case count × quadrant weight) so High Value · High Risk wins ties when counts are similar
   entries.sort((a, b) => (b[1] * QUADRANT_WEIGHT[b[0]]) - (a[1] * QUADRANT_WEIGHT[a[0]]));
   const total = entries.reduce((s, e) => s + e[1], 0);
-  // > 60% of cases → name the quadrant; otherwise "mixed"
   return entries[0][1] / total > 0.6 ? entries[0][0] : "mixed";
 }
 
 function getDisplayOrder() {
-  // Returns array of original testSet indices sorted by dominant quadrant.
-  // Index identity is preserved so field paths (`test_sets[i]…`) remain stable.
   return testSets
     .map((ts, i) => ({ i, q: getDominantQuadrant(ts) }))
     .sort((a, b) => {
@@ -412,7 +671,7 @@ function renderAllSections() {
   container.innerHTML = "";
   getDisplayOrder().forEach(tsIdx => {
     const ts = testSets[tsIdx];
-    const section = document.createElement("div");
+    const section = document.createElement("section");
     const quadrant = getDominantQuadrant(ts);
     section.className = "signal-section " + (Q_SECTION_CSS[quadrant] || "");
     section.id = "signal-section-" + tsIdx;
@@ -425,20 +684,22 @@ function buildSignalSectionHTML(ts, tsIdx, quadrant) {
   const prefix = "test_sets[" + tsIdx + "]";
   const totalCases = ts.criteria.reduce((s, c) => s + c.cases.filter(cs => !cs._deleted).length, 0);
   const dimensionName = ts.quality_dimension || ts.quality_signal || "";
-  const sectionId = "signal-anchor-" + tsIdx;
+  const anchorId = "signal-anchor-" + tsIdx;
 
-  let html = '<div id="' + sectionId + '" class="signal-title">' +
-    escapeHtml(dimensionName) +
-    '<span class="q-badge-sm ' + (Q_BADGE_CSS[quadrant] || "") + '">' +
-    (QUADRANT_LABELS[quadrant] || quadrant) + '</span>' +
+  // Headline — title + italic meta + small quadrant tag
+  let html = '<div id="' + anchorId + '" class="signal-headline">' +
+    '<h2 class="signal-title">' + escapeHtml(dimensionName) + '</h2>' +
+    '<span class="q-tag ' + (Q_TAG_CSS[quadrant] || "") + '">' + (QUADRANT_LABELS[quadrant] || quadrant) + '</span>' +
+    '<span class="signal-meta">' +
+      totalCases + ' test ' + (totalCases === 1 ? 'case' : 'cases') +
+      '<span class="meta-sep">·</span>' +
+      ts.criteria.length + ' ' + (ts.criteria.length === 1 ? 'criterion' : 'criteria') +
+    '</span>' +
     '</div>';
 
-  html += '<div class="signal-subtitle">' +
-    totalCases + ' test cases across ' + ts.criteria.length + ' criteria' +
-    '</div>';
-
-  // Dimension-level method bar (editable union — covers methods not tied to a single criterion)
-  html += '<div class="dim-methods-bar" id="dim-methods-bar-' + tsIdx + '"><label>Test Methods to Use:</label>';
+  // Dimension-level method bar — annotated strip, not a banner
+  html += '<div class="dim-methods-bar" id="dim-methods-bar-' + tsIdx + '">' +
+    '<span class="bar-label">Test Methods to Use</span>';
   ts.methods.forEach(m => {
     html += '<span class="method-chip">' + escapeHtml(m) +
       '<button class="chip-remove" onclick="removeMethod(' + tsIdx + ',' + JSON.stringify(m) + ')" title="Remove">&#x2715;</button>' +
@@ -453,17 +714,57 @@ function buildSignalSectionHTML(ts, tsIdx, quadrant) {
   }
   html += '</div>';
 
-  // Criteria
+  // Criteria — each as a self-contained card
   ts.criteria.forEach((c, cIdx) => {
-    const cPrefix = prefix + ".criteria[" + cIdx + "]";
-    const activeCases = c.cases.filter(cs => !cs._deleted);
-    const methodEdited = c.method !== c._originalMethod;
+    html += buildCriterionCardHTML(c, tsIdx, cIdx, prefix);
+  });
 
-    // Criterion header — quadrant badge, statement, case count, EDITABLE method dropdown
-    html += '<div class="criterion-group-header">' +
-      '<span class="q-badge-sm ' + (Q_BADGE_CSS[c.quadrant] || "") + '">' + (QUADRANT_LABELS[c.quadrant] || "") + '</span>' +
-      '<span class="criterion-statement">' + escapeHtml(c.statement || "") + '</span>' +
-      '<span class="case-count">' + activeCases.length + ' cases</span>' +
+  return html;
+}
+
+function buildCriterionCardHTML(c, tsIdx, cIdx, prefix) {
+  const cPrefix = prefix + ".criteria[" + cIdx + "]";
+  const activeCases = c.cases.filter(cs => !cs._deleted);
+  const methodEdited = c.method !== c._originalMethod;
+  const needsReference = !REFERENCE_FREE_METHODS.includes(c.method);
+  const isKeywordMatch = c.method === "Keyword match";
+  const isCustom = c.method === "Custom";
+
+  let html = '<article class="criterion-card ' + (Q_CARD_CSS[c.quadrant] || "") + '">' +
+    '<div class="criterion-card-body">';
+
+  // Statement (lead, with quadrant tag inline)
+  html += '<div class="criterion-statement">' +
+    '<span class="q-tag q-tag-sm ' + (Q_TAG_CSS[c.quadrant] || "") + '">' + (QUADRANT_LABELS[c.quadrant] || "") + '</span>' +
+    '<span>' + escapeHtml(c.statement || "") + '</span>' +
+    '</div>';
+
+  // Pass / Fail conditions — side-by-side
+  if (c.pass_condition || c.fail_condition) {
+    html += '<div class="conditions-grid">';
+    if (c.pass_condition) {
+      html += '<div class="condition-block pass">' +
+        '<span class="condition-label">Pass =</span>' +
+        escapeHtml(c.pass_condition) +
+        '</div>';
+    } else {
+      html += '<div></div>';
+    }
+    if (c.fail_condition) {
+      html += '<div class="condition-block fail">' +
+        '<span class="condition-label">Fail =</span>' +
+        escapeHtml(c.fail_condition) +
+        '</div>';
+    } else {
+      html += '<div></div>';
+    }
+    html += '</div>';
+  }
+
+  // Meta row: method dropdown + case count
+  html += '<div class="criterion-meta">' +
+    '<div class="meta-left">' +
+      '<span class="meta-label">Method</span>' +
       '<select class="criterion-method-select' + (methodEdited ? " edited" : "") + '" ' +
         'data-field="' + cPrefix + '.method" data-original="' + escapeAttr(c._originalMethod) + '" ' +
         'onchange="changeCriterionMethod(' + tsIdx + ',' + cIdx + ',this.value)">' +
@@ -472,87 +773,77 @@ function buildSignalSectionHTML(ts, tsIdx, quadrant) {
         escapeHtml(m) + '</option>'
       ).join("") +
       '</select>' +
+    '</div>' +
+    '<div class="case-count"><strong>' + activeCases.length + '</strong> ' +
+      (activeCases.length === 1 ? 'test case' : 'test cases') +
+    '</div>' +
+    '</div>';
+
+  // Custom rubric block (Custom method only)
+  if (isCustom) {
+    const rubricFp = cPrefix + ".custom_rubric";
+    const persistedEdit = (typeof edits === "object" && edits && edits[rubricFp] !== undefined && edits[rubricFp] !== "__DELETE__")
+      ? edits[rubricFp] : null;
+    const rubricValue = persistedEdit !== null ? persistedEdit : draftCustomRubric(c);
+    const rubricEdited = persistedEdit !== null || (!!c.custom_rubric && c.custom_rubric !== "");
+    html += '<div class="rubric-block">' +
+      '<span class="rubric-label">Custom rubric (LLM-judged)' +
+        '<span class="rubric-help">— starter draft, edit for your domain</span>' +
+      '</span>' +
+      '<textarea class="rubric-textarea' + (rubricEdited ? ' edited' : '') + '" ' +
+      'data-field="' + rubricFp + '" data-original="" ' +
+      'oninput="scheduleSave()">' + escapeHtml(rubricValue) + '</textarea>' +
       '</div>';
+  } else if (!needsReference) {
+    // General quality / Capability use: explanatory note instead of a reference column
+    html += '<div class="reference-note">' +
+      '<strong>No expected response needed</strong>' +
+      '<em>' + escapeHtml(c.method) + '</em> grades each response directly against the pass/fail conditions above, not against a reference answer.' +
+      '</div>';
+  }
 
-    // Pass/Fail conditions
-    if (c.pass_condition || c.fail_condition) {
-      html += '<div class="conditions-row"><div class="c-label">Pass / Fail conditions</div>';
-      if (c.pass_condition) {
-        html += '<div class="c-pass"><strong>Pass = </strong>' + escapeHtml(c.pass_condition) + '</div>';
-      }
-      if (c.fail_condition) {
-        html += '<div class="c-fail"><strong>Fail = </strong>' + escapeHtml(c.fail_condition) + '</div>';
-      }
-      html += '</div>';
-    }
+  // Test cases area — visually contained inside the card
+  const secondColLabel = isKeywordMatch ? "Keywords" : "Expected Response";
+  const secondColPlaceholder = isKeywordMatch ? "comma-separated keywords (case-insensitive by default)" : "";
 
-    const needsReference = !REFERENCE_FREE_METHODS.includes(c.method);
-    const isKeywordMatch = c.method === "Keyword match";
-    const isCustom = c.method === "Custom";
-
-    // Custom: show editable rubric drafted from pass/fail conditions.
-    // Resolution order for textarea value: persisted edit → in-memory rubric → auto-draft.
-    // Persisting the edit means switching method away and back doesn't lose the user's rubric.
-    if (isCustom) {
-      const rubricFp = cPrefix + ".custom_rubric";
-      const persistedEdit = (typeof edits === "object" && edits && edits[rubricFp] !== undefined && edits[rubricFp] !== "__DELETE__")
-        ? edits[rubricFp] : null;
-      const rubricValue = persistedEdit !== null ? persistedEdit : draftCustomRubric(c);
-      const rubricEdited = persistedEdit !== null || (!!c.custom_rubric && c.custom_rubric !== "");
-      html += '<div class="rubric-block">' +
-        '<label>Custom rubric (LLM-judged) — edit for your domain</label>' +
-        '<textarea class="rubric-textarea' + (rubricEdited ? ' edited' : '') + '" ' +
-        'data-field="' + rubricFp + '" data-original="" ' +
-        'oninput="scheduleSave()">' + escapeHtml(rubricValue) + '</textarea>' +
-        '</div>';
-    } else if (!needsReference) {
-      // General quality / Capability use: keep the existing note, no reference column.
-      html += '<div class="reference-note">' +
-        '<strong>No expected response needed</strong> — <em>' + escapeHtml(c.method) + '</em> grades each response directly against the criterion\'s pass/fail conditions above, not against a reference answer.' +
-        '</div>';
-    }
-
-    // Column label for the second column when it's shown.
-    // - Keyword match → "Keywords" (comma-separated keyword list per case)
-    // - Anything else reference-needing → "Expected Response"
-    const secondColLabel = isKeywordMatch ? "Keywords" : "Expected Response";
-    const secondColPlaceholder = isKeywordMatch ? "comma-separated keywords (case-insensitive by default)" : "";
-
-    html += '<div style="overflow-x:auto;"><table><thead><tr>' +
-      '<th style="width:30px">#</th>' +
-      (needsReference ? '<th style="width:40%">Question</th><th style="width:50%">' + secondColLabel + '</th>' : '<th>Question</th>') +
-      '<th style="width:40px"></th>' +
+  html += '</div>'; // end criterion-card-body
+  html += '<div class="cases-block">' +
+    '<div class="cases-label">Test cases</div>' +
+    '<div style="overflow-x:auto;"><table><thead><tr>' +
+      '<th style="width:2.4rem; text-align:right;">#</th>' +
+      (needsReference ? '<th style="width:40%">Question</th><th>' + secondColLabel + '</th>' : '<th>Question</th>') +
+      '<th style="width:2.4rem;"></th>' +
       '</tr></thead><tbody>';
 
-    c.cases.forEach((cs, csIdx) => {
-      if (cs._deleted) return;
-      const fp = cPrefix + ".cases[" + csIdx + "]";
-      const questionCell =
-        '<td class="editable"><textarea data-field="' + fp + '.question" data-original="' + escapeAttr(cs.question || "") + '" oninput="scheduleSave()">' + escapeHtml(cs.question || "") + '</textarea></td>';
-      let secondCell = "";
-      if (needsReference) {
-        if (isKeywordMatch) {
-          // Plain editable textarea for keywords — no [VERIFY] highlighting (keywords are not factual claims).
-          secondCell = '<td class="editable"><textarea data-field="' + fp + '.expected_response" ' +
-            'data-original="' + escapeAttr(cs.expected_response || "") + '" ' +
-            'placeholder="' + escapeAttr(secondColPlaceholder) + '" ' +
-            'oninput="scheduleSave()">' + escapeHtml(cs.expected_response || "") + '</textarea></td>';
-        } else {
-          secondCell = '<td class="editable"><div class="verify-container" data-field-target="' + fp + '.expected_response">' + renderVerifyText(cs.expected_response || "") + '</div>' +
-            '<textarea data-field="' + fp + '.expected_response" data-original="' + escapeAttr(cs.expected_response || "") + '" oninput="onExpectedEdit(this);scheduleSave()" style="display:none;">' + escapeHtml(cs.expected_response || "") + '</textarea></td>';
-        }
+  c.cases.forEach((cs, csIdx) => {
+    if (cs._deleted) return;
+    const fp = "test_sets[" + tsIdx + "].criteria[" + cIdx + "].cases[" + csIdx + "]";
+    const questionCell =
+      '<td class="editable"><textarea data-field="' + fp + '.question" data-original="' + escapeAttr(cs.question || "") + '" oninput="scheduleSave()">' + escapeHtml(cs.question || "") + '</textarea></td>';
+    let secondCell = "";
+    if (needsReference) {
+      if (isKeywordMatch) {
+        secondCell = '<td class="editable"><textarea data-field="' + fp + '.expected_response" ' +
+          'data-original="' + escapeAttr(cs.expected_response || "") + '" ' +
+          'placeholder="' + escapeAttr(secondColPlaceholder) + '" ' +
+          'oninput="scheduleSave()">' + escapeHtml(cs.expected_response || "") + '</textarea></td>';
+      } else {
+        secondCell = '<td class="editable"><div class="verify-container" data-field-target="' + fp + '.expected_response">' + renderVerifyText(cs.expected_response || "") + '</div>' +
+          '<textarea data-field="' + fp + '.expected_response" data-original="' + escapeAttr(cs.expected_response || "") + '" oninput="onExpectedEdit(this);scheduleSave()" style="display:none;">' + escapeHtml(cs.expected_response || "") + '</textarea></td>';
       }
-      html += '<tr>' +
-        '<td class="text-muted">' + (csIdx + 1) + '</td>' +
-        questionCell +
-        secondCell +
-        '<td><button class="btn btn-sm btn-danger" onclick="deleteCase(' + tsIdx + ',' + cIdx + ',' + csIdx + ')">&#x2715;</button></td>' +
-        '</tr>';
-    });
-
-    html += '</tbody></table></div>';
-    html += '<button class="btn btn-add" onclick="addCase(' + tsIdx + ',' + cIdx + ')" style="margin:0;">+ Add test case</button>';
+    }
+    html += '<tr>' +
+      '<td class="row-num">' + (csIdx + 1) + '</td>' +
+      questionCell +
+      secondCell +
+      '<td class="row-actions"><button class="btn btn-sm btn-danger" onclick="deleteCase(' + tsIdx + ',' + cIdx + ',' + csIdx + ')" title="Delete test case">&#x2715;</button></td>' +
+      '</tr>';
   });
+
+  html += '</tbody></table></div>';
+  html += '<button class="btn btn-add" onclick="addCase(' + tsIdx + ',' + cIdx + ')">+ Add test case</button>';
+  html += '</div>'; // end cases-block
+  html += '</article>'; // end criterion-card
 
   return html;
 }
@@ -613,8 +904,6 @@ function removeMethod(tsIdx, method) {
 function changeCriterionMethod(tsIdx, cIdx, newMethod) {
   const criterion = testSets[tsIdx].criteria[cIdx];
   criterion.method = newMethod;
-  // Auto-include the criterion's method in the dimension-level method list so
-  // overview + CSV stay in sync. Removal stays manual via the chip × button.
   if (!testSets[tsIdx].methods.includes(newMethod)) {
     testSets[tsIdx].methods.push(newMethod);
     edits["test_sets[" + tsIdx + "].methods"] = JSON.stringify(testSets[tsIdx].methods);
@@ -650,7 +939,6 @@ function addCase(tsIdx, cIdx) {
 }
 
 function rerenderSection(tsIdx) {
-  // Re-render in place so the user's scroll position stays put.
   const section = document.getElementById("signal-section-" + tsIdx);
   if (!section) return;
   const ts = testSets[tsIdx];
@@ -684,12 +972,10 @@ function updateOverview() {
 
     const tr = document.createElement("tr");
     tr.innerHTML =
-      '<td>' +
-        '<a class="signal-link" href="#signal-anchor-' + tsIdx + '">' + escapeHtml(dimensionName) + '</a>' +
-      '</td>' +
-      '<td><span style="font-weight:600">' + dimCases + '</span></td>' +
+      '<td><a class="signal-link" href="#signal-anchor-' + tsIdx + '">' + escapeHtml(dimensionName) + '</a></td>' +
+      '<td style="text-align:right;"><span class="case-count-num">' + dimCases + '</span></td>' +
       '<td>' + methodsHtml + '</td>' +
-      '<td class="priority-cell"><span class="q-badge-sm ' + (Q_BADGE_CSS[quadrant] || "") + '">' +
+      '<td class="priority-cell"><span class="q-tag q-tag-sm ' + (Q_TAG_CSS[quadrant] || "") + '">' +
         (QUADRANT_LABELS[quadrant] || quadrant) + '</span></td>';
     tbody.appendChild(tr);
   });
