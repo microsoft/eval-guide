@@ -451,23 +451,31 @@ Every acceptance criterion goes in one of four quadrants based on two judgments:
 
 Pass/fail for each test case is determined by the criterion's pass/fail conditions, not a prescribed percentage target. The quadrant tells you **where to invest effort**, not a threshold to clear.
 
-**Distribution sanity-check (apply before locking the matrix).** Healthy plans roughly hit these distribution patterns. If your plan is far from them, either you're missing criteria or you've miscategorized — push back, don't lock.
+**Distribution sanity-check (apply before locking the matrix).** The targets below are reference patterns, not gates. Only push back on **red flags** — patterns that almost always indicate a missing or miscategorized criterion. **Do not flag marginal deviations** (e.g., Valuable at 13% when target is 15–30%, or Critical at 22% when target is 25–40%). Customers often have legitimate reasons to drift from the bands — fewer-but-meaningful Valuable criteria, intentional re-quadrant moves, smaller agent surface — and re-litigating those choices is friction.
 
 | Risk profile | Critical | Valuable | Guardrails | Deprioritize | Sanity-check rule |
 |---|---|---|---|---|---|
-| **`low`** | 30–50% | 30–50% | 10–20% | 0–20% | At least 1 Guardrails (always). |
-| **`medium`** | 25–40% | 25–40% | 20–30% | 0–15% | At least 1 Guardrails. |
-| **`high`** *(ESS Agent)* | 25–40% | 15–30% | **30–50%** | 0–10% | **At least 2 Guardrails (auto-doubled trigger)**. |
-| **`critical`** | 20–35% | 10–20% | **40–60%** | 0–5% | At least 3 Guardrails. Compliance / Safety domains required. |
+| **`low`** | 30–50% | 30–50% | 10–20% | 0–20% | Reference only. At least 1 Guardrails (always). |
+| **`medium`** | 25–40% | 25–40% | 20–30% | 0–15% | Reference only. At least 1 Guardrails. |
+| **`high`** | 25–40% | 15–30% | 30–50% | 0–10% | Reference only. **At least 2 Guardrails (auto-doubled trigger)**. |
+| **`critical`** | 20–35% | 10–20% | 40–60% | 0–5% | Reference only. At least 3 Guardrails. Compliance / Safety domains required. |
 
-**Red flags that mean push back:**
+**Red flags — these are the ONLY conditions that warrant pushback:**
 - **0 Guardrails on any plan** — the agent has no enforced boundaries.
 - **0 Critical** — the plan has no product-defining tests; you're testing edge cases of a capability you haven't validated.
-- **>70% Critical** — every criterion is "the most important." This is anchoring bias; force re-evaluation. In production, not everything is Critical.
-- **0 Deprioritize when the customer has 5+ Core Capabilities** — you probably under-scoped exploratory testing.
+- **>70% Critical** — every criterion is "the most important." Anchoring bias; force re-evaluation.
 - **HIGH risk + <30% Guardrails** — under-investment in the failure modes that cause real damage.
+- **CRITICAL risk + <40% Guardrails** — same as above, stricter.
 
-When the plan trips a red flag, tell the customer: *"This distribution looks off — [specific issue]. Want me to suggest a rebalance?"* Don't lock a broken plan because the customer was tired of writing criteria.
+If the plan trips a red flag, tell the customer: *"This distribution looks off — [specific issue]. Want me to suggest a rebalance?"* and explain the specific failure mode the rebalance would address.
+
+**Do NOT push back when:**
+- A quadrant is within ~5% of its target band (e.g., Valuable at 13% with target 15–30% — that's marginal, the customer can defend it).
+- The customer just made an intentional move and the distribution is the result.
+- Total criteria count is on the lower end (e.g., 10 vs. 15) — percentages get noisy at small N.
+- The customer's agent genuinely has fewer expected-behavior capabilities to test (some agents are mostly Critical + Guardrails).
+
+When in doubt, lock and proceed. The customer can always re-open Stage 1 later. Friction from over-rebalancing is a worse failure mode than a slightly imbalanced distribution.
 
 **Before confirming quadrant assignments:** Align placements with the customer's risk owner or compliance partner — especially for Guardrails criteria. Human expert review of criteria and their placement is what distinguishes L300 Systematic Pillar 1 from L200 Defined.
 

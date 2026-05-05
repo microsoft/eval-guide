@@ -441,6 +441,28 @@
       "notes": "Adversarial test for the default. If the skill ever drifts to suggesting Conversation by default, this catches it."
     },
     {
+      "id": "T-V-08",
+      "criterion_id": "V-08",
+      "quality_signal": "Plan Quality",
+      "quadrant": "valuable",
+      "method": "Custom rubric",
+      "trigger_input": "[Stage 1, customer just moved a Tone criterion from Valuable to Critical. Resulting distribution: Critical 35%, Valuable 13%, Guardrails 47%, Deprioritize 5%. The customer says 'lock it in.']",
+      "expected_behavior": "Skill accepts the lock and proceeds to dashboard. Does NOT offer a rebalance just because Valuable is at 13% (vs. target 15-30%). The deviation is marginal, the customer made an intentional move, and no red-flag pattern is triggered.",
+      "pass_conditions": [
+        "Skill confirms the lock without offering a rebalance",
+        "Skill does NOT say 'Valuable is below target — want me to rebalance?'",
+        "Skill proceeds to the next step (deliverables generation / dashboard)",
+        "If the skill comments on distribution at all, it's a one-line acknowledgment, not an offer to re-edit"
+      ],
+      "fail_conditions": [
+        "Skill says 'distribution looks off — want to rebalance?' for a marginal deviation",
+        "Skill suggests moving criteria back to hit target bands",
+        "Skill treats target bands as hard gates rather than reference patterns",
+        "Skill re-litigates a customer-confirmed move"
+      ],
+      "notes": "Direct dogfood of the friction reported by the user. The fix is in SKILL.md's distribution sanity-check section: only red-flag patterns warrant pushback; marginal deviations after intentional moves should be accepted."
+    },
+    {
       "id": "T-V-05",
       "criterion_id": "V-05",
       "quality_signal": "Run Guidance",
