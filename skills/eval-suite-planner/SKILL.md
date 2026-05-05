@@ -1,353 +1,241 @@
 ---
 name: eval-suite-planner
-description: Produces a concrete eval suite plan grounded in Microsoft's Eval Scenario Library and MS Learn agent evaluation guidance — scenario types, evaluation methods, quality signals, thresholds, and priority order — before any test cases are generated or evals are run.
+description: Stage 1 standalone — turns an Agent Vision (or plain-English description) into a structured eval plan: 10–15 acceptance criteria phrased "The agent should…", each placed on a Value × Risk matrix (High Value · High Risk / High Value · Low Risk / Low Value · High Risk / Low Value · Low Risk), each with explicit pass/fail conditions and a test method. Output is a customer-ready `.docx` eval plan. Use before generating test cases or running any evals.
 ---
 
 ## Purpose
 
-This skill takes a plain-English description of an agent and produces a structured eval suite plan. It is the first step in the eval lifecycle — use it before generating test cases or running any evals. The output tells you exactly what scenarios to build, which evaluation methods to use, and how to know when you're done.
+This skill produces the **Stage 1** artifact of the `/eval-guide` lifecycle: a written eval plan that a customer's PM, security partner, or business owner can sign off on. It works **without a running agent** — a description, idea, or written Vision is enough. The plan defines what the agent SHOULD do; later stages turn it into test cases and run them.
 
-This skill covers **Stage 1 (Define)** of the MS Learn 4-stage evaluation framework. After planning, use `/eval-generator` for Stage 2 (Set Baseline & Iterate), then expand coverage (Stage 3) and operationalize into CI/CD (Stage 4).
+This is the standalone form of `/eval-guide` Stage 1. Use it when the customer already has an Agent Vision and wants the plan directly, or when a Stage 1 re-plan is needed for a specific feature without re-orienting the whole session. The orchestrator `/eval-guide` invokes the same methodology with its own dashboard checkpoint.
 
-**Knowledge sources:** This skill's guidance is grounded in three Microsoft sources:
-- **Eval Scenario Library** (github.com/microsoft/ai-agent-eval-scenario-library) — 5 business-problem scenario types with 29 sub-scenarios, 9 capability scenario types with 49 sub-scenarios, quality signals, and evaluation method selection
-- **MS Learn agent evaluation documentation** — the 4-stage iterative evaluation framework (Define, Set Baseline & Iterate, Systematic Expansion, Operationalize), 7 test methods, acceptance criteria design, and evaluation categories
-- **MS Learn evaluation checklist** ([guidance/evaluation-checklist](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/evaluation-checklist)) — a 4-stage checklist template with a [downloadable editable version](https://github.com/microsoft/PowerPnPGuidanceHub/tree/main/guidance/agentevalguidancekit). The checklist defines Stage 3 expansion categories (Foundational core, Agent robustness, Architecture test, Edge cases) and introduces acceptance criteria design
+**Knowledge sources:**
+- Microsoft's [evaluation iterative framework](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/evaluation-iterative-framework) and [evaluation checklist](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/evaluation-checklist).
+- [Eval Scenario Library](https://github.com/microsoft/ai-agent-eval-scenario-library) — quality signals and method-mapping guidance.
+- [Triage & Improvement Playbook](https://github.com/microsoft/triage-and-improvement-playbook) — what makes a criterion testable.
+
+**Maturity callout — Pillar 1 (Define what "good" means):** Stage 1 advances Pillar 1 from `L100 Initial` ("good lives in the builder's head") to `L300 Systematic` ("written acceptance criteria with pass/fail conditions, tied to eval methods"). The eval plan IS the Pillar 1 artifact.
 
 ## Instructions
 
-When invoked as `/eval-suite-planner <agent description>`, read the description, infer the agent's primary task, key capabilities, and failure modes, then produce the following output in this exact order. Do not ask clarifying questions, do not pad responses, do not hedge.
+When invoked as `/eval-suite-planner <agent description>`:
+
+1. Extract or accept the Agent Vision (purpose, users, knowledge, capabilities, boundaries, success criteria, risk profile).
+2. Determine eval depth from agent architecture (prompt-level / RAG / agentic) — under-test simple agents, over-test complex ones, scope to fit.
+3. Produce **10–15 acceptance criteria** phrased *"The agent should…"* (or *"should NOT…"* for negative tests).
+4. Place each criterion on the **Value × Risk matrix** (4 quadrants).
+5. Consolidate quality dimensions to **4–6 broad categories** (e.g., "Accuracy", "Grounding", "Boundaries / Safety", "Tone").
+6. Assign a test method per criterion (Compare meaning / General quality / Keyword match / Capability use / Custom / Text similarity / Exact match).
+7. Write explicit pass/fail conditions per criterion — testable from the criterion alone.
+8. Run distribution sanity-check (red flags only).
+9. Output the customer-ready `.docx` eval plan.
+
+Do not pad responses. Do not hedge. Be specific to the described agent — no generic advice.
 
 ---
 
-### Step 0 — Match the agent to scenario types
+### Step 1 — Determine eval depth from architecture
 
-Use this routing table (from the Eval Scenario Library's Entry Path A) to identify which business-problem and capability scenario types apply to the described agent:
-
-| If the agent... | Business-problem scenarios | Capability scenarios |
+| Architecture | What it is | Eval layers to apply |
 |---|---|---|
-| Answers questions from knowledge sources | Information Retrieval (6 sub-scenarios) | Knowledge Grounding + Compliance |
-| Executes tasks via APIs/connectors | Request Submission (6 sub-scenarios) | Tool Invocations + Safety |
-| Walks users through troubleshooting | Troubleshooting (6 sub-scenarios) | Knowledge Grounding + Graceful Failure |
-| Guides through multi-step processes | Process Navigation (6 sub-scenarios) | Trigger Routing + Tone & Quality |
-| Routes conversations to teams/departments | Triage & Routing (5 sub-scenarios) | Trigger Routing + Graceful Failure |
-| Handles sensitive data (PII, financial, health) | (add to whichever applies) | Safety + Compliance |
-| Serves external customers | (add to whichever applies) | Tone & Quality + Safety |
-| Is about to be updated or republished | (add to whichever applies) | Regression — re-run existing tests after changes |
-| All agents (always include) | — | Red-Teaming — adversarial robustness testing |
+| **Prompt-level** | Single-turn LLM call, fixed system prompt, no retrieval, no tools | Acceptance criteria + safety/refusal |
+| **RAG** | Retrieves from knowledge sources before responding | + Grounding + citation accuracy + hallucination prevention |
+| **Agentic** | Routes between topics, tools, or connectors | + Tool/topic routing accuracy + slot extraction + multi-step task completion |
 
-Most agents match 1-2 business-problem types and 3-4 capability types. Select the ones that fit and name them explicitly.
+The architecture call drives which capability families apply. Don't write tool-routing tests for a simple FAQ bot.
 
-**About the Regression row:** A regression set is not a separate scenario type — it is your existing suite of passing tests, re-run after any agent change to verify nothing broke. Include the regression row when the customer mentions upcoming changes (prompt edits, knowledge source updates, connector/plugin changes, republishing). When it applies:
-- Flag that the customer's current passing test cases become their regression baseline
-- Recommend re-running the full eval suite (or at minimum the core business + safety subsets) after every change
-- This maps to **Stage 4 (Operationalize)** of the MS Learn framework — embedding evals into the agent's update workflow so regressions are caught before they reach users
-- The regression set grows over time: every bug found and fixed should add a test case that catches that specific failure, preventing it from recurring
+---
 
-### Step 0b — Incorporate production data (for live agents)
+### Step 2 — Acceptance criteria on the Value × Risk matrix
 
-If the customer already has an agent in production, recommend supplementing the synthetic eval plan with **real user data**. Copilot Studio offers two production-data features that create higher-fidelity test sets:
+Each criterion belongs in **one quadrant** based on two judgments:
+- **Value** — how much does getting this right drive the agent's mission?
+- **Risk** — how much harm does failure cause (financial, safety, compliance, trust)?
 
-**Themes-based test sets (recommended for production agents):**
-Copilot Studio's Analytics page groups real user questions into **themes** — clusters of related questions that triggered generative answers (e.g., "billing and payments", "password reset", "shipping status"). Customers can create a test set directly from any theme:
-
-1. Go to the agent's **Analytics** page > **Themes** list
-2. Hover over a theme > select **Evaluate**
-3. Select **Create and open** to generate a test set from real user questions in that theme
-
-**When to recommend themes-based test sets:**
-- The agent is already in production with real user traffic
-- The customer wants to track quality per topic area (e.g., "How well does the agent handle billing questions specifically?")
-- The synthetic plan may miss question phrasings real users actually use
-- The customer is investigating a quality drop in a specific area flagged by analytics
-
-**How themes complement the eval plan:** The scenario plan (Step 0) defines WHAT to test based on the agent's design. Themes-based test sets validate HOW WELL the agent handles what users actually ask. Use both:
-- Synthetic test cases (from `/eval-generator`) = structured coverage of planned scenarios, edge cases, and adversarial tests
-- Themes-based test sets (from production) = real-world phrasing, actual user patterns, production-frequency weighting
-
-Tell the customer: "Your eval plan covers what the agent SHOULD handle. Themes-based test sets cover what users ACTUALLY ask. The gap between these two is where surprises live."
-
-**Prerequisite:** Themes require the [themes (preview)](https://learn.microsoft.com/en-us/microsoft-copilot-studio/analytics-themes) feature to be available in the customer's environment. Check prerequisites before recommending.
-
-**Production data import:** Customers can also import real user conversations as test cases directly. This is useful for reproducing specific reported issues or building regression tests from support tickets.
-
-### Step 0c — Plan test set creation strategy
-
-Copilot Studio offers **multiple ways** to create single-response test sets beyond CSV import. During planning, make the customer aware of all their options so they can combine approaches for best coverage:
-
-| Creation method | What it does | When to recommend |
+|  | **Low risk** | **High risk** |
 |---|---|---|
-| **CSV import** (from `/eval-generator`) | Import structured test cases with Question, Expected response, and Testing method columns | Always — this is the primary method for structured, scenario-driven coverage |
-| **Quick question set** | Auto-generates a small set of questions from the agent's knowledge sources | Early exploration — quickly see what questions the agent's content can answer before writing detailed cases |
-| **Full question set** | Auto-generates a comprehensive set of questions from knowledge sources | Broader coverage check — use after the initial eval to find gaps the structured plan missed |
-| **Test chat → test set** | Converts a manual test chat session into a reusable test set | When someone has already tested the agent manually and wants to make those tests repeatable |
-| **Themes-based** (see Step 0b) | Creates test sets from real user question clusters in production analytics | Production agents — captures actual user phrasing and topic distribution |
-| **Manual entry** | Create individual test cases directly in the Copilot Studio UI | One-off additions, Custom method cases (which cannot be CSV-imported), and edge cases discovered during testing |
+| **High value** | **High Value · Low Risk** — expected capabilities users rely on. Solid coverage; occasional misses tolerable. | **High Value · High Risk** — product-defining; failure hurts. Heaviest investment, strictest review. |
+| **Low value** | **Low Value · Low Risk** — exploratory or rare. Light coverage; revisit if usage grows. | **Low Value · High Risk** — rarely triggered but must never fail. Safety, compliance, refusals. Zero tolerance. |
 
-**Recommended strategy:** Start with CSV import from `/eval-generator` for structured scenario coverage, then supplement with Quick or Full question sets to catch blind spots the plan didn't anticipate. For production agents, add themes-based test sets for real-world validation. Use manual entry for Custom-method cases that require rubric definitions.
+**The matrix tells you where to invest test-writing effort, not numeric thresholds.** High Value · High Risk gets the most cases, Low Value · Low Risk the fewest, Low Value · High Risk the strictest review. Pass/fail per case lives in each criterion's own pass/fail conditions — not a prescribed percentage threshold.
 
-Tell the customer: "CSV import gives you precision — every case tests a specific scenario you designed. Auto-generation gives you breadth — it finds questions you didn't think to ask. Use both."
+---
 
-### Step 0d — Choose test data generation approach
+### Step 3 — Distribution sanity-check (reference, not gate)
 
-Per the MS Learn [Common evaluation approaches](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/architecture/common-evaluation-approaches), there are three strategies for generating request-response pairs. The choice affects multi-turn fidelity, cost, and what kinds of failures you can detect:
+Targets vary by `risk_profile`. **Targets are reference patterns, not gates.** Only push back on red flags.
 
-| Approach | How it works | Strengths | Weaknesses | Best for |
-|---|---|---|---|---|
-| **Echo** | Replay a static list of prompts word-for-word | Low cost; fair A/B comparisons when changing one variable (model upgrade, single tool change) | Can’t adapt to different responses — later turns may not match conversation context | Single-turn scenarios, deterministic checks (citation display, tool trigger, simple Q&A) |
-| **Historical replay** | Replay each turn in context of prior prompts and responses | Detects where and how much each turn diverges from the ideal path | Still can’t handle truly dynamic conversations (learning, real-time web search) | Model change comparisons, understanding per-turn divergence from baseline behavior |
-| **Synthesized personas** | A human or agentic actor generates conversation in real time based on a scenario and persona | Dynamically assesses complex scenarios (tutoring, negotiation, multi-step troubleshooting) | Grading requires nuance; higher cost (LLM or human tester per conversation) | Multi-turn agents, complex workflows, persona-dependent behavior |
+| Risk profile | High Value · High Risk | High Value · Low Risk | Low Value · High Risk | Low Value · Low Risk | Sanity-check rule |
+|---|---|---|---|---|---|
+| `low`      | 30–50% | 30–50% | 10–20% | 0–20% | At least 1 Low Value · High Risk (always). |
+| `medium`   | 25–40% | 25–40% | 20–30% | 0–15% | At least 1 Low Value · High Risk. |
+| `high`     | 25–40% | 15–30% | 30–50% | 0–10% | **At least 2 Low Value · High Risk (auto-doubled trigger).** |
+| `critical` | 20–35% | 10–20% | 40–60% | 0–5%  | At least 3 Low Value · High Risk. Compliance / Safety domains required. |
 
-**How to recommend:**
-- **Simple FAQ / knowledge agents** → Echo is sufficient. Most test cases are single-turn with deterministic expected answers.
-- **Task agents being upgraded** (model change, tool swap) → Historical replay to compare before/after at each turn.
-- **Complex multi-step agents** (process navigation, troubleshooting, triage) → Synthesized personas for realistic coverage. Echo won’t catch context-dependent failures.
-- **Hybrid** is common: use Echo for the core regression set (fast, cheap, repeatable) and Synthesized personas for the exploratory/edge-case set (realistic, expensive, high-signal).
+**Push back only on these red flags:**
+- 0 Low Value · High Risk on any plan — the agent has no enforced boundaries.
+- 0 High Value · High Risk — the plan has no product-defining tests.
+- >70% High Value · High Risk — every criterion is "the most important." Anchoring bias; force re-evaluation.
+- HIGH-risk profile + <30% Low Value · High Risk — under-investment in failure modes that cause real damage.
+- CRITICAL-risk profile + <40% Low Value · High Risk — same, stricter.
 
-Tell the customer: “Echo tells you if the same questions still get the same answers. Synthesized personas tell you if the agent can actually handle a real conversation. You need both — Echo for speed, personas for truth.”
+Marginal deviations (e.g., High Value · Low Risk at 13% with target 15–30%) are NOT red flags. Do not re-litigate customer-confirmed moves.
 
-### Output structure
+---
 
-**1. One-line summary**
+### Step 4 — Adversarial coverage minimums (auto-applied)
 
-Restate the agent's task in one sentence, starting with "Agent task:". Name the matched business-problem and capability scenario types by their plain names (e.g., "Information Retrieval", "Knowledge Grounding").
+Every plan needs **at least 1 Low Value · High Risk / Red-Teaming criterion**. The mandate **auto-doubles to 2 minimum** when any of these triggers fire:
 
-**2. Scenario plan table**
+- Risk profile is HIGH or CRITICAL.
+- Agent touches sensitive-data domains: PII, payments, HR, health, legal, regulated content.
+- Agent has external-customer surface area.
+- Knowledge sources include personal or financial records.
 
-This table is the primary handoff artifact to `/eval-generator` — the generator will produce one test case per row. Make it complete enough that the generator needs no additional context.
+When a trigger fires, narrate it: *"Your agent matches the sensitive-data trigger ([reason]) — doubling the adversarial coverage mandate from 1 to 2 minimum. Writing at least two adversarial / red-team criteria targeting your specific boundary risks."*
 
-Produce a table with these columns:
+Adversarial gaps are the failure mode that bites in production: the agent passes every High Value · High Risk test and then leaks data on a question no one thought to write a test for.
 
-| # | Scenario Name | Category | Tag | Evaluation Methods |
-|---|---|---|---|---|
+---
 
-Be specific: name the actual scenario based on the agent description, not just the category.
+### Step 5 — Quality dimensions (consolidate to 4–6)
 
-Use this category distribution (from the Eval Scenario Library's eval-set-template):
-- Core business scenarios: 30-40% of test cases
-- Capability scenarios: 20-30%
-- Edge cases & safety: 10-20%
-- Variations (different phrasings of core): 10-20%
+Group criteria by quality dimension. Default consolidated dimensions:
+- **Accuracy** (covers all knowledge sources — don't fragment into "Policy Accuracy" + "Benefits Accuracy" + "Training Accuracy").
+- **Grounding** (citation, source attribution, hallucination prevention — RAG/agentic only).
+- **Boundaries / Safety** (refusals, compliance, escalation paths).
+- **Routing / Capability** (correct tool/topic invocation — agentic only).
+- **Tone** (when relevant — empathy, brand voice, professionalism).
+- **Personalization** (when role-based access is on).
 
-For evaluation methods, use the Scenario Library's quality-signal-to-method mapping:
+**Customers fragment dimensions when the AI does.** *"Policy Accuracy / Benefits Accuracy / Training Accuracy"* should be **one** dimension called *"Accuracy"*. The criterion's *statement* already specifies what knowledge it tests — the dimension shouldn't repeat that. Consolidate aggressively.
 
-| What you're testing | Primary method | Secondary method |
+---
+
+### Step 6 — Test methods (per criterion)
+
+Pick the method based on **what you need to verify**, not on familiarity. The signal_type → method mapping:
+
+| Signal type | What you're verifying | Method |
 |---|---|---|
-| Factual accuracy (specific facts, numbers) | Keyword Match (All) | Compare Meaning |
-| Factual accuracy (flexible phrasing) | Compare Meaning | Keyword Match (Any) |
-| Policy compliance (mandatory language) | Custom | Keyword Match (All) |
-| Policy compliance (nuanced judgment) | Custom | General Quality |
-| Tool invocation correctness | Capability Use | Keyword Match (Any) |
-| Knowledge source selection | Capability Use | Compare Meaning |
-| Topic routing accuracy | Capability Use | — |
-| Response quality, tone, empathy | General Quality | Compare Meaning |
-| Tone/brand voice adherence | Custom | General Quality |
-| Hallucination prevention | Compare Meaning | General Quality |
-| Regulatory/HR/legal compliance | Custom | Keyword Match (All) |
-| Edge case handling | Keyword Match (Any) | General Quality |
-| Negative tests (must NOT do X) | Keyword Match — negative | Capability Use — negative |
+| **Factual content** (specific facts, numbers, IDs) | Response contains the right facts | `Compare meaning` (paraphrase OK) or `Keyword match` (exact terms required) |
+| **Mandatory wording** (compliance disclaimers, citations) | Specific phrases must appear | `Keyword match` |
+| **Routing / capability** | Agent invoked the right tool or topic | `Capability use` |
+| **Open-ended quality** (tone, helpfulness, completeness) | Subjective rubric, no single right answer | `General quality` |
+| **Domain-specific rubric** (HR / medical / legal / brand) | Custom labeled judgment | `Custom` (with a per-criterion rubric) |
+| **Tight wording** (templates, structured replies) | Wording closeness | `Text similarity` |
+| **Exact strings** (IDs, codes, fixed responses) | Byte-exact match | `Exact match` |
 
-**When to use Custom:** The Custom test method lets you define evaluation instructions (a rubric) with labeled outcomes (e.g., "Compliant" / "Non-compliant") and assign pass/fail to each label. Use it when:
-- The pass/fail criteria require **judgment**, not just keyword presence — e.g., "Is this response empathetic?" or "Does this follow our escalation policy?"
-- You need **domain-specific rubrics** — e.g., HR compliance, medical disclaimers, financial suitability
-- Standard methods (Keyword Match, Compare Meaning) cannot capture the quality signal — the answer is not about specific words or semantic similarity, it is about whether the response meets a policy or standard
-- You want to test **tone, style, or brand voice** beyond what General Quality covers
+**Reference-free methods** (`General quality`, `Capability use`, `Custom`) grade against the criterion's own pass/fail conditions, not against a per-case reference. They don't need an "expected response" per case in Stage 2.
 
-Custom is not available for CSV import — test cases using Custom must be created directly in Copilot Studio's evaluation UI.
+**`Custom` method**: when you assign Custom to a criterion, also draft a one-paragraph **rubric** from the pass/fail conditions, e.g.:
+> *Rate the response Pass / Fail. Pass = [pass_condition]. Fail = [fail_condition]. Output PASS or FAIL with a one-sentence reason.*
 
-**Beyond Custom — rubric-based grading:** For customers who need more granular quality scoring than pass/fail, the [Copilot Studio Kit](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/kit-rubrics-tests) supports rubric-based grading on a 1–5 scale. Rubrics replace the standard validation logic with a custom AI grader aligned to domain-specific criteria. Two modes: **Refinement** (grade + rationale — use first to calibrate the rubric against human judgment) and **Testing** (grade only — use for routine QA after the rubric is trusted). If the plan includes Custom methods for compliance, tone, or brand voice, note in the plan rationale that rubric-based grading is an advanced option for ongoing calibrated quality assurance.
+The rubric belongs on the criterion itself (`custom_rubric` field) and is what the LLM judge consumes downstream.
 
-**Planning for rubric calibration effort:** Rubric refinement is iterative — expect **3–5 calibration rounds** before AI-human alignment is acceptable. Each round involves: running the test set, human-grading every case with written reasoning, comparing alignment scores, and refining the rubric. Plan for this when the eval plan includes rubric-graded scenarios:
-- **Alignment target:** 75–90% average alignment (formula: `100% × (1 − |AI grade − Human grade| / 4)`). Don’t plan for 100% — some subjectivity is inherent and diminishing returns start around 85%.
-- **Time investment:** Each calibration round requires a domain expert to grade and write reasoning for every test case. Budget 1–2 hours per round for a 10–15 case set.
-- **When rubrics are worth the investment:** Compliance-heavy domains, regulated industries, brand-sensitive customer-facing agents, or any scenario where "pass/fail" is too coarse and you need calibrated quality scores over time.
-- **When to skip rubrics:** Low-risk internal tools, simple FAQ agents, or early-stage evals where Custom pass/fail is sufficient. Start with Custom; graduate to rubrics when you need ongoing calibrated scoring.
+---
 
-Always recommend two methods per scenario where possible.
+### Step 7 — Pass/fail conditions per criterion
 
-Total count: 10-15 scenarios for a complete suite.
+Every criterion gets explicit **Pass =** and **Fail =** lines.
 
-**3. Quality signals**
+- Conditions must be testable from the criterion alone — no implicit context.
+- Pass condition names what the response must contain or do.
+- Fail condition names what would constitute a failure (often inverse of pass, sometimes additional bad-states).
+- For negative tests (`should NOT…`), Pass = "agent correctly refused / redirected"; Fail = "agent disclosed / acted".
 
-List the quality signals relevant to this agent (from the Eval Scenario Library's five quality signals). Only include signals that apply:
+**Don't prescribe percentage thresholds per criterion.** The quadrant tells you where to invest effort; pass/fail per case lives in the conditions. *"Critical must pass at 90%"* is wrong — pass/fail is per-case, not per-criterion.
 
-- **Policy Accuracy** — Does the agent follow business rules correctly?
-- **Source Attribution** — Does the agent ground claims in retrieved documents and cite them?
-- **Personalization** — Does the agent adapt responses to user context (role, department, history)?
-- **Action Enablement** — Does the agent empower users to take the next step?
-- **Privacy Protection** — Does the agent avoid exposing sensitive information?
+---
 
-Map each signal to the scenarios that test it.
+### Step 8 — Coverage check against the Vision
 
-**4. Pass/fail thresholds**
+Before locking the plan, walk the Agent Vision and confirm coverage:
 
-Use risk-based thresholds (from the Eval Scenario Library's eval-set-template):
+- Every named **capability** has ≥ 1 criterion.
+- Every named **boundary** has ≥ 1 criterion (often a Low Value · High Risk).
+- Every named **knowledge source** has ≥ 1 grounding criterion (RAG/agentic only).
+- Every named **user cohort** with role-based access has ≥ 1 personalization criterion.
 
-| Category | Target pass rate | Blocking threshold |
+If a Vision capability has no criterion, surface the gap: *"I noticed Capability X has no criterion — add one or mark it out of scope?"* Don't slide gaps silently.
+
+---
+
+### Step 9 — Output: customer-ready `.docx` eval plan
+
+Use the `/docx` skill to generate `eval-plan-<agent-name>-<YYYY-MM-DD>.docx`. The report must be:
+- **Concise** — tables over paragraphs, no filler.
+- **Presentable** — color-coded headers (red / blue / yellow / gray for the four quadrants), clean tables, visual hierarchy.
+- **Self-contained** — a customer who wasn't in the conversation can read it and understand the plan.
+
+**Report structure:**
+
+1. **Agent Vision summary** (5–6 lines max) — purpose, users, knowledge, capabilities, boundaries, success criteria, risk profile.
+2. **Value × Risk matrix overview** — explain the four quadrants and what kinds of criteria belong in each.
+3. **Quadrant assignment** — visual 2×2 matrix with each criterion placed, followed by a table listing criteria grouped by quadrant with pass/fail conditions.
+4. **Quality Dimensions to Test** — list the 4–6 consolidated dimensions, with grouped criteria under each.
+5. **Method mapping explanation** — which methods apply to which criteria and why (reference the signal_type → method table).
+6. **Distribution check** — actual percentages vs. risk-profile targets, with red-flag verdict.
+7. **Adversarial coverage** — count of Low Value · High Risk / red-team criteria; note auto-double trigger if applied.
+8. **Next steps** — *"Run `/eval-generator` on this plan to produce test cases (Stage 2). Then run them against your agent (Stage 3) and triage results with `/eval-result-interpreter` (Stage 4)."*
+9. **Maturity snapshot** — before/after table:
+
+   | Pillar | Baseline | After this plan | Next-session target |
+   |---|---|---|---|
+   | 1 — Define what "good" means | L100 Initial | L300 Systematic ✓ | — |
+   | 2 — Build your eval sets | L100 Initial | L100 Initial | L300 (run `/eval-generator`) |
+   | 4 — Improve and iterate | L100 Initial | L100 Initial | L300 (run `/eval-result-interpreter` after Stage 3) |
+
+Tell the customer: *"Here's your eval plan as a `.docx` — share it with your team. Business and dev should agree on the quadrant assignments before we generate test cases. The quadrant tells you where to focus effort, not a numeric threshold — pass/fail lives in each criterion's own pass/fail conditions."*
+
+---
+
+### Step 10 — 🔍 Human Review checkpoints
+
+Display before ending. The plan is the foundation — mistakes here cascade into bad test cases and wasted effort.
+
+| # | Checkpoint | What to verify |
 |---|---|---|
-| Overall | ≥85% | <60% → BLOCK |
-| Core business scenarios | ≥90% | <80% → BLOCK |
-| Capability scenarios | ≥90% | <80% → BLOCK |
-| Safety & compliance | ≥95% | <95% → BLOCK |
-| Regression (if applicable) | ≥95% | <90% → BLOCK — any regression means the change broke something |
-| Edge cases | ≥70% | (hard by design — iterate, don't block) |
+| 1 | **Coverage matches the Vision** | Every named capability, boundary, knowledge source, and user cohort has ≥ 1 criterion. |
+| 2 | **Quadrant placements match risk reality** | A Low Value · High Risk on a payments agent is not the same as one on an internal FAQ. Sense-check with the security/compliance partner. |
+| 3 | **Pass/fail conditions are decidable** | A human grader (or LLM judge) can read each pass/fail and decide the outcome from the response alone. |
+| 4 | **Methods match what you're testing** | Custom for nuanced rubrics, Keyword match for required phrases, Compare meaning for paraphrasable answers. Wrong method = wrong signal. |
+| 5 | **Adversarial coverage feels real** | Low Value · High Risk criteria target *specific* boundary risks for this agent (PII for HR, payment-disclosure for billing, etc.) — not generic prompt-injection boilerplate. |
+| 6 | **Quality dimensions consolidated** | 4–6 dimensions, not 12. "Accuracy" should cover multiple knowledge sources, not be split per source. |
 
-Adjust based on risk profile: low-risk internal tool (lower by 10%), customer-facing (standard), regulated or safety-critical (raise by 5-10%).
-
-**4b. Planning for version comparison**
-
-Copilot Studio supports **comparative evaluation** — running the same test set against different agent versions and comparing results side by side. Plan for this from the start:
-
-**Establish a baseline run:** The first eval run against this plan becomes the baseline. Before making any agent changes, export the results CSV and save it. All future runs will be compared against this baseline to measure improvement or catch regressions.
-
-**When to use result comparison:**
-- After any agent change (prompt edit, knowledge source update, connector change) — compare the new run against the previous run to verify fixes didn't break passing cases
-- When comparing two agent configurations (e.g., different system prompts, different knowledge source sets) — run the same test set against both and compare
-- During Stage 3 (Systematic Expansion) — compare expanded test sets against the baseline to confirm new scenarios don't destabilize existing ones
-
-**Set-level grading:** In addition to individual case pass/fail, Copilot Studio can evaluate quality across the entire test set as a whole. Use set-level grading when:
-- Individual results are mixed (some pass, some fail) and you need to determine if the agent is generally competent or systematically broken
-- Pass rate is near a threshold boundary (e.g., 84% vs. the 85% target) — set-level grading adds context beyond the raw number
-- You want to track overall quality trends across multiple runs without getting lost in case-by-case noise
-
-**Plan implication:** When designing the scenario plan, ensure test cases within each category are independently valuable — each should test a distinct behavior. This makes version comparison meaningful: if Case 5 flips from Pass to Fail after a change, you know exactly which behavior regressed because the case tests one specific thing.
-
-**⚠️ Data retention:** Copilot Studio retains test run results for **89 days only** — after that, results are permanently deleted. Plan an export habit from run #1:
-- Export the baseline results CSV immediately after the first eval run
-- Export after every subsequent run before comparing to the baseline
-- Store exported CSVs alongside the eval plan document, tagged with agent version and run date
-- This is especially critical for regression workflows: if you re-run after a change but the "before" results have expired, you cannot prove improvement
-
-Tell the customer: "Treat every eval run as perishable. Export the CSV the same day you run it. In 89 days you'll thank yourself — or regret not listening."
-
-**5. Priority order**
-
-State which categories to write first. Default priority (from MS Learn Stage 2):
-
-1. Core business scenarios — proves the agent does its job
-2. Safety & compliance — catches deal-breaker failures early
-3. Capability scenarios — isolates component-level problems
-4. Edge cases & variations — stress-tests robustness
-5. Regression (when updating an existing agent) — run BEFORE deploying any change to verify nothing broke
-
-Deviate only when the agent description implies safety-critical use (move safety to first). If the customer is updating an existing agent, regression moves to position 1 — verify existing behavior first, then evaluate the new changes.
-
-**When the agent is being updated (regression applies):** The priority order changes. Run the existing regression set first — if core scenarios that previously passed now fail, stop and fix before writing new tests. Then follow the order above for any new scenarios added to cover the change.
-
-**6. Planning rationale (teach the WHY)**
-
-This section explains the reasoning behind the plan so the customer can modify it intelligently and build future eval plans without help. For each of the following, write 2-3 sentences of plain-language explanation:
-
-- **Why these scenario types were selected:** Explain the connection between the agent's task and the chosen business-problem and capability scenario types. Example: "This agent retrieves answers from HR documents, so Information Retrieval is the primary business-problem type — it covers the core loop of question → search → answer. Knowledge Grounding is the primary capability type because the agent must stay within the documents and not hallucinate policy that doesn't exist."
-- **Why this category distribution:** Explain why the percentages are weighted the way they are for this specific agent. A safety-critical agent should have more safety test cases than a low-risk internal tool. Example: "Because this agent handles refund decisions with real financial impact, core business scenarios are weighted at 40% (not the minimum 30%) — getting the refund policy wrong has direct cost. Safety is at 20% because the agent can make promises the company has to honor."
-- **Why these quality signals and not others:** Explain which quality signals are most critical for this agent and why others were excluded or deprioritized. Example: "Policy Accuracy is the top signal because this agent must follow specific refund rules. Source Attribution matters because customers may dispute decisions and need to see the policy reference. Personalization is excluded — the refund policy applies uniformly regardless of who asks."
-- **What the plan does NOT cover:** Explicitly state what's out of scope and why. This prevents the customer from assuming the eval plan is exhaustive. Example: "This plan does not cover multi-turn conversation flows (the agent handles single-turn Q&A). If the agent is later extended to handle follow-up questions, add Process Navigation scenarios."
-
-This section is critical for customer enablement. The customer should walk away understanding the evaluation framework well enough to add new scenarios on their own when their agent changes.
-
-- **How many test cases to start with:** Customers often delay eval because they think they need hundreds of perfect test cases. They don't. **Start with 20-50 cases built from the highest-impact scenarios.** Prioritize cases drawn from real failures — support tickets, user complaints, known edge cases, and bugs found during manual testing. These are higher signal than synthetic "what if" cases because they represent problems that already happened. Example: "You don't need 200 test cases to start. Start with 20-30 that cover your core business scenarios and known failure modes. A small set of high-signal cases run weekly beats a comprehensive set that never gets built. Expand later — the eval checklist's Stage 3 is designed for exactly that."
-
-	**Why real failures beat synthetic cases:** A test case built from a real support ticket ("user asked X, got wrong answer Y") tests a failure that actually happened to a real user. A synthetic test case ("what if someone asks about refunds in French?") tests a hypothetical. Both matter, but the real failure is higher priority — it already cost you something. Build your first eval set from real failures, then backfill with synthetic cases to cover gaps.
-
-- **Does this agent need multi-profile testing?** If the agent's knowledge sources are role-gated (e.g., SharePoint sites with different permissions for directors vs. interns), recommend creating **separate test sets per user profile**. Copilot Studio lets you assign a [user profile](https://learn.microsoft.com/en-us/microsoft-copilot-studio/analytics-agent-evaluation-edit) to each test set — the eval runs under that user’s authentication, so results reflect what that role actually sees. This surfaces role-based gaps (e.g., an intern getting “access denied” while a director gets the answer). **Limitation:** Multi-profile testing only works for agents without connector dependencies. If the agent uses authenticated tools/connectors, evals must run under the tool owner’s account.
-
-**Understanding the two kinds of eval:** Not all test sets serve the same purpose, and confusing them leads to misinterpreted results. Teach the customer this distinction:
-
-- **Capability evals** test hard behaviors the agent doesn’t reliably do yet — new features, complex edge cases, scenarios where you’re pushing quality UP. Initial pass rates may be 30-60%, and that’s expected. Success = steady improvement over iterations. A 50% pass rate on a capability eval is progress, not failure.
-- **Regression evals** test behaviors the agent already handles well — your existing passing test cases, re-run after every change. Pass rates should stay at ~100%. Success = nothing broke. A 95% pass rate on a regression eval is an alarm, not a good score.
-
-When presenting the scenario plan, label each category as primarily capability or regression:
-- **Core business scenarios** → Capability (initially) → Regression (once passing and the agent is updated)
-- **Capability scenarios** → Capability
-- **Safety & compliance** → Capability (initially) → Regression (once passing — these must never regress)
-- **Edge cases & variations** → Capability (always — these are aspirational by design)
-- **Regression set** → Regression (by definition)
-
-Tell the customer: "When you read eval results, the first question isn’t 'what’s my pass rate?' It’s 'is this a capability eval or a regression eval?' A 40% pass rate is great news on one and terrible news on the other."
-
-- **Recommended eval cadence:** Customers often ask "how often should I run evals?" The answer depends on whether the agent is actively changing or stable. Include a cadence recommendation in the plan:
-
-	**Trigger-based (run immediately):**
-	- After any agent change: system prompt edits, knowledge source updates, connector/plugin changes, model switches
-	- After any platform update that affects the agent's behavior
-	- Before every deployment or republish — this is the regression gate
-
-	**Scheduled (run on a calendar):**
-	- **Active development:** Run the core business + safety subsets after every change. Run the full suite weekly.
-	- **Post-launch, stable agent:** Run the full suite monthly, or whenever analytics show a quality dip (e.g., spike in thumbs-down reactions or increased escalation rate).
-	- **Regulated/high-risk agents:** Run the full suite weekly regardless of changes — the eval run itself is evidence of ongoing compliance.
-
-	**The production → eval feedback loop:** Every production incident should become a test case within 24 hours. When a user reports a bad answer, a support ticket cites wrong information, or analytics show a new failure pattern — add a test case that reproduces it. This is the eval flywheel: production failure → new test case → eval catches it → fix → verify fix → the case joins the regression set permanently.
-
-	Tell the customer: "The eval plan isn't a one-time document — it's a living test suite. Every bug your users find that your evals didn't is a gap in coverage. Close it the same day."
-
-**Stage 3 expansion guidance:** When the customer is ready to expand beyond this initial plan (Stage 3 of the MS Learn framework), point them to the [evaluation checklist](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/evaluation-checklist) and its downloadable template. Stage 3 introduces four expansion categories that broaden coverage beyond the initial plan:
-- **Foundational core** — the "must pass" set for deployment and regression detection (maps to our Core business + Safety categories)
-- **Agent robustness** — how the agent handles phrasing variations, rich context, multi-intent prompts, and user-specific requests (maps to our Variations category)
-- **Architecture test** — functional performance of tools, knowledge retrieval, routing, and handoffs (maps to our Capability scenarios)
-- **Edge cases** — boundary conditions, forbidden behaviors, out-of-scope handling (maps to our Edge cases & safety category)
-
-Recommend the customer downloads the editable checklist template from [GitHub](https://github.com/microsoft/PowerPnPGuidanceHub/tree/main/guidance/agentevalguidancekit) to track their eval maturity across all four stages. Target a realistic pass rate of **80-90%** per the checklist guidance — agents are probabilistic and perfect scores are suspicious, not aspirational.
-
-### Step 3 — Generate output files
-
-After displaying the plan in the conversation, generate two files:
-
-**A. Eval Suite Plan Report (.docx)**
-Use the docx skill to create a formatted report containing:
-- Title: "Eval Suite Plan: [Agent Name]"
-- Agent description summary
-- Scenario plan table
-- Quality signals and their mapping
-- Pass/fail thresholds
-- Priority order
-- Planning rationale (the WHY section — so the customer has the reasoning in the document, not just in chat)
-- Human review checkpoints (the full table from Step 4 so the customer has a printed checklist)
-- Next steps recommendation
-
-**B. Eval Suite Plan Spreadsheet (.xlsx)**
-Use the xlsx skill to create a spreadsheet with:
-- Sheet 1: Scenario Plan (columns: #, Scenario Name, Category, Tag, Evaluation Methods)
-- Sheet 2: Quality Signals (signal name, description, mapped scenarios)
-- Sheet 3: Thresholds (category, target pass rate, adjustment notes)
-
-### Step 4 — Human review checkpoints
-
-After the output files and before the conversation ends, display a **🔍 Human Review Required** section. The eval plan is the foundation — mistakes here cascade into wrong test cases, misleading results, and wasted effort. These checkpoints flag where the customer’s domain expertise is essential.
-
-**🔍 Human Review Required**
-
-| # | Checkpoint | What to verify | Why it matters |
-|---|---|---|---|
-| 1 | **Scenario coverage matches real usage** | Compare the scenario plan against your agent’s actual usage patterns — analytics, support tickets, user feedback. Are the top 3 things users do represented? | AI-generated plans skew toward textbook scenarios. Your most important real-world flows may be missing. |
-| 2 | **Category distribution fits your risk profile** | The default is 30-40% core / 20-30% capability / 10-20% safety / 10-20% edge. Adjust if your agent is safety-critical (increase safety %) or handles high-stakes tasks (increase core %). | One-size-fits-all distribution may under-test your highest-risk area. |
-| 3 | **Quality signals are complete** | Review the listed quality signals. Are there business rules, compliance requirements, or brand guidelines that map to a signal not listed? | Missing a quality signal means an entire category of failures goes unmeasured. |
-| 4 | **Thresholds match your deployment gate** | The suggested pass rates are starting points. Decide: what pass rate would make you confident shipping this agent? What failure rate would block a release? | Thresholds are business decisions, not technical ones — only you know your risk tolerance. |
-| 5 | **Priority order matches your timeline** | If you’re launching in 2 weeks, you may not get to edge cases. The priority order should reflect what MUST be tested vs. what’s nice to test. | Better to thoroughly test 5 critical scenarios than superficially test 15. |
-| 6 | **Nothing sensitive in the scenarios** | Check that scenario descriptions and expected behaviors don’t contain PII, internal system names, or confidential business logic that shouldn’t appear in eval artifacts. | Eval plans often get shared across teams — they should be safe to circulate. |
-
-After the checkpoints, add:
-- **Mandatory reminder:** "This eval plan was AI-generated based on your agent description. Before proceeding to test case generation with `/eval-generator`, review the scenarios, thresholds, and priority order with your team. The plan should reflect your actual business requirements, not just best-practice defaults."
+**Mandatory reminder:** *"This eval plan was AI-generated from your agent description / Vision. Before proceeding to test case generation with `/eval-generator`, review the criteria, quadrants, and pass/fail conditions with your team. The plan should reflect your business reality, not best-practice defaults."*
 
 ---
 
 ### Behavior rules
 
-- Every scenario name, evaluation method, and threshold must be specific to the described agent — no generic advice.
-- Always include at least 1 adversarial/safety scenario (e.g., prompt injection resistance or attack surface testing), even if the user does not mention safety.
-- If the description is vague, state the assumption you made in the one-line summary.
-- When the agent matches multiple business-problem types (e.g., both Information Retrieval and Request Submission), include scenarios from each.
+- Every criterion must start with *"The agent should…"* (or *"…should NOT…"* for negative tests). Behaviors, not goals.
+- Every criterion has all five fields: `statement`, `quadrant`, `method`, `pass_condition`, `fail_condition`.
+- For criteria with `method: "Custom"`, also draft `custom_rubric` from the pass/fail.
+- 10–15 criteria total. Below 10 means under-coverage; above 15 usually means dimension fragmentation — consolidate.
+- At least 1 adversarial / Low Value · High Risk / red-team criterion (2+ if the auto-double trigger fires).
+- Don't prescribe percentage pass-thresholds per criterion. Pass/fail per case lives in the conditions.
+- If the description is vague, state assumptions explicitly in the Vision summary at the top of the report.
 
 ---
 
 ## Example invocations
 
 ```
-/eval-suite-planner I am building a customer support agent that handles refund requests. It should be polite, follow the refund policy, and not make promises the policy does not allow.
+/eval-suite-planner I'm building an HR policy bot for a global company with 18 offices. It answers PTO, parental-leave, benefits questions from official HR documents. Should refuse salary-disclosure questions and escalate legal/discrimination concerns.
 
-/eval-suite-planner I am building a RAG agent that answers questions about our internal HR policy documents. It should only answer questions covered in the documents and decline gracefully otherwise.
+/eval-suite-planner Customer support agent for refund requests. Polite, follows refund policy, doesn't make promises beyond policy. Risk profile: HIGH (handles financial decisions).
 
-/eval-suite-planner I am building an email triage agent that reads incoming emails and labels them urgent, not-urgent, or spam. It should never label a real customer email as spam.
+/eval-suite-planner Email triage agent that reads incoming emails and labels them urgent / not-urgent / spam. Must NOT label real customer emails as spam.
 
-/eval-suite-planner I am building a code review agent that reviews Python pull requests and flags potential bugs, style violations, and missing tests.
+/eval-suite-planner I have a Vision doc — purpose: code review for Python PRs, users: dev team, knowledge: PEP 8 + internal style guide, boundaries: no security review, success: PRs land faster with fewer style nits.
 ```
+
+---
+
+## Companion skills
+
+- **`/eval-generator`** — Stage 2: takes this plan and produces concrete test cases (single CSV per quality signal, 3 columns, one row per case × method).
+- **`/eval-result-interpreter`** — Stage 4: takes Stage 3 results and produces a triage report (SHIP / ITERATE / BLOCK with root-cause classification).
+- **`/eval-faq`** — methodology Q&A grounded in Microsoft's eval ecosystem.
+- **`/eval-guide`** — the orchestrator. Wraps Stages 0–4 with an interactive dashboard checkpoint at each stage.
