@@ -1,0 +1,623 @@
+{
+  "$schema": "evals-v1",
+  "agent_name": "/eval-guide",
+  "version": "1.0.0",
+  "generated_date": "2026-05-05",
+  "based_on_plan": "evals/eval-plan.md",
+  "execution_modes": [
+    "human-grader: read trigger_input, run /eval-guide in fresh session, score against pass/fail",
+    "llm-judge: capture transcript, pass to Claude Sonnet with Custom rubric (Pass/Fail/Unclear)"
+  ],
+  "ship_thresholds": {
+    "critical_min_pct": 90,
+    "valuable_min_pct": 80,
+    "guardrails_min_pct": 95,
+    "guardrails_regulated_min_pct": 100
+  },
+  "test_cases": [
+    {
+      "id": "T-V-01",
+      "criterion_id": "V-01",
+      "quality_signal": "Triggers",
+      "quadrant": "valuable",
+      "method": "Keyword match",
+      "trigger_input": "I want to evaluate my agent — where do I start?",
+      "expected_behavior": "Skill activates, version-check preamble runs silently (or shows upgrade prompt). AI responds with the kickoff: \"Tell me about the agent you're building or planning to build...\"",
+      "pass_conditions": [
+        "AI response contains an opening question about the agent's purpose / users",
+        "AI does NOT defer to a different skill",
+        "AI does NOT require explicit `/eval-guide` invocation"
+      ],
+      "fail_conditions": [
+        "AI says 'use /eval-faq' or routes to a different skill",
+        "AI asks for an explicit slash command",
+        "AI silently produces criteria without the kickoff conversation"
+      ],
+      "notes": "Test variants: 'evaluate my chatbot', 'how do we know if our bot is good', 'help me build an eval plan', 'we need evals for our HR bot' — all should trigger."
+    },
+    {
+      "id": "T-G-01",
+      "criterion_id": "G-01",
+      "quality_signal": "Triggers",
+      "quadrant": "guardrails",
+      "method": "Capability use",
+      "trigger_input": "We've got an eval suite running on cadence and the latest run came back with 60% pass on Critical. Help me figure out what's broken.",
+      "expected_behavior": "Skill recognizes mature-eval-suite signal and routes to /eval-triage-and-improvement (or /eval-result-interpreter). Does NOT start Stage 0.",
+      "pass_conditions": [
+        "AI response names `/eval-triage-and-improvement` or `/eval-result-interpreter` as the right skill",
+        "AI does NOT begin a fresh Stage 0 Discover conversation",
+        "AI explains the routing rationale (this is interpretation, not planning)"
+      ],
+      "fail_conditions": [
+        "AI starts Stage 0 by asking 'What does your agent do?'",
+        "AI proposes building a new eval plan",
+        "AI ignores the customer's stated context (they already have evals)"
+      ],
+      "notes": "The customer already has run results. Forcing them through Stage 0 is friction; routing to the triage skill is correct."
+    },
+    {
+      "id": "T-G-02",
+      "criterion_id": "G-02",
+      "quality_signal": "Triggers",
+      "quadrant": "guardrails",
+      "method": "Capability use",
+      "trigger_input": "Can you do a responsible-AI review of our customer-support chatbot? We need to make sure it's not generating harmful content.",
+      "expected_behavior": "Skill clarifies that eval measures correctness/performance, NOT safety posture. Points to content safety filters / responsible-AI review process. Offers to do a correctness eval if useful, but doesn't conflate that with safety.",
+      "pass_conditions": [
+        "AI explicitly distinguishes 'eval' (correctness) from 'safety review' / 'responsible AI'",
+        "AI mentions content safety filters / responsible AI process as the correct tool",
+        "AI offers eval-correctness as adjunct, not replacement"
+      ],
+      "fail_conditions": [
+        "AI starts producing eval criteria for 'harmful content generation' as if eval can catch it",
+        "AI conflates correctness eval with safety review",
+        "AI does NOT mention that responsible-AI / safety filters are separate processes"
+      ],
+      "notes": "From SKILL.md: 'Agent evaluation measures correctness and performance — it does NOT test for AI ethics or safety problems.' This is a hard boundary."
+    },
+    {
+      "id": "T-V-01b",
+      "criterion_id": "V-01",
+      "quality_signal": "Triggers",
+      "quadrant": "valuable",
+      "method": "Keyword match",
+      "trigger_input": "We're adding a translation feature to our agent next sprint. Want to write evals for it before we build it.",
+      "expected_behavior": "Skill recognizes feature-addition-with-eval-first context. Activates on Stage 0 (Discover) for the feature, possibly with shortened Discover since it's a feature not a full agent.",
+      "pass_conditions": [
+        "Skill activates",
+        "AI starts a Discover conversation focused on the feature (translation)",
+        "AI mentions eval-first as the right call"
+      ],
+      "fail_conditions": [
+        "Skill stays silent",
+        "AI asks for the entire agent's eval (over-scope)",
+        "AI requires the feature to be built first"
+      ],
+      "notes": "Eval-first for feature additions is a core use case in SKILL.md \"How to Route\"."
+    },
+    {
+      "id": "T-C-01a",
+      "criterion_id": "C-01",
+      "quality_signal": "Vision Extraction",
+      "quadrant": "critical",
+      "method": "Custom rubric",
+      "trigger_input": "We're building an HR bot for benefits and PTO questions. Employees ask things like 'how many vacation days do I have' and 'when is open enrollment'. We pull from SharePoint policy docs.",
+      "expected_behavior": "Skill pre-extracts: Purpose (personalized HR support), Users (employees), Knowledge (SharePoint policy docs — name them or flag as TBD), Capabilities (PTO lookup, benefits Q&A, enrollment guidance), and applies HR/ESS domain defaults: Boundaries (no legal/medical/salary/peer-comp), Risk Profile (HIGH), Success Criteria (deflection rate, graceful handoff). Shows 5–6 line Vision summary in chat. Does NOT ask the legacy 7 questions.",
+      "pass_conditions": [
+        "Vision summary shown in chat after kickoff (no further prompts)",
+        "Boundaries section auto-populated with at least 3 HR-domain defaults (legal / medical / salary)",
+        "Risk Profile auto-set to HIGH with HR/regulated rationale",
+        "AI does NOT ask 'who are the users?' or 'what does the agent do?' (already in kickoff)"
+      ],
+      "fail_conditions": [
+        "AI asks any of the legacy 7 questions individually",
+        "Vision is missing Boundaries OR shows only what the customer literally said (no domain defaults applied)",
+        "Risk Profile blank / set to MEDIUM despite HR + regulated context",
+        "AI gates on 'confirmed' before proceeding"
+      ],
+      "notes": "Most important Critical test in the eval set. If pre-extraction breaks, the whole skill regresses to interrogative mode."
+    },
+    {
+      "id": "T-V-02",
+      "criterion_id": "V-02",
+      "quality_signal": "Vision Extraction",
+      "quadrant": "valuable",
+      "method": "Custom rubric",
+      "trigger_input": "Building a customer support bot for refund requests, order tracking, and escalation to live agents.",
+      "expected_behavior": "Skill detects 'customer support' domain (keywords: customer support, refund, order, escalation). Applies customer-support default boundaries: refunds beyond policy, account data outside user's scope, legal-binding promises, competitor product recommendations. Risk profile HIGH (customer-facing).",
+      "pass_conditions": [
+        "Domain detected as customer support (not HR/ESS)",
+        "Boundaries match customer-support defaults from SKILL.md",
+        "Risk Profile HIGH"
+      ],
+      "fail_conditions": [
+        "Domain misclassified as HR/ESS (uses HR boundaries instead)",
+        "Boundaries are generic / don't match the customer-support default set",
+        "Risk Profile blank or LOW"
+      ],
+      "notes": "Verifies domain detection works beyond just HR/ESS. Try variants: e-commerce support, tech support, billing support — all should land in customer-support bucket."
+    },
+    {
+      "id": "T-G-03",
+      "criterion_id": "G-03",
+      "quality_signal": "Vision Extraction",
+      "quadrant": "guardrails",
+      "method": "Compare meaning",
+      "trigger_input": "Our agent will empower employees to take charge of their development, explore new opportunities, and streamline their daily workflows.",
+      "expected_behavior": "Skill recognizes ALL THREE phrases as aspirational marketing language. Drops them from Core Capabilities silently with a flagged note inviting the customer to add concrete versions back if they're real features.",
+      "pass_conditions": [
+        "Vision Core Capabilities does NOT include 'empower', 'explore opportunities', or 'streamline workflows' as-is",
+        "AI flags the drop with a note like 'I dropped X, Y, Z as aspirational — tell me if they're real features and I'll add concrete versions'",
+        "AI proceeds without test cases for the dropped phrases"
+      ],
+      "fail_conditions": [
+        "Aspirational phrases survive into Core Capabilities",
+        "Test cases generated for 'explore opportunities' (which would fail because it's not a real feature)",
+        "AI silently keeps them without any flag"
+      ],
+      "notes": "Concreteness check from SKILL.md Stage 0. Critical for not generating phantom test cases."
+    },
+    {
+      "id": "T-C-01b",
+      "criterion_id": "C-01",
+      "quality_signal": "Vision Extraction",
+      "quadrant": "critical",
+      "method": "Custom rubric",
+      "trigger_input": "agent",
+      "expected_behavior": "Kickoff is too thin (one word, no domain hint). Skill asks ONE clarifying question — not the legacy 7-batch — to get enough material for safe defaults. Something like 'Two or three sentences on what it does and who uses it would help.'",
+      "pass_conditions": [
+        "AI asks exactly ONE follow-up question (not 5+)",
+        "Question asks for the minimum context (purpose + users)",
+        "AI does NOT proceed to apply defaults blindly without any context"
+      ],
+      "fail_conditions": [
+        "AI asks 5+ questions in a batch",
+        "AI hallucinates defaults from one word ('agent') without asking for context",
+        "AI gives up / refuses to proceed"
+      ],
+      "notes": "Edge case: ultra-thin kickoff. Skill should fail gracefully with one question, not interrogate."
+    },
+    {
+      "id": "T-C-02",
+      "criterion_id": "C-02",
+      "quality_signal": "Plan Quality",
+      "quadrant": "critical",
+      "method": "Capability use + Compare meaning",
+      "trigger_input": "[After Stage 0 of the HR bot scenario from T-C-01a, proceed to Stage 1.] Walk through Stage 1 Plan and produce the criteria.",
+      "expected_behavior": "Stage 1 produces 10–15 criteria. Each starts with 'The agent should…'. Each has quadrant + method + pass_condition + fail_condition. Distribution sanity-checks against HIGH-risk targets.",
+      "pass_conditions": [
+        "Criteria count is 10–15",
+        "Every criterion phrased as 'The agent should X' or 'The agent should NOT X'",
+        "Every criterion has all four fields (quadrant, method, pass_condition, fail_condition) explicitly named",
+        "Distribution roughly matches HIGH-risk targets (Critical 25–40%, Guardrails 30–50%)"
+      ],
+      "fail_conditions": [
+        "< 10 or > 15 criteria",
+        "Any criterion phrased as a goal/value ('agent should be helpful', 'tone should be welcoming') without observable behavior",
+        "Any criterion missing quadrant / method / pass_condition / fail_condition",
+        "Distribution off (e.g., < 30% Guardrails for HIGH-risk)"
+      ],
+      "notes": "Multi-method test: Capability use checks structural completeness; Compare meaning checks the behavior-led phrasing rule."
+    },
+    {
+      "id": "T-C-03",
+      "criterion_id": "C-03",
+      "quality_signal": "Plan Quality",
+      "quadrant": "critical",
+      "method": "Custom rubric",
+      "trigger_input": "[Stage 1 for an HR bot that uses Benefits Hub + Policy Portal + Training Catalog SharePoint sites. The agent answers questions across all three.] Generate the quality dimensions.",
+      "expected_behavior": "Skill consolidates per-source dimensions into ONE 'Accuracy' dimension covering all three sources. Total dimensions: 4–6 (Accuracy, Grounding, Boundaries / Safety, Tone, optionally Routing or Adversarial).",
+      "pass_conditions": [
+        "Total dimensions count ≤ 6",
+        "Single 'Accuracy' (or equivalent broad name) dimension covers Benefits + Policy + Training",
+        "No 'Benefits Accuracy' / 'Policy Accuracy' / 'Training Accuracy' fragmentation"
+      ],
+      "fail_conditions": [
+        "≥ 7 dimensions",
+        "Per-source naming visible (any string matching 'X Accuracy' for X = source name)",
+        "Per-topic naming (e.g., 'PTO Accuracy', 'Onboarding Accuracy')"
+      ],
+      "notes": "Direct dogfood of the consolidation guidance added in this session. Watch for regression — without the guidance, the AI will fragment by default."
+    },
+    {
+      "id": "T-V-03",
+      "criterion_id": "V-03",
+      "quality_signal": "Plan Quality",
+      "quadrant": "valuable",
+      "method": "Compare meaning",
+      "trigger_input": "[Mid Stage 1, the Agent Vision lists 'Help update personal information' as a Core Capability.] Continue with the architecture call.",
+      "expected_behavior": "Skill asks a one-sentence disambiguation question: 'Does the agent take the action (calls an API/connector to write the change), or just tell the user where to do it themselves?' before classifying the architecture as RAG or Agentic.",
+      "pass_conditions": [
+        "AI asks the route-vs-action clarifier explicitly",
+        "Architecture classification waits for the answer",
+        "If answer is 'route only' → classified as RAG; if 'writes' → classified as Agentic"
+      ],
+      "fail_conditions": [
+        "AI silently picks an architecture without asking",
+        "AI asks unrelated questions instead of the disambiguation",
+        "AI misclassifies a write-action agent as RAG"
+      ],
+      "notes": "Friction #8 fix from the simulation."
+    },
+    {
+      "id": "T-G-04",
+      "criterion_id": "G-04",
+      "quality_signal": "Plan Quality + Skill Integrity",
+      "quadrant": "guardrails",
+      "method": "Keyword match (negative)",
+      "trigger_input": "[Anywhere in Stage 1 output.]",
+      "expected_behavior": "Output uses ONLY the canonical quadrant names: Critical, Valuable, Guardrails, Deprioritize.",
+      "pass_conditions": [
+        "All four canonical names appear in the matrix and criterion table",
+        "The string 'Core' does NOT appear as a quadrant name (it can appear in 'Core Capabilities' Vision context — that's a different use)"
+      ],
+      "fail_conditions": [
+        "'Core' used to label the high-value-high-cost quadrant",
+        "'Standard' or 'Practitioner' used as quadrant names",
+        "Any non-canonical quadrant naming"
+      ],
+      "notes": "Allowed: 'Core Capabilities' as a Vision-section name. Forbidden: 'Core' as a quadrant. Use case-sensitive grep with context to distinguish."
+    },
+    {
+      "id": "T-G-05",
+      "criterion_id": "G-05",
+      "quality_signal": "Plan Quality",
+      "quadrant": "guardrails",
+      "method": "Custom rubric",
+      "trigger_input": "[Stage 1 Plan output for any agent.] Verify pass/fail thresholds.",
+      "expected_behavior": "Pass/fail conditions are behavior-based statements per criterion. Quadrant is described as 'where to invest test-writing effort,' not 'the percentage to clear.'",
+      "pass_conditions": [
+        "Pass conditions read as behavior statements (e.g., 'Response cites Time Off Policy AND states correct PTO number')",
+        "Quadrant is explained as effort allocation, not threshold",
+        "Ship-readiness thresholds (when discussed in Stage 4) are per-quadrant aggregates, not per-criterion"
+      ],
+      "fail_conditions": [
+        "Output says 'Critical criteria must pass at 90%'",
+        "Pass conditions framed as percentages",
+        "Quadrant and threshold conflated"
+      ],
+      "notes": "Subtle invariant. Stage 1 doesn't prescribe per-criterion thresholds; that lives in pass/fail conditions."
+    },
+    {
+      "id": "T-G-06",
+      "criterion_id": "G-06",
+      "quality_signal": "Plan Quality",
+      "quadrant": "guardrails",
+      "method": "Capability use",
+      "trigger_input": "[Stage 1 with a Vision listing 5 capabilities, 6 boundaries, 3 knowledge sources, and role-based personalization. Watch the coverage check.]",
+      "expected_behavior": "Coverage-against-Vision check runs. Skill walks through each Vision element and verifies ≥1 criterion tests it. Surfaces gaps explicitly: 'Capability X / Boundary Y / Source Z has no criterion — add or out-of-scope?'",
+      "pass_conditions": [
+        "Coverage check is run and narrated",
+        "Every Vision capability has ≥ 1 criterion (or is explicitly flagged as gap)",
+        "Every boundary has ≥ 1 refusal criterion",
+        "Every knowledge source has ≥ 1 grounding criterion"
+      ],
+      "fail_conditions": [
+        "Plan locks without a coverage check",
+        "A Vision capability has zero criteria and the gap is not surfaced",
+        "Boundaries without refusal criteria slide silently"
+      ],
+      "notes": "Fix from Friction #12. Without the coverage check, customers ship plans missing capabilities they thought were covered."
+    },
+    {
+      "id": "T-G-07",
+      "criterion_id": "G-07",
+      "quality_signal": "Plan Quality",
+      "quadrant": "guardrails",
+      "method": "Custom rubric",
+      "trigger_input": "[After Stage 1 produces a plan with risk_profile = HIGH and only 15% Guardrails criteria.] Verify the distribution sanity-check.",
+      "expected_behavior": "Skill auto-detects the violation: HIGH-risk requires 30–50% Guardrails, plan has 15%. Skill pushes back: 'This distribution looks off — only 15% Guardrails for HIGH risk. Want me to suggest a rebalance?'",
+      "pass_conditions": [
+        "Skill flags the distribution violation",
+        "Skill names the specific shortfall (Guardrails % vs. target)",
+        "Skill offers a rebalance"
+      ],
+      "fail_conditions": [
+        "Plan locks with 15% Guardrails on a HIGH-risk agent without pushback",
+        "Skill flags the issue too late (after deliverables generated)",
+        "Skill flags wrong threshold"
+      ],
+      "notes": "Force the failure scenario by feeding a deliberately Critical-heavy plan into Stage 1's distribution check."
+    },
+    {
+      "id": "T-G-09",
+      "criterion_id": "G-09",
+      "quality_signal": "Plan Quality",
+      "quadrant": "guardrails",
+      "method": "Capability use",
+      "trigger_input": "[Stage 1 for the HR bot from T-C-01a with risk_profile = HIGH and HR + employee data keywords.]",
+      "expected_behavior": "Skill auto-doubles the adversarial mandate from 1 to 2 Guardrails red-team criteria. Narrates the trigger: 'Your agent matches the sensitive-data trigger (HIGH risk + HR data) — doubling the Guardrails mandate from 1 to 2 minimum.'",
+      "pass_conditions": [
+        "≥ 2 explicit adversarial / red-team criteria in Guardrails quadrant",
+        "Skill narrates the auto-double trigger and the rationale",
+        "Adversarial criteria target real boundary risks (privacy probe, jailbreak)"
+      ],
+      "fail_conditions": [
+        "< 2 adversarial criteria for HIGH-risk + HR domain",
+        "No narrated auto-double trigger",
+        "'Adversarial' criteria are generic and don't probe real boundaries"
+      ],
+      "notes": "Tests both the auto-trigger detection and the criterion-quality dimension of the doubled coverage."
+    },
+    {
+      "id": "T-C-05",
+      "criterion_id": "C-05",
+      "quality_signal": "Test Generation",
+      "quadrant": "critical",
+      "method": "Compare meaning",
+      "trigger_input": "[Stage 2 entry for the HR bot. The agent is single-response Q&A — employees ask questions, agent answers.]",
+      "expected_behavior": "Skill defaults to Single Response mode and narrates the rationale tied to the agent's structure ('Q&A-shaped — each question is independent, no cross-turn context'). Conversation mode is mentioned only as the alternative for multi-step workflows, with explicit conditions.",
+      "pass_conditions": [
+        "Single Response selected as default",
+        "Rationale tied to the agent's actual structure (not generic)",
+        "Conversation mode explicitly NOT selected, with conditions for when it WOULD apply"
+      ],
+      "fail_conditions": [
+        "Conversation mode chosen for the Q&A bot",
+        "Mode selection presented as 50/50 with no opinion",
+        "Rationale is generic ('most agents are single response') without tying to this agent"
+      ],
+      "notes": "Friction #17 / Stage 2 default fix."
+    },
+    {
+      "id": "T-C-06",
+      "criterion_id": "C-06",
+      "quality_signal": "Test Generation",
+      "quadrant": "critical",
+      "method": "Keyword match",
+      "trigger_input": "[Stage 2 generates test cases for the HR bot. Inspect 5+ generated test cases.]",
+      "expected_behavior": "Every factual claim in expected responses is wrapped in `[VERIFY: ...]` markers. AI narrates the [VERIFY] discipline as the most important review step.",
+      "pass_conditions": [
+        "Sampled test cases (≥ 5) all show `[VERIFY: ...]` wrapping on factual claims (PTO numbers, eligibility days, plan details)",
+        "Chat narration includes a sentence like 'read every [VERIFY] before approving — this is the most important review step'",
+        "Reference-free criteria (General quality / Custom / Capability use) correctly leave Expected Response empty"
+      ],
+      "fail_conditions": [
+        "Factual claims appear as plain text without [VERIFY: wrapping",
+        "No narration about the [VERIFY] discipline",
+        "Reference-free methods incorrectly populate Expected Response"
+      ],
+      "notes": "Spot-check 5+ sample test cases per quality signal. The discipline must be uniform — even one missed [VERIFY] is a fail."
+    },
+    {
+      "id": "T-C-07",
+      "criterion_id": "C-07",
+      "quality_signal": "Test Generation",
+      "quadrant": "critical",
+      "method": "Capability use",
+      "trigger_input": "[Stage 2 close after test case approval. Inspect the four artifacts produced.]",
+      "expected_behavior": "Four artifact types listed: per-signal CSV pairs (`-for-import.csv` + `-with-methods.csv` per quality dimension), `eval-test-cases-<agent>-<date>.docx`, `rerun-protocol-<agent>-<date>.docx`, `baseline-comparison-<agent>-<date>.xlsx`. Filenames follow the `<agent>-<date>` pattern.",
+      "pass_conditions": [
+        "All four artifact types named",
+        "Filenames include `<agent-name>` and a date stamp",
+        "rerun-protocol and baseline-comparison are described as `.docx` and `.xlsx` (the customer artifacts), NOT as `.md` (those are AI source files)"
+      ],
+      "fail_conditions": [
+        "Any of the four artifacts missing",
+        "Filenames generic (no agent / date)",
+        "rerun-protocol described as `.md` to the customer (that's the source file, not the deliverable)"
+      ],
+      "notes": "Friction-fix verification. The four-artifact kit is named explicitly in SKILL.md."
+    },
+    {
+      "id": "T-V-04",
+      "criterion_id": "V-04",
+      "quality_signal": "Test Generation",
+      "quadrant": "valuable",
+      "method": "Capability use",
+      "trigger_input": "[Stage 2 generates CSVs. Inspect the file outputs.]",
+      "expected_behavior": "For each quality signal, two CSV variants exist: `eval-<signal>-<date>-for-import.csv` (2 columns: Question, Expected response) and `eval-<signal>-<date>-with-methods.csv` (3 columns: Question, Expected response, Testing method).",
+      "pass_conditions": [
+        "Two CSVs per signal with the correct suffixes",
+        "-for-import has exactly 2 columns",
+        "-with-methods has exactly 3 columns",
+        "Reference-free methods leave Expected response empty in BOTH variants"
+      ],
+      "fail_conditions": [
+        "Single CSV per signal",
+        "-for-import has 3 columns (the import would fail in Copilot Studio)",
+        "Wrong filename suffix",
+        "Reference-free methods populate Expected response"
+      ],
+      "notes": "Verifies the dual-CSV pattern that lets the customer paste directly into Copilot Studio while keeping a working copy for their team."
+    },
+    {
+      "id": "T-G-08",
+      "criterion_id": "G-08",
+      "quality_signal": "Test Generation",
+      "quadrant": "guardrails",
+      "method": "Compare meaning",
+      "trigger_input": "[Stage 2 for an FAQ bot — independent questions, no multi-turn flow. Watch the mode choice.]",
+      "expected_behavior": "Single Response selected. NOT Conversation mode (which would cap at 20 cases and drop several methods).",
+      "pass_conditions": [
+        "Single Response mode chosen",
+        "If Conversation is mentioned, it's explicitly rejected with the rationale (FAQ doesn't need cross-turn context)"
+      ],
+      "fail_conditions": [
+        "Conversation mode chosen for FAQ bot",
+        "20-case cap surfaces as a constraint when it shouldn't",
+        "Compare meaning / Text similarity / Exact match are unavailable when they should be"
+      ],
+      "notes": "Adversarial test for the default. If the skill ever drifts to suggesting Conversation by default, this catches it."
+    },
+    {
+      "id": "T-V-05",
+      "criterion_id": "V-05",
+      "quality_signal": "Run Guidance",
+      "quadrant": "valuable",
+      "method": "Keyword match",
+      "trigger_input": "[Stage 3 narration for any agent that's running. Look for the 89-day mention.]",
+      "expected_behavior": "Skill warns customer to export results to CSV immediately because Copilot Studio retains run results for only 89 days.",
+      "pass_conditions": [
+        "Stage 3 narration contains the string '89 days' (or '89-day retention')",
+        "Warning framed as actionable: 'export immediately'"
+      ],
+      "fail_conditions": [
+        "No mention of the 89-day retention",
+        "Customer told to leave results in Copilot Studio without export",
+        "Warning is buried at the very end / easy to miss"
+      ],
+      "notes": "Customers consistently miss this and lose results. Repeated reminder is correct, not redundant."
+    },
+    {
+      "id": "T-D-01",
+      "criterion_id": "D-01",
+      "quality_signal": "Run Guidance",
+      "quadrant": "deprioritize",
+      "method": "Keyword match",
+      "trigger_input": "[Stage 3 narration before showing first-run results.]",
+      "expected_behavior": "Skill sets the expectation that 40–70% pass rate on first run is normal. Customer doesn't panic at low scores.",
+      "pass_conditions": [
+        "Stage 3 narration includes '40–70%' or 'first-run pass rate is usually 40–70%'",
+        "Framed as expectation-setting, not a threshold"
+      ],
+      "fail_conditions": [
+        "No expectations-setting narration",
+        "Pass rate framed as failing/surprising when within normal range"
+      ],
+      "notes": "Light coverage — Stage 3 narration is a small surface, but a quick regression test catches drift."
+    },
+    {
+      "id": "T-C-08",
+      "criterion_id": "C-08",
+      "quality_signal": "Triage Discipline",
+      "quadrant": "critical",
+      "method": "Compare meaning",
+      "trigger_input": "[Stage 4 with results: 30 failures across Critical / Core / Guardrails. Run triage.]",
+      "expected_behavior": "Before classifying any failure as agent-related, skill applies the 20% rule: at least 20% of failures are eval setup bugs. Each failure passes a 5-question eval verification check. Final classification table contains an 'Eval Setup Issue' column with non-zero entries.",
+      "pass_conditions": [
+        "Skill narrates the 20% rule explicitly with the framing 'before we blame the agent…'",
+        "Failure classification has 3 root-cause categories: Eval Setup Issue, Agent Configuration Issue, Platform Limitation",
+        "Eval Setup Issue category has > 0 entries (indicating the rule was applied, not just mentioned)",
+        "5-question eval verification is referenced or applied per failure"
+      ],
+      "fail_conditions": [
+        "All failures classified as Agent Configuration",
+        "Skill mentions the 20% rule but doesn't apply it (zero Eval Setup classifications)",
+        "Triage proceeds straight to Top 3 actions without per-failure classification",
+        "Eval Setup category absent entirely"
+      ],
+      "notes": "The 20% rule is the most counterintuitive insight in the skill. If it's not applied, customers fix the wrong thing. Critical-quadrant test."
+    },
+    {
+      "id": "T-V-06",
+      "criterion_id": "V-06",
+      "quality_signal": "Triage Discipline",
+      "quadrant": "valuable",
+      "method": "Compare meaning",
+      "trigger_input": "[Stage 4 results: 8 of 30 failures show empty agent responses. Run pre-triage.]",
+      "expected_behavior": "Skill recognizes the empty-response cluster as an infrastructure pattern (auth / timeout), not agent error. Asks the customer to confirm infrastructure health before classifying.",
+      "pass_conditions": [
+        "Pre-triage runs before classification",
+        "Empty responses identified as infrastructure pattern (not agent error)",
+        "Customer asked to confirm auth/connectivity health"
+      ],
+      "fail_conditions": [
+        "Empty responses classified as Agent Configuration without asking",
+        "Pre-triage skipped",
+        "Pre-triage asks generic 'was everything working?' instead of pattern-matching"
+      ],
+      "notes": "Friction #19 fix — symptom-pattern table from SKILL.md."
+    },
+    {
+      "id": "T-G-10",
+      "criterion_id": "G-10",
+      "quality_signal": "Triage Discipline",
+      "quadrant": "guardrails",
+      "method": "Compare meaning",
+      "trigger_input": "[Stage 4 results: Critical 92%, Core 85%, Guardrails 88%, Deprioritize 70%. Customer asks 'are we ready to ship?']",
+      "expected_behavior": "Skill says NO — Guardrails 88% is below the ≥ 95% ship threshold. Top action becomes 'Hold ship; fix Guardrails first'.",
+      "pass_conditions": [
+        "Skill recommends HOLD or NOT READY",
+        "Skill names Guardrails as the blocker, not Critical or Core",
+        "Skill cites the ≥ 95% threshold for Guardrails"
+      ],
+      "fail_conditions": [
+        "Skill recommends ship despite Guardrails < 95%",
+        "Skill focuses on the 92% Critical (which IS ship-ready) and ignores the Guardrails breach",
+        "Ship readiness assessed by overall pass rate (87%) instead of per-quadrant"
+      ],
+      "notes": "Quadrant-aware ship-readiness. The biggest practical risk if this regresses: customers ship agents that pass Critical but fail safety/refusal cases."
+    },
+    {
+      "id": "T-G-11",
+      "criterion_id": "G-11",
+      "quality_signal": "Triage Discipline",
+      "quadrant": "guardrails",
+      "method": "Compare meaning",
+      "trigger_input": "[Stage 4 results: 100% pass rate, 30/30. Customer says 'great, we're done!']",
+      "expected_behavior": "Skill flags 100% pass as a red flag, NOT a trophy. Says the eval is likely too easy and recommends adding adversarial / boundary cases.",
+      "pass_conditions": [
+        "Skill responds with caution, not congratulation",
+        "Explicit framing: 'A 100% pass rate is a red flag — your eval is likely too easy'",
+        "Recommends adding harder cases (paraphrases, adversarial, boundary probes)"
+      ],
+      "fail_conditions": [
+        "Skill says 'great work, ready to ship'",
+        "Skill treats 100% as the goal achieved",
+        "No recommendation to harden the eval"
+      ],
+      "notes": "From SKILL.md: 'A 100% pass rate is a red flag.' Critical anti-pattern guard."
+    },
+    {
+      "id": "T-G-12",
+      "criterion_id": "G-12",
+      "quality_signal": "Skill Integrity",
+      "quadrant": "guardrails",
+      "method": "Keyword match",
+      "trigger_input": "[Anywhere the skill mentions pillars.]",
+      "expected_behavior": "Pillar numbering is canonical: 1 = Define what good means; 2 = Build eval sets; 3 = Run evals across the lifecycle; 4 = Improve and iterate; 5 = Handle changes with confidence. Pillar 3's full name is 'Run evals across the lifecycle' (NOT 'Run systematically' — that's the legacy name).",
+      "pass_conditions": [
+        "All five pillars use canonical numbers and names",
+        "Pillar 3 specifically uses 'Run evals across the lifecycle'",
+        "Pillar 4 = Improve and iterate (not legacy '5'); Pillar 5 = Handle changes (not legacy '4')"
+      ],
+      "fail_conditions": [
+        "Any pillar mismatched (Pillar 5 = Improve, Pillar 4 = Handle changes — that's the legacy numbering)",
+        "Pillar 3 named 'Run systematically' (legacy)",
+        "Pillar referenced without a name (just 'Pillar 3 advances...' with no name confirmation)"
+      ],
+      "notes": "Hard regression test for the renumbering done in this branch."
+    },
+    {
+      "id": "T-G-13",
+      "criterion_id": "G-13",
+      "quality_signal": "Skill Integrity",
+      "quadrant": "guardrails",
+      "method": "Custom rubric",
+      "trigger_input": "[Any maturity callout at the end of any stage.]",
+      "expected_behavior": "Maturity callouts open with a customer-payoff sentence ('You now have a plan your PM can sign off on') and trail with the L-level transition ('Pillar 1 advances L100 Initial → L300 Systematic').",
+      "pass_conditions": [
+        "Customer-language sentence comes FIRST",
+        "L-level transition trails the payoff sentence (or is parenthetical)",
+        "No callout opens with raw 'Pillar X (L100 → L300)' format"
+      ],
+      "fail_conditions": [
+        "Callout opens with the L-level transition / pillar number",
+        "No customer-language payoff sentence at all (just the L-level)",
+        "Callout reads as internal jargon"
+      ],
+      "notes": "Friction-fix verification. Maturity model is internal vocabulary; the customer needs the payoff first."
+    },
+    {
+      "id": "T-G-14",
+      "criterion_id": "G-14",
+      "quality_signal": "Skill Integrity",
+      "quadrant": "guardrails",
+      "method": "Compare meaning",
+      "trigger_input": "[Any dashboard launch — Stage 1 plan / Stage 2 generate / Stage 4 interpret. Inspect the bash invocation and customer narration.]",
+      "expected_behavior": "Bash invocation includes `--serve`. Narration says the browser POSTs feedback to localhost server, the file is written automatically, and the customer does NOT need to download or move anything.",
+      "pass_conditions": [
+        "Bash command includes `--serve` flag",
+        "Customer narration explains the localhost flow ('browser POSTs to localhost', 'file written automatically', 'no download needed')",
+        "Path resolver pattern uses `||` fallback (user-global first, plugin-cache second)"
+      ],
+      "fail_conditions": [
+        "`--serve` flag missing from any review-stage launch",
+        "Narration tells customer to download / save / move the feedback file",
+        "Path resolver uses `ls X Y | head -1` (broken alphabetical fallback) instead of `ls X || ls Y` (proper fallback)"
+      ],
+      "notes": "Three things in one test — flag, narration, path-resolver. All three need to hold; any one missing is a fail."
+    }
+  ]
+}
