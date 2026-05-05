@@ -102,6 +102,7 @@
     {
       "phase": "Running evals",
       "items": [
+        "eval-setup-guide-<agent>-<date>.docx — step-by-step Copilot Studio setup: per-method configuration, threshold guidance, troubleshooting",
         "rerun-protocol-<agent>-<date>.docx — when to re-run evals as the agent changes (Pillar 3 L200)",
         "baseline-comparison-<agent>-<date>.xlsx — workbook for comparing two eval runs (Pillar 5 L200)"
       ]

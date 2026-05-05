@@ -623,17 +623,18 @@ Tell the customer: "Here's your eval plan as a `.docx` — share it with your te
 
 Generate test cases as **separate CSV files per quality signal**. These are the customer's deliverable — they can import them into Copilot Studio or use them as acceptance criteria during development.
 
-### What you walk away with (four artifacts, one kit)
+### What you walk away with (one kit)
 
 | Artifact | Use it for |
 |---|---|
 | `eval-<signal>-<date>-for-import.csv` (per quality signal) | Paste directly into Copilot Studio Evaluation tab |
 | `eval-<signal>-<date>-with-methods.csv` (per quality signal) | Team's working copy, version control, method audit |
 | `eval-test-cases-<agent>-<date>.docx` | PM / stakeholder review |
-| `rerun-protocol-<agent>-<date>.docx` | Pillar 3 L200 — your re-run runbook |
+| `eval-setup-guide-<agent>-<date>.docx` | Step-by-step walkthrough for setting up + running the eval in Copilot Studio's Evaluate tab |
+| `rerun-protocol-<agent>-<date>.docx` | Pillar 3 L200 — when to re-run the eval as the agent changes |
 | `baseline-comparison-<agent>-<date>.xlsx` | Pillar 5 L200 — your version-comparison workbook |
 
-The kit is one deliverable, not five. CSVs go to Copilot Studio. The .docx report goes to your PM. The two starter artifacts go to your eval-process docs.
+The kit is one deliverable. CSVs go to Copilot Studio. The test-case .docx goes to your PM. The setup guide, rerun protocol, and baseline-comparison workbook go to your eval-process docs.
 
 ### When this stage is wrong for you
 
@@ -826,7 +827,7 @@ Report structure:
 4. For each test case: Question, Expected Response (with [VERIFY] content called out), and suggested test method
 5. Summary table: quality dimension, criterion count, test case count, methods
 6. "What these tests catch" callout — 3-4 bullet points on what the customer would have missed
-7. Next steps — what to do with these files. **Always include a pointer line:** *"You're also receiving two starter artifacts (generated below) — `rerun-protocol-<agent>-<date>.docx` (Pillar 3 L200) and `baseline-comparison-<agent>-<date>.xlsx` (Pillar 5 L200). They advance Pillars 3 and 5 from L100 Initial to L200 Defined."*
+7. Next steps — what to do with these files. **Always include a pointer line:** *"You're also receiving three companion artifacts (generated below) — `eval-setup-guide-<agent>-<date>.docx` (step-by-step Copilot Studio setup), `rerun-protocol-<agent>-<date>.docx` (Pillar 3 L200), and `baseline-comparison-<agent>-<date>.xlsx` (Pillar 5 L200). They walk you through how to set up the run today and advance Pillars 3 and 5 from L100 Initial to L200 Defined."*
 8. Maturity snapshot — before/after table showing where the agent stands after this session:
 
    | Pillar | Baseline | After this session | Next-session target |
@@ -853,7 +854,11 @@ Report structure:
    | **Decision rules** | Variance rules, ship/hold logic. Read-only reference sheet. |
    | **Capability vs. regression** | Cheat sheet on the two run types, when to use each. Read-only reference sheet. |
 
-Tell the customer: "Four artifacts: the CSVs go straight into Copilot Studio, the test case .docx is for sharing, and the new `rerun-protocol-<agent>-<date>.docx` and `baseline-comparison-<agent>-<date>.xlsx` are your Pillar 3 and Pillar 5 starter kits — keep them with your eval set."
+**E. Eval setup guide — `eval-setup-guide-<agent>-<date>.docx`** — Generate using the `/docx` skill, sourcing structure and content from `skills/eval-guide/eval-setup-guide.md`. This is the customer's step-by-step walkthrough for setting up and running the CSVs in Copilot Studio's Evaluate tab — the operational companion to the eval set.
+
+   Render the markdown sections as docx sections with the same headings (What you should have before you start, Step 1–8, Per-method setup table, How to choose a threshold, Common setup issues, You've finished setup successfully when…, Related artifacts, References). Format the per-method setup section as styled docx tables; pull the criteria-quadrant decision tree into a callout box; preserve the troubleshooting symptom/cause/fix table verbatim.
+
+Tell the customer: "Five artifacts: the CSVs go straight into Copilot Studio, the test case .docx is for sharing, the new `eval-setup-guide-<agent>-<date>.docx` walks you through the Evaluate tab step by step (open it the first time you set up the run), and `rerun-protocol-<agent>-<date>.docx` + `baseline-comparison-<agent>-<date>.xlsx` are your Pillar 3 and Pillar 5 starter kits — keep them with your eval set."
 
 ---
 
@@ -1054,7 +1059,7 @@ Before generating the final triage report, launch the interpret dashboard for re
    2. Failure triage table (quadrant, criterion, question, expected, actual, root cause) — include human-disagreed entries as "Eval Setup — Human Disagrees"
    3. Top actions (Change → Re-run → Expect)
    4. Pattern analysis — quadrant-aware patterns highlighting systemic issues (e.g., Guardrails failures are more urgent than Deprioritize failures)
-   5. Next steps. **Always include a pointer line:** *"You're also keeping the Pillar 3 and Pillar 5 starter artifacts from Stage 2 — `rerun-protocol-<agent>-<date>.docx` and `baseline-comparison-<agent>-<date>.xlsx`. They advance Pillars 3 and 5 from L100 Initial to L200 Defined; use them when re-running and comparing runs."* (If Stage 2 was skipped, generate them now using the same flow as Stage 2 deliverables C and D.)
+   5. Next steps. **Always include a pointer line:** *"You're also keeping the companion artifacts from Stage 2 — `eval-setup-guide-<agent>-<date>.docx` (step-by-step Copilot Studio setup), `rerun-protocol-<agent>-<date>.docx` (Pillar 3 L200), and `baseline-comparison-<agent>-<date>.xlsx` (Pillar 5 L200). They walk you through how to set up the run, when to re-run, and how to compare runs."* (If Stage 2 was skipped, generate them now using the same flow as Stage 2 deliverables C, D, and E.)
    6. Maturity snapshot — same before/after table as the Stage 2 report, updated to reflect Pillar 4 now at L300 Systematic:
 
       | Pillar | Baseline | After this session | Next-session target |
@@ -1110,6 +1115,7 @@ Two markdown source files live alongside this skill at `skills/eval-guide/`. The
 
 | Source file | Generates | Pillar | Purpose |
 |---|---|---|---|
+| `eval-setup-guide.md` | `eval-setup-guide-<agent>-<date>.docx` | Operational companion (Stage 2/3 bridge) | Step-by-step walkthrough for setting up the eval in Copilot Studio's Evaluate tab — method-by-method setup, threshold guidance, troubleshooting |
 | `rerun-protocol.md` | `rerun-protocol-<agent>-<date>.docx` | Pillar 3 L200 Defined | Reference document — when to re-run evals after the agent changes, what scope to run, how to log results |
 | `baseline-comparison-template.md` | `baseline-comparison-<agent>-<date>.xlsx` | Pillar 5 L200 Defined | Fill-in workbook — comparison table for two eval runs, four case-level buckets, ship/hold decision |
 
