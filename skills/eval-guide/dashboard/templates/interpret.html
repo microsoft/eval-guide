@@ -115,16 +115,245 @@
 .judgement-select:focus { outline: none; border-color: var(--accent); }
 .judgement-select.disagree { background: var(--red-bg); color: var(--red); border-color: var(--red); }
 .judgement-select.agree { background: var(--green-bg); color: var(--green); border-color: var(--green); }
+
+/* Case cards — per-test-case layout inside criterion expansion */
+.case-cards {
+  background: var(--bg);
+  padding: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.case-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+.case-q {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px dashed var(--border);
+}
+.case-q-label {
+  flex: 0 0 auto;
+  width: 1.4rem;
+  height: 1.4rem;
+  line-height: 1.35rem;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--mono);
+}
+.case-q-text {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  color: var(--text);
+}
+.case-compare {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+@media (min-width: 720px) {
+  .case-compare { grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+}
+.case-side {
+  background: var(--bg);
+  border-radius: 4px;
+  padding: 0.6rem 0.75rem;
+  min-width: 0;
+}
+.case-expected { border-left: 3px solid var(--green); }
+.case-actual   { border-left: 3px solid var(--accent); }
+.case-side-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+.case-side-text {
+  color: var(--text);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+.case-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+.case-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.9rem;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+.case-meta .case-method { font-weight: 500; color: var(--text); }
+.case-meta .case-score  { font-family: var(--mono); }
+.case-judgement {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.case-judgement-label {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.case-rationale-toggle {
+  margin-top: 0.55rem;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font);
+  font-size: 0.76rem;
+  color: var(--accent);
+  cursor: pointer;
+  text-align: left;
+}
+.case-rationale-toggle:hover { text-decoration: underline; }
+.case-rationale {
+  display: none;
+  margin-top: 0.45rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg);
+  border-left: 2px solid var(--text-muted);
+  border-radius: 0 4px 4px 0;
+  font-size: 0.79rem;
+  font-style: italic;
+  color: var(--text-muted);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.case-rationale.visible { display: block; }
+
+/* Pattern cards — highlight the headline */
+.pattern-card {
+  display: flex;
+  gap: 0.9rem;
+  padding: 0.8rem 1rem;
+  background: var(--bg);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin-bottom: 0.55rem;
+}
+.pattern-num {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  padding-top: 0.15rem;
+}
+.pattern-body { flex: 1; min-width: 0; }
+.pattern-headline {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+  line-height: 1.35;
+}
+.pattern-detail {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+/* Action cards — suggestions derived from patterns */
+.action-card {
+  padding: 0.8rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.55rem;
+}
+.action-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.4rem;
+}
+.action-num {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.action-cat {
+  display: inline-block;
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.action-cat-knowledge { background: var(--blue-bg);   color: var(--blue); }
+.action-cat-topic     { background: var(--green-bg);  color: var(--green); }
+.action-cat-testdata  { background: var(--yellow-bg); color: #996600; }
+.action-cat-profile   { background: var(--red-bg);    color: var(--red); }
+.action-cat-agent     { background: var(--bg);        color: var(--text-muted); border: 1px solid var(--border); }
+.action-cat-other     { background: var(--bg);        color: var(--text-muted); border: 1px solid var(--border); }
+.action-change {
+  font-size: 0.86rem;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 0.45rem;
+}
+.action-rerun {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  border-top: 1px dashed var(--border);
+  padding-top: 0.45rem;
+  margin-top: 0.45rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.25rem;
+}
+.action-rerun strong { color: var(--text); font-weight: 600; }
+@media (min-width: 640px) {
+  .action-rerun { grid-template-columns: 1fr 1fr; gap: 1rem; }
+}
 </style>
 
-<!-- Section 1: Quadrant Performance -->
+<!-- Section 1: Pass Rate Overview -->
 <div class="section">
   <div class="section-header flex-between">
-    <span data-tooltip="Actual pass rate of each criterion, grouped by quadrant. Quadrant tells you where effort matters most — a Low Value · High Risk failure is more urgent than a Low Value · Low Risk failure at the same pass rate.">Quadrant Performance</span>
+    <span data-tooltip="Pass-rate rollup by quadrant. High Value · High Risk failures matter most — read this view first to see where effort should focus.">Pass Rate Overview</span>
     <span class="text-sm text-muted" id="metrics-status-count"></span>
   </div>
   <div class="section-body">
     <div class="quadrant-summary-cards" id="quadrant-summary-cards"></div>
+  </div>
+</div>
+
+<!-- Section 2: Human – AI Judge Alignment -->
+<div class="section">
+  <div class="section-header">
+    <span data-tooltip="The AI judge produced a Pass/Fail verdict for every test case. Expand each criterion, read the Expected vs. Actual, then mark Agree or Disagree on the judge's verdict. Disagreements are auto-promoted to Failure Triage as eval-setup issues. Calibrate the judge against your human read before trusting its aggregate metrics.">Human – AI Judge Alignment</span>
   </div>
   <div class="section-body" style="padding-top:0;overflow-x:auto;">
     <table>
@@ -165,16 +394,16 @@
   </div>
 </div>
 
-<!-- Section 3: Top Actions -->
-<div class="section">
-  <div class="section-header"><span data-tooltip="Prioritized changes to make to the agent or eval setup, each with a specific re-run expectation. When re-running, run the full set — not just the failing cases — to catch regressions elsewhere.">Top Actions</span></div>
-  <div class="section-body" id="actions-list"></div>
-</div>
-
 <!-- Section 4: Patterns -->
 <div class="section">
-  <div class="section-header"><span data-tooltip="Cross-cutting failure patterns. Low Value · High Risk failures are more urgent than Low Value · Low Risk failures at the same rate — patterns should be read with quadrant weight in mind.">Patterns</span></div>
+  <div class="section-header"><span data-tooltip="Cross-cutting failure patterns — what's actually broken, not just where. Each card leads with the key signal (a stat or one-line diagnosis), with supporting detail underneath. Top Actions below are derived from these.">Patterns</span></div>
   <div class="section-body" id="patterns-list"></div>
+</div>
+
+<!-- Section 5: Top Actions -->
+<div class="section">
+  <div class="section-header"><span data-tooltip="Suggested fixes derived from the Patterns above. Each action is tagged by category — Topic, Knowledge Source, Test Data, Test Profile, Agent Config — so you can see at a glance what kind of change is being proposed. Re-run the full eval set after each change to catch regressions elsewhere.">Top Actions <span class="text-sm text-muted" style="font-weight:400;">— derived from Patterns</span></span></div>
+  <div class="section-body" id="actions-list"></div>
 </div>
 
 <script>
@@ -317,36 +546,51 @@ function renderMetricsStatus(metrics) {
       const detailTr = document.createElement("tr");
       detailTr.className = "metric-detail-row";
       detailTr.id = rowId;
-      let detailHtml = '<td colspan="5"><table class="detail-table"><thead><tr>' +
-        '<th style="width:22%">Question</th>' +
-        '<th style="width:22%">Expected Response</th>' +
-        '<th style="width:22%">Actual Response</th>' +
-        '<th style="width:70px">Method</th>' +
-        '<th style="width:45px">Score</th>' +
-        '<th style="width:40px">Result</th>' +
-        '<th style="width:90px">Human Judgement</th>' +
-        '</tr></thead><tbody>';
+      let cardsHtml = '<td colspan="5" style="padding:0;"><div class="case-cards">';
       criterionCases.forEach((c, cIdx) => {
         const caseKey = m.criterion_id + "_" + cIdx;
-        detailHtml += '<tr>' +
-          '<td>' + escapeHtml(c.question || "") + '</td>' +
-          '<td>' + escapeHtml(truncate(c.expected || "", 150)) + '</td>' +
-          '<td>' + escapeHtml(truncate(c.actual || "", 150)) + '</td>' +
-          '<td>' + escapeHtml(c.method || "") + '</td>' +
-          '<td class="detail-score">' + (c.score !== undefined ? c.score.toFixed(2) : "—") + '</td>' +
-          '<td>' + (c.pass ? '<span class="detail-pass">Pass</span>' : '<span class="detail-fail">Fail</span>') + '</td>' +
-          '<td><select class="judgement-select" data-case-key="' + caseKey + '" data-criterion-id="' + m.criterion_id + '" data-question="' + escapeAttr(c.question || "") + '" data-expected="' + escapeAttr(truncate(c.expected || "", 100)) + '" data-actual="' + escapeAttr(truncate(c.actual || "", 100)) + '" data-quadrant="' + m.quadrant + '" data-criterion-statement="' + escapeAttr(m.statement || "") + '" data-quality-dim="' + escapeAttr(m.quality_dimension || "") + '" onchange="onJudgementChange(this)">' +
-            '<option value="">—</option>' +
-            '<option value="agree">Agree</option>' +
-            '<option value="disagree">Disagree</option>' +
-          '</select></td>' +
-          '</tr>';
+        const rationaleId = "rationale-" + String(m.criterion_id) + "-" + cIdx;
+        const scoreText = c.score !== undefined ? c.score.toFixed(2) : "—";
+        const resultHtml = c.pass ? '<span class="detail-pass">Pass</span>' : '<span class="detail-fail">Fail</span>';
+        cardsHtml += '<div class="case-card">' +
+          '<div class="case-q">' +
+            '<span class="case-q-label">Q</span>' +
+            '<span class="case-q-text">' + escapeHtml(c.question || "") + '</span>' +
+          '</div>' +
+          '<div class="case-compare">' +
+            '<div class="case-side case-expected">' +
+              '<div class="case-side-label">Expected response</div>' +
+              '<div class="case-side-text">' + escapeHtml(c.expected || "") + '</div>' +
+            '</div>' +
+            '<div class="case-side case-actual">' +
+              '<div class="case-side-label">Actual response</div>' +
+              '<div class="case-side-text">' + escapeHtml(c.actual || "") + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="case-footer">' +
+            '<div class="case-meta">' +
+              '<span class="case-method">' + escapeHtml(c.method || "") + '</span>' +
+              '<span class="case-score">Score: ' + scoreText + '</span>' +
+              '<span class="case-result">Result: ' + resultHtml + '</span>' +
+            '</div>' +
+            '<div class="case-judgement">' +
+              '<span class="case-judgement-label">Your judgement:</span>' +
+              '<select class="judgement-select" data-case-key="' + caseKey + '" data-criterion-id="' + m.criterion_id + '" data-question="' + escapeAttr(c.question || "") + '" data-expected="' + escapeAttr(truncate(c.expected || "", 100)) + '" data-actual="' + escapeAttr(truncate(c.actual || "", 100)) + '" data-quadrant="' + m.quadrant + '" data-criterion-statement="' + escapeAttr(m.statement || "") + '" data-quality-dim="' + escapeAttr(m.quality_dimension || "") + '" onchange="onJudgementChange(this)">' +
+                '<option value="">—</option>' +
+                '<option value="agree">Agree</option>' +
+                '<option value="disagree">Disagree</option>' +
+              '</select>' +
+            '</div>' +
+          '</div>';
         if (c.explanation) {
-          detailHtml += '<tr><td colspan="7" class="detail-explanation"><span class="detail-rationale-label">Rationale:</span> ' + escapeHtml(c.explanation) + '</td></tr>';
+          cardsHtml +=
+            '<button type="button" class="case-rationale-toggle" onclick="toggleRationale(\'' + rationaleId + '\', this)">&#9656; Show judge rationale</button>' +
+            '<div class="case-rationale" id="' + rationaleId + '">' + escapeHtml(c.explanation) + '</div>';
         }
+        cardsHtml += '</div>';
       });
-      detailHtml += '</tbody></table></td>';
-      detailTr.innerHTML = detailHtml;
+      cardsHtml += '</div></td>';
+      detailTr.innerHTML = cardsHtml;
       tbody.appendChild(detailTr);
     }
   });
@@ -359,6 +603,15 @@ function toggleDetail(rowId, clickedRow) {
   if (!detailRow) return;
   detailRow.classList.toggle("visible");
   clickedRow.classList.toggle("expanded");
+}
+
+function toggleRationale(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const visible = el.classList.toggle("visible");
+  btn.innerHTML = visible
+    ? '&#9662; Hide judge rationale'
+    : '&#9656; Show judge rationale';
 }
 
 // Human judgement tracking
@@ -451,35 +704,77 @@ function renderFailures(failures) {
   });
 }
 
-function renderActions(actions) {
-  const container = document.getElementById("actions-list");
-  if (actions.length === 0) {
-    container.innerHTML = '<div class="text-muted text-sm">No actions recommended.</div>';
-    return;
+function splitOnFirstColon(s) {
+  const idx = s.indexOf(":");
+  if (idx === -1) return { headline: "", detail: s };
+  return { headline: s.slice(0, idx).trim(), detail: s.slice(idx + 1).trim() };
+}
+
+function inferActionCategory(text) {
+  const t = (text || "").toLowerCase();
+  if (/\bknowledge source|\bingest\b|\bknowledge\b/.test(t)) return { key: "knowledge", label: "Knowledge Source" };
+  if (/\btopic\b/.test(t))                                   return { key: "topic",     label: "Add Topic" };
+  if (/\bprofile\b|\bpersona\b/.test(t))                     return { key: "profile",   label: "Test Profile" };
+  if (/\[verify\]|fact[- ]check|expected response/.test(t))  return { key: "testdata",  label: "Test Data" };
+  if (/\binstruction|\bagent config|\bsystem prompt/.test(t))return { key: "agent",     label: "Agent Config" };
+  return { key: "other", label: "Change" };
+}
+
+function parseAction(raw) {
+  if (raw && typeof raw === "object") {
+    const change = raw.change || "";
+    const cat = raw.category || inferActionCategory(change);
+    return { change, rerun: raw.rerun || "", expect: raw.expect || "", category: cat };
   }
-  container.innerHTML = actions.map((a, i) =>
-    '<div style="margin-bottom:0.8rem;padding:0.6rem;background:var(--bg);border-radius:var(--radius);">' +
-    '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;">' +
-    '<span class="badge badge-green">' + (i + 1) + '</span>' +
-    '<strong class="text-sm">Change:</strong> <span class="text-sm">' + escapeHtml(a.change || "") + '</span>' +
-    '</div>' +
-    '<div class="text-sm" style="margin-left:1.8rem;">' +
-    '<strong>Re-run:</strong> ' + escapeHtml(a.rerun || "") +
-    ' &rarr; <strong>Expect:</strong> ' + escapeHtml(a.expect || "") +
-    '</div>' +
-    '</div>'
-  ).join("");
+  const s = String(raw || "");
+  const change = (s.match(/Change:\s*([\s\S]*?)(?=\s*Re-run:|$)/) || [, ""])[1].trim();
+  const rerun  = (s.match(/Re-run:\s*([\s\S]*?)(?=\s*Expect:|$)/) || [, ""])[1].trim();
+  const expect = (s.match(/Expect:\s*([\s\S]*?)$/) || [, ""])[1].trim();
+  const changeText = change || s;
+  return { change: changeText, rerun, expect, category: inferActionCategory(changeText) };
 }
 
 function renderPatterns(patterns) {
   const container = document.getElementById("patterns-list");
-  if (patterns.length === 0) {
+  if (!patterns || patterns.length === 0) {
     container.innerHTML = '<div class="text-muted text-sm">No patterns detected.</div>';
     return;
   }
-  container.innerHTML = '<ul style="margin:0;padding-left:1.2rem;">' +
-    patterns.map(p => '<li class="text-sm" style="margin-bottom:0.3rem;">' + escapeHtml(p) + '</li>').join("") +
-    '</ul>';
+  container.innerHTML = patterns.map((p, i) => {
+    const { headline, detail } = splitOnFirstColon(String(p || ""));
+    const num = String(i + 1).padStart(2, "0");
+    return '<div class="pattern-card">' +
+      '<div class="pattern-num">P' + num + '</div>' +
+      '<div class="pattern-body">' +
+        (headline ? '<div class="pattern-headline">' + escapeHtml(headline) + '</div>' : '') +
+        '<div class="pattern-detail">' + escapeHtml(detail) + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+}
+
+function renderActions(actions) {
+  const container = document.getElementById("actions-list");
+  if (!actions || actions.length === 0) {
+    container.innerHTML = '<div class="text-muted text-sm">No actions recommended.</div>';
+    return;
+  }
+  container.innerHTML = actions.map((a, i) => {
+    const p = parseAction(a);
+    const num = String(i + 1).padStart(2, "0");
+    const catKey = (p.category && p.category.key) || "other";
+    const catLabel = (p.category && p.category.label) || "Change";
+    const rerun = p.rerun ? '<span><strong>Re-run:</strong> ' + escapeHtml(p.rerun) + '</span>' : '';
+    const expect = p.expect ? '<span><strong>Expect:</strong> ' + escapeHtml(p.expect) + '</span>' : '';
+    return '<div class="action-card">' +
+      '<div class="action-head">' +
+        '<span class="action-num">A' + num + '</span>' +
+        '<span class="action-cat action-cat-' + catKey + '">' + escapeHtml(catLabel) + '</span>' +
+      '</div>' +
+      '<div class="action-change">' + escapeHtml(p.change) + '</div>' +
+      ((rerun || expect) ? '<div class="action-rerun">' + rerun + expect + '</div>' : '') +
+    '</div>';
+  }).join("");
 }
 
 function truncate(text, max) {
