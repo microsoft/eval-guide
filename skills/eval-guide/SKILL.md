@@ -804,7 +804,7 @@ Before generating final CSV and report files, launch the test cases dashboard fo
 4. When the user confirms, **parse the feedback from the bash stdout** between the `===EVAL_GUIDE_FEEDBACK_BEGIN===` / `===EVAL_GUIDE_FEEDBACK_END===` markers. **Apply every edit it contains, faithfully and without question.** The customer's choices are final — do NOT re-litigate, do NOT suggest reverting, do NOT ask for confirmation again, do NOT partially apply. (`generate-feedback.json` is also on disk as a backup, but stdout is the primary channel.)
 
    This applies to ALL edit types:
-   - [VERIFY] span corrections (the customer fact-checked your draft against their real knowledge sources — their version wins)
+   - [VERIFY] span corrections (the customer fact-checked your draft against their real knowledge sources — their version wins). **At export time (CSV + .docx), strip every remaining `[VERIFY: …]` wrapper:** `[VERIFY: <content>]` → `<content>`. By the time the customer has confirmed, every span is either edited (already clean) or accepted (marker is now noise).
    - Question edits
    - Per-method per-case expected-response edits — keyed by method: `test_sets[i].criteria[j].cases[k].expected_responses["Compare meaning"]`, `test_sets[i].criteria[j].cases[k].expected_responses["Keyword match"]`, etc. Each method's value updates that method's column for that case.
    - Custom-method rubric edits (`test_sets[i].criteria[j].custom_rubric`) — the customer's refined rubric is final; use it as the LLM judge prompt verbatim.
@@ -828,13 +828,15 @@ Before generating final CSV and report files, launch the test cases dashboard fo
    **Row generation rule.** One row per active case per criterion (no case × method explosion). Per row:
    - `Question` = the case's question.
    - `Expected response` = whichever of the case's `expected_responses` is most informational, picked by this priority order against the signal's method set:
-     1. `Compare meaning` → `case.expected_responses["Compare meaning"]` (canonical answer with `[VERIFY: …]` markers preserved).
+     1. `Compare meaning` → `case.expected_responses["Compare meaning"]`.
      2. `Text similarity` → `case.expected_responses["Text similarity"]`.
      3. `Exact match` → `case.expected_responses["Exact match"]`.
      4. `Keyword match` → `case.expected_responses["Keyword match"]` (comma-separated keyword list).
      5. None of the above (signal only has reference-free methods like `General quality` / `Custom` / `Capability use`) → leave the cell empty.
 
-   Important: the cell content is what's most useful for the customer to start from. They can edit any cell in CPS or in the CSV before import — for example, switching a row from canonical-answer to keyword-list when they decide that row should use `Keyword match`. The eval-setup-guide.docx makes this explicit.
+   **Strip every `[VERIFY: …]` marker from the cell value before writing the row.** Replace `[VERIFY: <content>]` → `<content>`. The markers exist only as a review aid in the dashboard — by the time the customer has clicked Approve, every span has either been confirmed or edited. The CSV is the eval set the customer is importing into Copilot Studio; it must contain clean expected responses with no review-tooling syntax. Apply the regex `\[VERIFY:\s*([^\]]*)\]` → `$1` (or equivalent) to every Expected response cell before emitting the row.
+
+   The customer can still edit any cell in CPS or in the CSV before import — for example, switching a row from canonical-answer to keyword-list when they decide that row should use `Keyword match`. The eval-setup-guide.docx makes this explicit.
 
    A signal with 12 cases produces exactly 12 rows. (No multiplication by methods.)
 
@@ -849,7 +851,7 @@ Report structure:
 1. Agent Vision summary (from Stage 0) — 5-6 lines max
 2. Value × Cost matrix summary — criteria grouped by quadrant with pass/fail conditions
 3. Test cases organized by quality dimension, with criterion groups showing quadrant badge and pass/fail conditions
-4. For each test case: Question, Expected Response (with [VERIFY] content called out), and suggested test method
+4. For each test case: Question, Expected Response, and suggested test method. **Strip `[VERIFY: …]` markers** the same way as in the CSV — `[VERIFY: <content>]` → `<content>`. The dashboard's review markers don't belong in the customer-facing report.
 5. Summary table: quality dimension, criterion count, test case count, methods
 6. "What these tests catch" callout — 3-4 bullet points on what the customer would have missed
 7. Next steps — what to do with these files. **Always include a pointer line:** *"You're also receiving three companion artifacts (generated below) — `eval-setup-guide-<agent>-<date>.docx` (step-by-step Copilot Studio setup), `rerun-protocol-<agent>-<date>.docx` (Pillar 3 L200), and `baseline-comparison-<agent>-<date>.xlsx` (Pillar 5 L200). They walk you through how to set up the run today and advance Pillars 3 and 5 from L100 Initial to L200 Defined."*

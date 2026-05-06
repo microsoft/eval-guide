@@ -153,7 +153,7 @@ Eval maturity has five pillars and five levels each — from `L100 Initial` (no 
 ### 2.2 Review generated test cases
 
 - The AI generates from the plan. Share real production phrasings now if you want them used.
-- Factual content in expected responses is wrapped in `[VERIFY: …]` markers so you can spot-check it.
+- Factual content in expected responses is wrapped in `[VERIFY: …]` markers in the dashboard so you can spot-check it. The markers are stripped automatically when the CSV and the test-case `.docx` are generated — the customer-facing artifacts ship clean.
 
 ### 2.3 Generate dashboard checkpoint
 
@@ -165,7 +165,7 @@ Eval maturity has five pillars and five levels each — from `L100 Initial` (no 
   - **Criterion cards** show the quadrant badge, the statement, and the **Pass = / Fail = conditions** in green/red. No per-criterion method dropdown — every criterion in a signal uses the signal's full method set.
   - **Custom rubric callout** appears under the conditions when `Custom` is in the signal's methods — an editable LLM-judge rubric drafted from the criterion's pass/fail conditions. Edit it for your domain.
   - **A small reference-free note** appears when `General quality` or `Capability use` is in the signal's methods — those methods grade against pass/fail conditions, not a reference, so they don't add a per-case column.
-  - **Test cases table** has columns driven by the signal's reference-needing methods: one column for `Question`, then one column per method that needs a per-case reference (`Compare meaning`, `Text similarity`, `Exact match`, `Keyword match`). Each cell is editable. `[VERIFY: …]` spans in `Compare meaning` / `Text similarity` cells are highlighted yellow — fact-check before approving.
+  - **Test cases table** has columns driven by the signal's reference-needing methods: one column for `Question`, then one column per method that needs a per-case reference (`Compare meaning`, `Text similarity`, `Exact match`, `Keyword match`). Each cell is editable. `[VERIFY: …]` spans in `Compare meaning` / `Text similarity` cells are highlighted yellow — fact-check before approving. The brackets are stripped automatically when the CSV and `.docx` are generated, so the customer-facing files ship clean.
   - Add or delete test cases with the per-row buttons.
   - Click **Approve & Continue to Next Stage** or **Incorporate Changes & Generate New Plan**.
 - **What happens when you click:** Your edits go straight from the browser to the localhost dashboard server, which forwards them to the AI's terminal output and shuts down. **No download, no file to move.** The AI applies your edits and either generates the deliverables (Approve) or re-launches a fresh dashboard with the changes already incorporated (Regenerate).

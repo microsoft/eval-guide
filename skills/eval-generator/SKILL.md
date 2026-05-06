@@ -170,15 +170,17 @@ Critical turn: [which turn is most likely to fail and why]
 
 ---
 
-### Step 6 — VERIFY discipline
+### Step 6 — VERIFY discipline (review-only, stripped on export)
 
-The most common cause of false failures in eval results is **wrong expected responses**, not wrong agent answers. Defend against this with `[VERIFY: …]` markers.
+The most common cause of false failures in eval results is **wrong expected responses**, not wrong agent answers. Defend against this with `[VERIFY: …]` markers — but only as a review aid, not as final output.
 
 - Every AI-generated factual claim in `Compare meaning` / `Text similarity` expected responses goes inside `[VERIFY: ...]` — e.g., *"LA employees receive [VERIFY: 18] PTO days per year, per the [VERIFY: Time Off Policy v3.2]."*
 - Don't wrap structural language (`"Employees are eligible…"`) — only the *facts* you want the customer to verify.
 - Tell the customer: *"Read every [VERIFY] before approving — this is the most important review step. Wrong expected responses cause correct agent answers to fail."*
 
 In `Keyword match` lists, you can wrap individual keywords in `[VERIFY: …]` if they're factual (e.g., URLs, version numbers, exact policy names).
+
+**At export time, strip every `[VERIFY: …]` wrapper.** By the time the customer has clicked Approve, every span has been confirmed or edited — the brackets have served their purpose. Apply the regex `\[VERIFY:\s*([^\]]*)\]` → `$1` to every value before writing it to the CSV or the customer-facing `.docx` test-case report. The internal `stage-2-data.json` may keep them for traceability if you re-launch the dashboard, but no customer-facing artifact should contain them.
 
 ---
 
@@ -197,11 +199,13 @@ For each `test_set`, write **one CSV** named `eval-<signal-slug>-<YYYY-MM-DD>.cs
 **Row generation rule.** One row per active case per criterion (no case × method explosion). Per row:
 - `Question` = the case's question.
 - `Expected response` = whichever of the case's `expected_responses` is most informational, picked by this priority order against the signal's method set:
-  1. `Compare meaning` → `case.expected_responses["Compare meaning"]` (canonical answer with `[VERIFY: …]` markers preserved).
+  1. `Compare meaning` → `case.expected_responses["Compare meaning"]`.
   2. `Text similarity` → `case.expected_responses["Text similarity"]`.
   3. `Exact match` → `case.expected_responses["Exact match"]`.
   4. `Keyword match` → `case.expected_responses["Keyword match"]` (comma-separated keyword list).
   5. None of the above (signal only has reference-free methods like `General quality` / `Custom` / `Capability use`) → leave the cell empty.
+
+**Strip every `[VERIFY: …]` marker from the cell value before writing the row.** Replace `[VERIFY: <content>]` → `<content>`. The CSV is the customer's eval set; it must contain clean expected responses with no review-tooling syntax. See Step 6.
 
 The customer can edit any cell before or after import — the CSV's pre-fills are starting points, not final values. The eval-setup-guide.docx tells them when to edit (e.g., switching a row's cell from canonical-answer to keyword-list when they decide the row should use `Keyword match` in the CPS UI).
 
@@ -227,7 +231,7 @@ Use the `/docx` skill to generate `eval-test-cases-<agent>-<date>.docx`. Structu
    - Signal name + signal's method set.
    - Per criterion: quadrant badge, statement, pass/fail conditions, `custom_rubric` if Custom is in the signal's methods.
    - Test cases under each criterion: Question + per-method expected (or note "graded against pass/fail" for reference-free methods).
-   - `[VERIFY]` content called out visually (highlighted yellow / italic).
+   - **No `[VERIFY: …]` markers** — they were a review aid in the dashboard, but every span has now been confirmed or edited. The `.docx` ships clean.
 4. **Method mapping summary** — count of cases per method, with notes on which methods need manual addition (Custom, sometimes Capability use).
 5. **What these tests catch** — 3–4 bullet points naming what the customer would have missed without these tests.
 6. **Next steps**: *"Import the CSVs into Copilot Studio's Evaluation tab. Add Custom cases manually using the rubrics below. Run the suite and pass the results to `/eval-result-interpreter`."*
