@@ -1,6 +1,6 @@
 ---
 name: eval-generator
-description: Stage 2 standalone — turns an eval plan (output of `/eval-suite-planner`) into concrete test cases grouped by quality signal. Methods live at the signal level (one or many per signal); each criterion shares the signal's method set. Outputs one CSV per signal (3 columns, one row per case × method) plus a customer-ready `.docx` test-case report. Use after planning, before running.
+description: Stage 2 standalone — turns an eval plan (output of `/eval-suite-planner`) into concrete test cases grouped by quality signal. Methods live at the signal level (one or many per signal); each criterion shares the signal's method set. Outputs one CSV per signal (2 columns: Question + Expected response, one row per case) plus a customer-ready `.docx` test-case report and an `eval-setup-guide.docx` that walks the customer through assigning testing methods per row manually in Copilot Studio's Evaluate tab. Use after planning, before running.
 ---
 
 ## Purpose
@@ -186,35 +186,36 @@ In `Keyword match` lists, you can wrap individual keywords in `[VERIFY: …]` if
 
 #### A. CSV files — one per quality signal
 
-For each `test_set`, write **one CSV** named `eval-<signal-slug>-<YYYY-MM-DD>.csv`. **Three columns:**
+For each `test_set`, write **one CSV** named `eval-<signal-slug>-<YYYY-MM-DD>.csv`. **Exactly two columns:**
 
 ```csv
-"Question","Expected response","Testing method"
+"Question","Expected response"
 ```
 
-**Row generation rule.** Walk every criterion in the signal × every active case × every method in `test_sets[i].methods`. For each `(case, method)` pair emit one row:
+**No `Testing method` column.** Copilot Studio's Evaluate tab assigns the method per row in its own UI after import — it is not pre-encoded in the CSV. The companion `eval-setup-guide-<agent>-<date>.docx` walks the customer through the manual method-assignment step.
 
-| Method | Row's Expected response cell | Row's Testing method cell |
-|---|---|---|
-| `Compare meaning` | `case.expected_responses["Compare meaning"]` verbatim | `Compare meaning` |
-| `Text similarity` | `case.expected_responses["Text similarity"]` verbatim | `Similarity` *(this is what Copilot Studio's import expects, not "Text similarity")* |
-| `Exact match` | `case.expected_responses["Exact match"]` verbatim | `Exact match` |
-| `Keyword match` | `case.expected_responses["Keyword match"]` (comma-separated keyword list) verbatim | `Keyword match` |
-| `General quality` | empty string `""` | `General quality` |
-| `Capability use` | empty string `""` | `Capability use` *(import via UI; not all tenants accept Capability use in CSV — see fallback below)* |
-| `Custom` | empty string `""` (the rubric goes into Copilot Studio's test-set Custom configuration, not the row) | omit row from CSV |
+**Row generation rule.** One row per active case per criterion (no case × method explosion). Per row:
+- `Question` = the case's question.
+- `Expected response` = whichever of the case's `expected_responses` is most informational, picked by this priority order against the signal's method set:
+  1. `Compare meaning` → `case.expected_responses["Compare meaning"]` (canonical answer with `[VERIFY: …]` markers preserved).
+  2. `Text similarity` → `case.expected_responses["Text similarity"]`.
+  3. `Exact match` → `case.expected_responses["Exact match"]`.
+  4. `Keyword match` → `case.expected_responses["Keyword match"]` (comma-separated keyword list).
+  5. None of the above (signal only has reference-free methods like `General quality` / `Custom` / `Capability use`) → leave the cell empty.
 
-A signal with `methods: ["Compare meaning"]` and 12 cases produces 12 rows. A signal with `methods: ["Compare meaning", "Keyword match"]` and 12 cases produces 24 rows — the same 12 questions, each repeated once per method, with the Testing method column distinguishing them.
+The customer can edit any cell before or after import — the CSV's pre-fills are starting points, not final values. The eval-setup-guide.docx tells them when to edit (e.g., switching a row's cell from canonical-answer to keyword-list when they decide the row should use `Keyword match` in the CPS UI).
+
+A signal with 12 cases produces exactly 12 rows.
 
 **CSV format rules:**
-- Three columns in this exact order: `Question`, `Expected response`, `Testing method`.
+- Two columns in this exact order: `Question`, `Expected response`.
 - Every value enclosed in double quotes.
 - Inner double quotes escaped as `""`.
 - UTF-8 encoded.
 
 **Methods NOT available via CSV import:**
-- **Custom** — rubric must be configured in the Copilot Studio Evaluation tab UI. Skip Custom rows in the CSV; surface them in the docx report so the customer adds them manually.
-- **Capability use** — supported in CSV by some tenants but not all. If unsure, list it in the docx report as a manual-add.
+- **Custom** — rubric is configured in the Copilot Studio Evaluation tab at the test-set level. Customer pastes the rubric drafted in the test-case `.docx` report into the CPS Custom configuration.
+- **Capability use** — supported in some tenants only. If used, the customer assigns it per row in CPS UI like any other method.
 
 #### B. `.docx` test-case report
 
@@ -289,7 +290,7 @@ Display before ending. Eval kits are useless without human validation.
 /eval-suite-planner I'm building an HR policy bot...
 [planner outputs eval plan with criteria on Value × Risk matrix]
 /eval-generator
-<- generates from the plan, one CSV per quality signal (3 cols, one row per case × method)
+<- generates from the plan, one CSV per quality signal (2 cols: Question + Expected response, one row per case)
 <- produces .docx test-case report
 
 /eval-generator I'm building a meeting-notes agent that takes a transcript and produces structured action items.

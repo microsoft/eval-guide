@@ -170,7 +170,7 @@ Eval maturity has five pillars and five levels each — from `L100 Initial` (no 
   - Click **Approve & Continue to Next Stage** or **Incorporate Changes & Generate New Plan**.
 - **What happens when you click:** Your edits go straight from the browser to the localhost dashboard server, which forwards them to the AI's terminal output and shuts down. **No download, no file to move.** The AI applies your edits and either generates the deliverables (Approve) or re-launches a fresh dashboard with the changes already incorporated (Regenerate).
 - **What you get back (after Approve):**
-  - **One CSV per quality signal** — e.g. `eval-knowledge-accuracy-<date>.csv`, `eval-safety-compliance-<date>.csv`, etc. Three columns: `Question`, `Expected response`, `Testing method`. Each test case is repeated once per method in that signal's method set, with the `Testing method` column distinguishing the rows. Paste directly into Copilot Studio's Evaluation tab.
+  - **One CSV per quality signal** — e.g. `eval-knowledge-accuracy-<date>.csv`, `eval-safety-compliance-<date>.csv`, etc. **Two columns only: `Question`, `Expected response`.** No testing method column — that is set manually per row in Copilot Studio's Evaluate tab UI after import. The `eval-setup-guide-<agent>-<date>.docx` walks you through that step in detail.
   - For methods that grade against pass/fail (`General quality`, `Capability use`, `Custom`), the `Expected response` cell is empty — Copilot Studio uses the criterion's pass/fail (and for `Custom`, the rubric you set in the test-set configuration).
   - A customer-ready **`.docx` test case report** — Value × Risk matrix summary, test cases grouped by quality dimension with quadrant badges, pass/fail conditions, Custom rubrics where set, and a "What these tests catch" callout.
 
@@ -223,7 +223,7 @@ If the agent IS running:
 **You walk away with:**
 - `stage-0-data.json` — confirmed Agent Vision.
 - `.docx` eval plan (Stage 1) with Value × Cost matrix and acceptance criteria.
-- One CSV per quality signal (Stage 2): `eval-<signal>-<date>.csv` — 3 columns (Question, Expected response, Testing method), one row per case × method.
+- One CSV per quality signal (Stage 2): `eval-<signal>-<date>.csv` — 2 columns (Question, Expected response), one row per case. Testing method is set manually per row in Copilot Studio's Evaluate tab UI; the `eval-setup-guide-<agent>-<date>.docx` walks through that.
 - `.docx` test case report (Stage 2).
 - *If Stage 3 ran:* results CSV/JSON and `.docx` triage report (Stage 4).
 - **`eval-setup-guide-<agent>-<date>.docx`** — step-by-step walkthrough for setting up and running the CSVs in Copilot Studio's Evaluate tab. Per-method setup details (`General quality`, `Compare meaning`, `Keyword match`, `Custom`, etc.), threshold guidance tied to your quadrants, and a troubleshooting table for common import/run problems. Open it the first time you set up the run and any time someone new on the team picks it up.

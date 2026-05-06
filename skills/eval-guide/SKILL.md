@@ -817,26 +817,28 @@ Before generating final CSV and report files, launch the test cases dashboard fo
    If changes requested instead of confirmed, regenerate and re-launch.
 5. **After confirmation**, generate the final deliverables:
 
-**A. CSV files** — One CSV per quality signal: `eval-<signal>-<date>.csv`. **Three columns**:
+**A. CSV files** — One CSV per quality signal: `eval-<signal>-<date>.csv`. **Exactly two columns**:
 
    ```csv
-   "Question","Expected response","Testing method"
+   "Question","Expected response"
    ```
 
-   **Row generation rule.** Walk every criterion in the signal, every active case in that criterion, and every method in `test_sets[i].methods`. For each `(case, method)` pair emit one row:
+   **No Testing method column.** Copilot Studio's Evaluation tab requires the customer to **set the testing method manually per row in the UI** after import — it is not pre-encoded in the CSV. The companion `eval-setup-guide-<agent>-<date>.docx` (deliverable E below) walks the customer through that manual step in detail.
 
-   - `Question` = the case's question (same across methods).
-   - `Testing method` = the method name.
-   - `Expected response`:
-     - For `Compare meaning` / `Text similarity` → `case.expected_responses["Compare meaning"]` (or `"Text similarity"`) verbatim.
-     - For `Exact match` → `case.expected_responses["Exact match"]` verbatim.
-     - For `Keyword match` → `case.expected_responses["Keyword match"]` (the comma-separated keyword list) verbatim.
-     - For `General quality` / `Capability use` → leave **empty**. The judge grades against the criterion's pass/fail conditions.
-     - For `Custom` → leave **empty**. The judge uses `criterion.custom_rubric` (carried alongside in the docx report); the CSV cell stays blank because Copilot Studio's Custom method picks up the rubric from the test-set configuration, not from the row.
+   **Row generation rule.** One row per active case per criterion (no case × method explosion). Per row:
+   - `Question` = the case's question.
+   - `Expected response` = whichever of the case's `expected_responses` is most informational, picked by this priority order against the signal's method set:
+     1. `Compare meaning` → `case.expected_responses["Compare meaning"]` (canonical answer with `[VERIFY: …]` markers preserved).
+     2. `Text similarity` → `case.expected_responses["Text similarity"]`.
+     3. `Exact match` → `case.expected_responses["Exact match"]`.
+     4. `Keyword match` → `case.expected_responses["Keyword match"]` (comma-separated keyword list).
+     5. None of the above (signal only has reference-free methods like `General quality` / `Custom` / `Capability use`) → leave the cell empty.
 
-   A signal with `methods: ["Compare meaning"]` and 12 cases produces 12 rows. A signal with `methods: ["Compare meaning", "Keyword match"]` and 12 cases produces 24 rows (the same 12 questions, each repeated once per method, with the Testing method column distinguishing them).
+   Important: the cell content is what's most useful for the customer to start from. They can edit any cell in CPS or in the CSV before import — for example, switching a row from canonical-answer to keyword-list when they decide that row should use `Keyword match`. The eval-setup-guide.docx makes this explicit.
 
-   Tell the customer: "One CSV per quality signal — paste directly into Copilot Studio's Evaluation tab. Each test case is repeated once per method in that signal's method set so the Testing method column matches the row's Expected response."
+   A signal with 12 cases produces exactly 12 rows. (No multiplication by methods.)
+
+   Tell the customer: "One CSV per quality signal — two columns: Question and Expected response. Import each into Copilot Studio's Evaluation tab. Then in the CPS UI, set the **Testing method** for every row — this is a manual step. The eval-setup-guide.docx walks you through which method to pick per criterion and what threshold to set."
 
 **B. .docx report** — Generate a customer-ready report using the `/docx` skill. The report must be:
 - **Concise** — no filler, no walls of text. Tables over paragraphs.

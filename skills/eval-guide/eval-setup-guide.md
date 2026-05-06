@@ -48,31 +48,55 @@ A test set is one bundle of test cases that share an evaluation mode. You will c
 ## Step 3 — Import the CSV
 
 1. Inside the new test set, click **Add test cases** → **Import from CSV**.
-2. Pick the CSV for the signal you're setting up (e.g., `eval-knowledge-accuracy-<date>.csv`). It has 3 columns: `Question`, `Expected response`, `Testing method`. Each test case appears once per method in that signal's method set, with the `Testing method` column distinguishing the rows.
+2. Pick the CSV for the signal you're setting up (e.g., `eval-knowledge-accuracy-<date>.csv`). **It has exactly two columns: `Question` and `Expected response`.** That's by design — the testing method is **not** in the CSV. You will set it manually per row in the next step.
 3. Confirm the column mapping:
-   - `Question` → user prompt
-   - `Expected response` → reference answer (blank for `General quality` / `Custom` / `Capability use` rows; that is intentional)
+   - `Question` → user prompt the agent will receive.
+   - `Expected response` → the reference value the test case compares against. The eval-guide skill pre-fills this with the most useful starting value per row (canonical answer, keyword list, or blank, depending on the criterion).
 4. Import. Spot-check the first 3 rows after import — UTF-8 quote handling and embedded commas are the most common reasons rows look mangled.
 
-## Step 4 — Choose a test method per row, configure it, and set thresholds
+> ⚠️ **The CSV does not carry the testing method.** That decision is yours, made in the Copilot Studio UI, per row, in Step 4 below. Do not assume the imported rows are ready to run — they are not.
 
-This is the step where most first-time runs go wrong. Methods are set at the **quality signal level** in `/eval-guide` Stage 2 — every criterion in a signal shares the same method set. The signal CSV's `Testing method` column carries that mapping per row. Use this section to (a) pick the right method when you're unsure, (b) configure it correctly, and (c) set a sensible threshold.
+## Step 4 — Set the testing method per row in the Copilot Studio UI
+
+**This is the most important manual step in the setup.** The eval-guide skill cannot encode test methods in the CSV — Copilot Studio's Evaluation tab assigns the method per row in its own UI after import. **Every row must have a method set before you can run the eval.**
+
+### What to do, row by row
+
+1. In the imported test set, find the **Testing method** column (a dropdown per row).
+2. For every row, pick the method based on the criterion that row tests. Use the decision tree below.
+3. Save the test set after the last row is configured.
 
 ### How to pick the method (quick decision tree)
 
 Walk this top-down — first match wins.
 
-1. **Is the criterion about the agent invoking the right tool/topic, regardless of phrasing?** → `Capability use`.
+1. **Is the criterion about the agent invoking the right tool/topic, regardless of phrasing?** → `Capability use` (called *Tool use* in some UI versions).
 2. **Is the response a fixed string or templated output (IDs, codes, structured replies)?** → `Exact match`.
-3. **Must the response contain specific words or disclaimers (compliance, citation phrases, required boilerplate)?** → `Keyword match`.
-4. **Is there a clear correct answer that can be phrased many ways?** → `Compare meaning`.
+3. **Must the response contain specific words or disclaimers (compliance, citation phrases, required boilerplate)?** → `Keyword match`. Edit the cell to a comma-separated keyword list if it isn't already.
+4. **Is there a clear correct answer that can be phrased many ways?** → `Compare meaning`. The cell already holds the canonical answer.
 5. **Is correctness a 0/1 string-similarity question (close enough wording)?** → `Text similarity`.
-6. **Is the criterion subjective (tone, helpfulness, completeness, safety) with no single right answer?** → `General quality`.
-7. **None of the above fit cleanly?** → `Custom` (write your own rubric).
+6. **Is the criterion subjective (tone, helpfulness, completeness, safety) with no single right answer?** → `General quality`. **Clear the Expected response cell** — General quality grades against the criterion's pass/fail conditions, not a reference.
+7. **None of the above fit cleanly?** → `Custom`. Configure the rubric in the test-set's Custom method settings (the eval-guide skill drafts a rubric per criterion in the test-case `.docx` report — paste that in).
 
 If two methods feel equally right, prefer the cheaper, more deterministic one (`Keyword match` > `Text similarity` > `Compare meaning`/`General quality`). LLM-judge methods cost tokens and have ±5% run-to-run variance.
 
-### Per-method setup, thresholds, and pitfalls
+### What goes in the Expected response cell, per method
+
+| Method | What the cell should contain |
+|---|---|
+| `Compare meaning` | Canonical answer in natural language. Paraphrase OK at run time. |
+| `Text similarity` | Expected text. Higher similarity → pass. |
+| `Exact match` | Exact string. Byte-equal at grade time. |
+| `Keyword match` | Comma-separated keywords (`"escalate, manager, callback"`). All must appear by default. |
+| `General quality` | **Empty.** Judge uses the criterion's pass/fail conditions instead. |
+| `Capability use` | **Empty** (or, if your tenant supports it, the expected tool/topic name). |
+| `Custom` | **Empty** in the cell. The rubric is configured at the test-set level, not per row. |
+
+If a row's pre-filled cell content doesn't match the method you're picking — for example, the cell has a long sentence but you want `Keyword match` — edit the cell. The CSV's pre-fills are starting points, not final.
+
+### Per-method setup, thresholds, and pitfalls (depth reference)
+
+Read the block for whichever method you assigned in the CPS dropdown. Each block tells you (a) how to configure it, (b) what threshold to set, and (c) common pitfalls.
 
 #### General quality (LLM judge — rubric-based, no reference answer)
 
@@ -168,9 +192,9 @@ For LLM-judge and similarity methods, the threshold is the only knob you control
 2. **Calibrate on 10 cases before locking.** Run a small subset, sample 10 verdicts at your candidate threshold, and ask: "If I were grading this myself, would I have come to the same Pass/Fail?" If agreement is below 80%, the threshold is wrong (or the rubric is).
 3. **Document the threshold next to the eval plan.** Write the threshold per quality signal into your `eval-plan-<agent>-<date>.docx` so future runs use the same bar. Drifting thresholds are the silent killer of run-to-run comparability.
 
-### When the CSV says "Testing method" but the Evaluate tab disagrees
+### A note on the test-case `.docx` report from `/eval-guide`
 
-If a row in your CSV had `Testing method` populated (working copy), apply that. If a row was left blank because the criterion uses `General quality` / `Custom` / `Capability use` (no reference answer), set the method explicitly in the UI — the Evaluate tab does not infer it. Mismatches between the CSV's suggested method and what the UI lets you pick are usually a sign that the criterion needs to be split into two criteria with two methods.
+The Stage 2 `.docx` test-case report (separate from this setup guide) groups every criterion and lists which method the eval-guide skill *suggested* for each. Use it as a cross-reference while you're setting methods in the CPS UI — it's the authoritative source for "this criterion was designed to be tested by Compare meaning, that one by Keyword match." If a row's pre-filled Expected response cell contradicts the method you ultimately want to use, edit the cell — see the table at the top of Step 4 for the right cell content per method.
 
 ## Step 5 — Connect to the agent endpoint
 
@@ -215,7 +239,7 @@ If you skip the export, you will lose run history and the ability to compare run
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| CSV import fails with "row format invalid" | Smart quotes / non-UTF-8 / extra columns | Re-save the CSV as UTF-8; confirm exactly the columns the Evaluate tab expects (3 cols: Question, Expected response, Testing method). |
+| CSV import fails with "row format invalid" | Smart quotes / non-UTF-8 / extra columns | Re-save the CSV as UTF-8; confirm exactly the two columns the Evaluate tab expects: `Question`, `Expected response`. No `Testing method` column should be in the file. |
 | Every case fails on `Compare meaning` | Expected response column is blank or contains `[VERIFY: …]` placeholders | Fill in the expected response with verified content; never leave `[VERIFY]` markers in the imported file. |
 | LLM judge marks correct answers as wrong | Pass/fail condition is too narrow, or judge doesn't know the domain | Switch to `General quality` with a more explicit pass condition, OR add a `Custom` rubric, OR fix the expected response. |
 | Run gets stuck "in progress" past expected time | Agent endpoint is unreachable, throttled, or auth expired | Re-test the agent in the standard Test pane. Resolve auth/quota first; restart the run. |
@@ -234,7 +258,7 @@ At that point you have a repeatable eval setup. The rerun protocol tells you whe
 ## Related artifacts (from this session)
 
 - `eval-plan-<agent>-<date>.docx` — Stage 1 plan; defines the criteria each test case is judging.
-- `eval-<signal>-<date>.csv` — the files you import in Step 3 (Question, Expected response, Testing method per row).
+- `eval-<signal>-<date>.csv` — the files you import in Step 3 (two columns: Question, Expected response). The testing method is set per row in the CPS UI in Step 4.
 - `rerun-protocol-<agent>-<date>.docx` — when to re-run; pairs with this guide.
 - `baseline-comparison-<agent>-<date>.xlsx` — how to compare two runs once you have multiple exports.
 
