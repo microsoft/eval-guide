@@ -771,6 +771,35 @@ function init() {
 
   const isOffline = window.location.protocol === "file:";
   if (isOffline) {
+    // Static-preview mode: dashboard opened from a saved file, not a live
+    // server. Make this state visually obvious — show a banner at the top
+    // of the main content, and visually disable the submit buttons so the
+    // customer doesn't waste a click on a flow that can't complete.
+    const main = document.getElementById("main-content");
+    const banner = document.createElement("div");
+    banner.id = "offline-preview-banner";
+    banner.style.cssText =
+      "background:var(--guardrails-wash);" +
+      "border-left:3px solid var(--guardrails);" +
+      "border-radius:var(--radius);" +
+      "padding:0.85rem 1.1rem;" +
+      "margin-bottom:1.4rem;" +
+      "font-family:var(--serif);" +
+      "font-style:italic;" +
+      "font-size:0.95rem;" +
+      "color:var(--ink-soft);" +
+      "line-height:1.5;";
+    banner.innerHTML =
+      '<div style="font-family:var(--sans);font-style:normal;font-weight:700;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#7a5a16;margin-bottom:0.35rem;">Static preview mode</div>' +
+      'This dashboard was opened from a saved file (<code style="font-family:var(--mono);font-style:normal;background:var(--paper);padding:0 0.25rem;border-radius:2px;">file://</code>), not a live <code style="font-family:var(--mono);font-style:normal;background:var(--paper);padding:0 0.25rem;border-radius:2px;">--serve</code> session. Inline edits and comments are saved to your browser, but <strong style="font-family:var(--sans);font-style:normal;font-weight:600;color:var(--ink);">Approve & Continue</strong> and <strong style="font-family:var(--sans);font-style:normal;font-weight:600;color:var(--ink);">Incorporate Changes & Regenerate</strong> can\'t send anything back to the AI from here. Ask the AI to re-launch the dashboard — it will start a localhost server and the buttons will work.';
+    if (main && main.firstChild) main.insertBefore(banner, main.firstChild);
+    // Visually + functionally disable the submit buttons.
+    document.querySelectorAll(".nav .btn").forEach(btn => {
+      btn.disabled = true;
+      btn.style.opacity = "0.45";
+      btn.style.cursor = "not-allowed";
+      btn.title = "Static preview — re-launch via --serve to enable";
+    });
     try {
       const key = "eval-dashboard-" + EMBEDDED_DATA.stage;
       const saved = JSON.parse(localStorage.getItem(key) || "{}");
