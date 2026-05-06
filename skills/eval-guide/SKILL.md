@@ -815,7 +815,7 @@ Before generating final CSV and report files, launch the test cases dashboard fo
    **Then narrate the edits back so the customer sees their changes were captured** — count [VERIFY] corrections, count test case additions/deletions, list significant pass/fail edits, restate updated total case count. Example: *"Got it — 8 [VERIFY] corrections captured, 2 new test cases for criterion #14, total now 56 cases across 7 quality signals."* Don't just say "applied." The narration confirms you parsed correctly; it is NOT an invitation to re-decide.
 
    If changes requested instead of confirmed, regenerate and re-launch.
-5. **After confirmation**, generate the final deliverables:
+5. **After confirmation, automatically generate ALL FIVE deliverables (A through E) — do not wait for the user to ask, do not ask "should I generate the docx now?", do not generate them in stages.** The CSVs, the test-case `.docx` report, the eval-setup-guide `.docx`, the rerun-protocol `.docx`, and the baseline-comparison `.xlsx` are one delivery, produced together. The customer should see the artifact list in chat ("five files generated") and find the files on disk before they say anything more.
 
 **A. CSV files** — One CSV per quality signal: `eval-<signal>-<date>.csv`. **Exactly two columns**:
 
@@ -881,7 +881,7 @@ Report structure:
    | **Decision rules** | Variance rules, ship/hold logic. Read-only reference sheet. |
    | **Capability vs. regression** | Cheat sheet on the two run types, when to use each. Read-only reference sheet. |
 
-**E. Eval setup guide — `eval-setup-guide-<agent>-<date>.docx`** — Generate using the `/docx` skill, sourcing structure and content from `skills/eval-guide/eval-setup-guide.md`. This is the customer's step-by-step walkthrough for setting up and running the CSVs in Copilot Studio's Evaluate tab — the operational companion to the eval set.
+**E. Eval setup guide — `eval-setup-guide-<agent>-<date>.docx`** — **Always generate this alongside the CSVs (A). It is not optional and not on-request.** Without it, the customer is staring at CSVs with no instructions for the manual method-assignment step in CPS. Generate using the `/docx` skill, sourcing structure and content from `skills/eval-guide/eval-setup-guide.md`. This is the customer's step-by-step walkthrough for setting up and running the CSVs in Copilot Studio's Evaluate tab — the operational companion to the eval set.
 
    Render the markdown sections as docx sections with the same headings (What you should have before you start, Step 1–8, Per-method setup table, How to choose a threshold, Common setup issues, You've finished setup successfully when…, Related artifacts, References). Format the per-method setup section as styled docx tables; pull the criteria-quadrant decision tree into a callout box; preserve the troubleshooting symptom/cause/fix table verbatim.
 
