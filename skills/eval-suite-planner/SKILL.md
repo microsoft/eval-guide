@@ -1,6 +1,6 @@
 ---
 name: eval-suite-planner
-description: Plan standalone — populates the Eval Suite Planning & Logging Template from an Agent Vision or plain-English agent description. Grounded in Practical Guidance on Agent Evaluation v5: Step 1 planning, Steps 2-3 eval-set decomposition, Step 4 gates/improvement targets, Step 5 human inputs, Step 6 grader-validation planning, Step 7 baseline placeholders, Step 8 regression partitioning, and Step 10 reusable-asset candidates. Output is a template-preserving `.xlsx` workbook plus an interactive HTML review page. Use before generating test cases or running evals.
+description: 'Plan standalone — populates the Eval Suite Planning & Logging Template from an Agent Vision or plain-English agent description. Grounded in Practical Guidance on Agent Evaluation v5: Step 1 planning, Steps 2-3 eval-set decomposition, Step 4 gates/improvement targets, Step 5 human inputs, Step 6 grader-validation planning, Step 7 baseline placeholders, Step 8 regression partitioning, and Step 10 reusable-asset candidates. Output is a template-preserving `.xlsx` workbook plus an interactive HTML review page. Use before generating test cases or running evals.'
 ---
 
 ## Purpose
